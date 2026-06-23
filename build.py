@@ -122,12 +122,28 @@ def load_sectors() -> list:
 # Talking to the model
 # ─────────────────────────────────────────────────────────────────────────────
 
-def call_model(client: Anthropic, master_prompt: str, sector: str) -> str:
+# Appended to the prompt on a retry when the first reply couldn't be parsed.
+RETRY_REMINDER = (
+    "REMINDER — OUTPUT FORMAT IS MANDATORY: a previous attempt could not be "
+    "parsed. Produce the full HTML report, then END your reply with a single "
+    "fenced ```json code block containing the sidecar object exactly as "
+    "specified (keys: sector, date, direction_score, label, conviction, tldr, "
+    "top_stocks). That ```json block MUST be the very last thing in your "
+    "response — write nothing after its closing ```."
+)
+
+
+def call_model(client: Anthropic, master_prompt: str, sector: str,
+               extra_instruction: str = "") -> str:
     """Run the master prompt for ONE sector with live web search enabled.
 
     The master prompt is sent as its own content block with prompt caching on,
     so after the first sector it is served from cache (it's identical every
     time) — only the short 'SECTOR: <name>' line changes per call.
+
+    `extra_instruction`, if given, is appended after the SECTOR line (used by the
+    one-shot retry to force the required format). It stays OUT of the cached
+    block so prompt caching on the master prompt still applies.
     """
     resp = client.messages.create(
         model=MODEL,
@@ -143,8 +159,11 @@ def call_model(client: Anthropic, master_prompt: str, sector: str) -> str:
                 # Big, identical-every-time block -> cache it.
                 {"type": "text", "text": master_prompt,
                  "cache_control": {"type": "ephemeral"}},
-                # The only part that changes per sector.
-                {"type": "text", "text": f"\n\nSECTOR: {sector}"},
+                # The only part that changes per sector (plus an optional
+                # one-shot reminder on a retry).
+                {"type": "text",
+                 "text": f"\n\nSECTOR: {sector}"
+                         + (f"\n\n{extra_instruction}" if extra_instruction else "")},
             ],
         }],
     )
@@ -175,22 +194,89 @@ VALID_LABELS = {"BULLISH", "BEARISH", "NEUTRAL"}
 VALID_CONVICTION = {"High", "Medium", "Low"}
 
 
+def _iter_balanced_objects(text: str):
+    """Yield (start, end) character spans of every top-level ``{...}`` object in
+    `text`, correctly ignoring braces that appear inside JSON string literals
+    (so a brace in a "tldr" value, or a CSS ``{ }`` block, doesn't fool it).
+    Top-level = brace depth returns to zero; nested objects stay part of their
+    enclosing span."""
+    depth = 0
+    start = -1
+    in_str = False
+    esc = False
+    for i, ch in enumerate(text):
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and start != -1:
+                    yield (start, i + 1)
+                    start = -1
+
+
+def _find_sidecar(text: str):
+    """Locate the JSON sidecar tolerantly and return (sidecar_dict, start_index).
+
+    Two passes:
+      1. Preferred — the LAST fenced ```json ... ``` block.
+      2. Fallback — the LAST balanced top-level ``{...}`` object that parses as
+         JSON (preferring one that actually looks like our sidecar). This
+         rescues replies where the model dropped the fence or added trailing
+         text after the JSON. CSS/JS braces are skipped automatically because
+         they don't parse as JSON."""
+    # Pass 1: a properly fenced json block (the normal, happy path).
+    for m in reversed(list(re.finditer(r"```json\s*(.*?)```", text, re.DOTALL))):
+        try:
+            return json.loads(m.group(1).strip()), m.start()
+        except Exception:
+            break  # fence exists but is malformed -> fall through to pass 2
+
+    # Pass 2: scan for balanced top-level objects and parse them.
+    parsed = []  # list of (start_index, dict)
+    for s, e in _iter_balanced_objects(text):
+        try:
+            obj = json.loads(text[s:e])
+        except Exception:
+            continue
+        if isinstance(obj, dict):
+            parsed.append((s, obj))
+    if parsed:
+        # Prefer the last object that looks like the sidecar; else the last dict.
+        for s, obj in reversed(parsed):
+            if "direction_score" in obj:
+                return obj, s
+        return parsed[-1][1], parsed[-1][0]
+
+    raise ValueError("no parseable JSON sidecar found in model output")
+
+
 def extract_parts(text: str):
     """Split the reply into (report_html, sidecar_dict).
 
-    The model emits the HTML report first, then a fenced ```json block last.
-    We grab the LAST json fence as the sidecar and treat everything before it as
-    the report HTML (stripping an optional wrapping ```html fence)."""
-    fences = list(re.finditer(r"```json\s*(.*?)```", text, re.DOTALL))
-    if not fences:
-        raise ValueError("no ```json sidecar block found in model output")
-    last = fences[-1]
-    sidecar = json.loads(last.group(1).strip())
+    The model emits the HTML report first, then the JSON sidecar last. We locate
+    the sidecar tolerantly (see _find_sidecar) and treat everything before it as
+    the report HTML (stripping an optional wrapping ```html / ```json fence)."""
+    sidecar, start = _find_sidecar(text)
 
-    body = text[:last.start()].strip()
-    # If the model wrapped the report in ```html ... ``` fences, unwrap it.
+    body = text[:start].strip()
+    # If the model wrapped the report in ```html ... ``` fences, unwrap it, and
+    # drop any dangling fence opener (```html / ```json) left right before the
+    # sidecar in the fence-less fallback case.
     body = re.sub(r"^```html\s*\n?", "", body)
-    body = re.sub(r"\n?```\s*$", "", body).strip()
+    body = re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
     if not body:
         raise ValueError("report HTML was empty")
     return body, sidecar
@@ -254,15 +340,27 @@ def build_sector(client: Anthropic, master_prompt: str, sector: str) -> bool:
     slug = slugify(sector)
     print(f"\n=== {sector}  ({slug}) ===")
 
-    # 1) Ask the model. Any failure here -> skip, keep yesterday's report.
-    try:
-        text = call_model(client, master_prompt, sector)
+    # 1) Ask the model, parse, and validate. If anything fails, make ONE
+    #    automatic retry with a forceful format reminder before giving up. Only
+    #    after the retry ALSO fails do we skip and keep yesterday's report.
+    def attempt(extra=""):
+        text = call_model(client, master_prompt, sector, extra)
         body, sidecar = extract_parts(text)
         validate_sidecar(sidecar)
+        return body, sidecar
+
+    try:
+        body, sidecar = attempt()
     except Exception as e:
-        print(f"  !! SKIPPED — {e}")
-        print(f"  !! Keeping yesterday's report for '{sector}'.")
-        return False
+        print(f"  !! attempt 1 failed — {e}")
+        print(f"  !! retrying '{sector}' once with a stricter format reminder...")
+        try:
+            body, sidecar = attempt(RETRY_REMINDER)
+        except Exception as e2:
+            print(f"  !! SKIPPED — {e2}")
+            print(f"  !! Keeping yesterday's report for '{sector}'.")
+            return False
+        print(f"  .. retry succeeded for '{sector}'.")
 
     sector_dir = SITE / slug
     sector_dir.mkdir(parents=True, exist_ok=True)

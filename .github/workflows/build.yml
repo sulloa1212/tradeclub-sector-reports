@@ -1,0 +1,42 @@
+name: Build sector reports
+
+# How this runs:
+#   • workflow_dispatch  → the primary trigger. cron-job.org POSTs to the GitHub
+#     API each weekday pre-market to fire this (same pattern as Sniper).
+#   • schedule           → a backup cron in case the external scheduler misses.
+on:
+  workflow_dispatch:
+  schedule:
+    # ~08:30 ET on weekdays (12:30 UTC). Backup only — cron-job.org is primary.
+    - cron: '30 12 * * 1-5'
+
+permissions:
+  contents: write   # needed so the job can commit the rebuilt site/ back
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build reports (Anthropic API + live web search)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python build.py
+
+      - name: Commit & push the rebuilt site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/
+          git commit -m "Auto: sector reports $(date -u +%Y-%m-%d)" || echo "Nothing to commit"
+          git push

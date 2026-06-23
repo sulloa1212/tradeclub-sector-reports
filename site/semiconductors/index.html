@@ -1,0 +1,1009 @@
+I'll start by confirming today's date and gathering all required live data before building the report.Good, I have key macro data. Now let me search for specific semiconductor stocks and more current price/technical data.Excellent. Now let me get specific data on our top stock picks: NVDA, MU, and MRVL.I now have all the data I need to build the comprehensive report. Let me compile everything and produce the HTML.
+
+**Key data confirmed:**
+- Today: **June 23, 2026**
+- SOXX: ~$600 area (52-week low ~$222, high ~$630); pulled back from June 15 pivot top, near-term sell signal from MACD but long-term MAs bullish; SOXX broke above upper BB on May 26
+- SMH: ~$669 area recently, with a significant -7.49% day noted
+- NVDA: ~$201-210 range, RSI ~50 (neutral), 50-day MA ~$209, 200-day ~$188; all-time high May 14 at $236.54; next earnings Aug 26
+- MU: Near all-time high ~$1,134; Q3 earnings June 24 (TOMORROW); consensus ~$19.95 EPS / $34.7B revenue; options pricing 17% move; 27 analyst Strong Buy
+- MRVL: +338% over past year; BofA raised PT to $365; revenue +42% YoY; 44 analysts Strong Buy; Nvidia CEO called MRVL "next trillion-dollar company" at Computex 2026
+- Macro: Fed held at 3.5-3.75%; Core PCE 3.3% (April 2026); markets now pricing ~50-68% odds of rate HIKE in September; 10-yr yield ~4.45-4.5%; VIX ~17; DXY ~101; U.S.-Iran peace deal June 15 → oil prices down; FOMC June 17 was hawkish under new chair Warsh
+- Semiconductor global sales +25.6% to $791.7B in 2025; AI demand structural; HBM sold out through 2026; export controls remain active headwind for China sales
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semiconductor Sector — Swing Trade Report | June 23, 2026</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ===== TYPOGRAPHY ===== */
+  h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 1.05rem; font-weight: 700; }
+  h4 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; }
+  p  { font-size: 0.93rem; color: #cbd5e1; }
+
+  /* ===== COLOUR TOKENS ===== */
+  :root {
+    --green:   #22c55e;
+    --green-bg: rgba(34,197,94,0.10);
+    --red:     #ef4444;
+    --red-bg:  rgba(239,68,68,0.10);
+    --amber:   #f59e0b;
+    --amber-bg:rgba(245,158,11,0.10);
+    --gray:    #64748b;
+    --gray-bg: rgba(100,116,139,0.15);
+    --card-bg: #1e2532;
+    --panel-bg:#161b27;
+    --border:  #2d3748;
+    --accent:  #6366f1;
+    --accent-light: #818cf8;
+  }
+
+  /* ===== LAYOUT ===== */
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    h1 { font-size: 1.5rem; }
+  }
+
+  /* ===== HEADER ===== */
+  .report-header {
+    background: linear-gradient(135deg, #1a2035 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 0 1.5rem;
+  }
+  .header-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+  .header-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .badge {
+    display: inline-block; padding: 0.2rem 0.7rem; border-radius: 999px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  }
+  .badge-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green); }
+  .badge-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red); }
+  .badge-amber  { background: var(--amber-bg);  color: var(--amber);  border: 1px solid var(--amber); }
+  .badge-gray   { background: var(--gray-bg);   color: #94a3b8;        border: 1px solid var(--border); }
+  .badge-indigo { background: rgba(99,102,241,0.15); color: var(--accent-light); border: 1px solid var(--accent); }
+  .report-meta { text-align: right; }
+  .report-meta p { font-size: 0.8rem; color: #64748b; }
+  .report-meta .timestamp { font-size: 0.95rem; color: #94a3b8; font-weight: 600; }
+
+  /* ===== SECTION ===== */
+  .section { padding: 1.75rem 0; border-bottom: 1px solid var(--border); }
+  .section-title {
+    display: flex; align-items: center; gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+  .section-title h2 { color: #f1f5f9; }
+  .section-icon {
+    width: 2rem; height: 2rem; border-radius: 8px;
+    background: rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+
+  /* ===== TL;DR BOX ===== */
+  .tldr-box {
+    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(34,197,94,0.08));
+    border: 1px solid var(--accent);
+    border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .tldr-box h2 { color: var(--accent-light); margin-bottom: 0.75rem; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .tldr-list { list-style: none; }
+  .tldr-list li {
+    padding: 0.45rem 0; border-bottom: 1px solid rgba(99,102,241,0.15);
+    font-size: 0.95rem; color: #e2e8f0; display: flex; align-items: flex-start; gap: 0.6rem;
+  }
+  .tldr-list li:last-child { border-bottom: none; }
+  .tldr-bullet { color: var(--green); font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+  /* ===== DIRECTION GAUGE ===== */
+  .gauge-container {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.5rem; text-align: center;
+  }
+  .gauge-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 0.75rem; }
+  .gauge-label { font-size: 2rem; font-weight: 800; }
+  .gauge-label.bullish { color: var(--green); }
+  .gauge-label.bearish { color: var(--red); }
+  .gauge-label.neutral { color: var(--gray); }
+  .gauge-score { font-size: 1rem; color: #94a3b8; margin-top: 0.2rem; }
+  .gauge-bar-wrap { margin: 1rem 0 0.5rem; }
+  .gauge-bar-track {
+    height: 12px; background: #2d3748; border-radius: 999px;
+    position: relative; overflow: visible;
+  }
+  .gauge-bar-fill {
+    height: 100%; border-radius: 999px; position: absolute; top: 0;
+    transition: width 0.3s;
+  }
+  .gauge-bar-fill.pos { background: linear-gradient(90deg, #22c55e, #16a34a); left: 50%; }
+  .gauge-bar-fill.neg { background: linear-gradient(90deg, #ef4444, #dc2626); right: 50%; }
+  .gauge-bar-center { position: absolute; left: 50%; top: -3px; width: 2px; height: 18px; background: #94a3b8; transform: translateX(-50%); }
+  .gauge-scale { display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 0.3rem; }
+  .conviction-line { margin-top: 0.75rem; font-size: 0.82rem; color: #94a3b8; }
+  .conviction-line span { font-weight: 700; color: var(--accent-light); }
+
+  /* ===== MACRO STRIP ===== */
+  .macro-strip {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+  .macro-tile {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.9rem 1rem;
+  }
+  .macro-tile .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin-bottom: 0.2rem; }
+  .macro-tile .value { font-size: 1.1rem; font-weight: 700; }
+  .macro-tile .value.up   { color: var(--red); }
+  .macro-tile .value.down { color: var(--green); }
+  .macro-tile .value.flat { color: #94a3b8; }
+  .macro-tile .impact { font-size: 0.72rem; color: #64748b; margin-top: 0.25rem; }
+  .macro-tile .impact .pos { color: var(--green); }
+  .macro-tile .impact .neg { color: var(--red); }
+
+  /* ===== STOCK CARDS ===== */
+  .stock-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .stock-card:hover { border-color: var(--accent); }
+
+  .stock-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stock-ticker { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.02em; color: #f8fafc; }
+  .stock-name   { font-size: 0.82rem; color: #64748b; margin-top: 0.1rem; }
+  .dir-badge {
+    padding: 0.35rem 0.9rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+    flex-shrink: 0;
+  }
+  .dir-badge.long  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+  .dir-badge.short { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+
+  /* Dual meter row */
+  .meters-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 600px) { .meters-row { grid-template-columns: 1fr; } }
+
+  .meter-box {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0.85rem 1rem;
+  }
+  .meter-box .meter-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #64748b; margin-bottom: 0.4rem;
+  }
+  .meter-box .meter-title {
+    font-size: 0.8rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.5rem;
+  }
+  .meter-score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+  .meter-score-big { font-size: 1.6rem; font-weight: 900; }
+  .meter-score-big.tech  { color: var(--accent-light); }
+  .meter-score-big.fund-hi { color: var(--green); }
+  .meter-score-big.fund-mid{ color: var(--amber); }
+  .meter-score-big.fund-lo { color: var(--red); }
+
+  .meter-bar-track { height: 7px; background: #2d3748; border-radius: 999px; overflow: hidden; }
+  .meter-bar-fill   { height: 100%; border-radius: 999px; }
+  .meter-bar-fill.swing  { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+  .meter-bar-fill.fund-hi{ background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .meter-bar-fill.fund-mid{background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .meter-bar-fill.fund-lo { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+  .fuel-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.2rem 0.6rem; border-radius: 6px;
+    font-size: 0.7rem; font-weight: 700;
+    margin-top: 0.4rem;
+  }
+  .fuel-badge.adds  { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+  .fuel-badge.fights{ background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid var(--amber); }
+  .fuel-badge.neutral-f { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid #64748b; }
+
+  .fund-metrics { font-size: 0.73rem; color: #64748b; margin-top: 0.4rem; line-height: 1.5; }
+  .fund-metrics span { color: #94a3b8; }
+
+  /* Card body */
+  .card-thesis { font-size: 0.88rem; color: #cbd5e1; margin-bottom: 0.75rem; }
+  .card-points { list-style: none; margin-bottom: 0.75rem; }
+  .card-points li {
+    font-size: 0.83rem; color: #94a3b8; padding: 0.2rem 0;
+    display: flex; align-items: flex-start; gap: 0.5rem;
+  }
+  .card-points li::before { content: "▸"; color: var(--accent-light); flex-shrink: 0; }
+  .card-footer {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 600px) { .card-footer { grid-template-columns: 1fr; } }
+  .card-footer-item { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; }
+  .card-footer-item .cfi-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; }
+  .card-footer-item .cfi-value { font-size: 0.82rem; color: #e2e8f0; font-weight: 600; margin-top: 0.15rem; }
+  .cfi-value.risk  { color: var(--amber); }
+  .cfi-value.event { color: var(--accent-light); }
+  .cfi-value.entry { color: var(--green); }
+
+  /* ===== EARNINGS WARNING ===== */
+  .earnings-flag {
+    background: rgba(245,158,11,0.12); border: 1px solid var(--amber);
+    border-radius: 8px; padding: 0.5rem 0.8rem;
+    font-size: 0.78rem; color: var(--amber);
+    display: flex; align-items: center; gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  /* ===== CROSS-CURRENTS ===== */
+  .crosscurrent-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem; margin-bottom: 0.75rem;
+  }
+  .crosscurrent-card h3 { font-size: 0.92rem; margin-bottom: 0.4rem; }
+  .crosscurrent-card h3.bull { color: var(--green); }
+  .crosscurrent-card h3.bear { color: var(--red); }
+  .crosscurrent-card p  { font-size: 0.84rem; color: #94a3b8; }
+
+  /* ===== EVENT CALENDAR ===== */
+  .event-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  .event-table th {
+    background: var(--panel-bg); color: #64748b;
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border);
+  }
+  .event-table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); color: #cbd5e1; }
+  .event-table tr:last-child td { border-bottom: none; }
+  .event-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .ev-high  { color: var(--red);   font-weight: 700; }
+  .ev-med   { color: var(--amber); font-weight: 700; }
+  .ev-low   { color: #64748b;     font-weight: 600; }
+
+  /* ===== LEGEND ===== */
+  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .legend-grid { grid-template-columns: 1fr; } }
+  .legend-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+  .legend-item h4 { margin-bottom: 0.5rem; font-size: 0.72rem; }
+  .legend-item p  { font-size: 0.8rem; color: #94a3b8; }
+  .legend-item p b { color: #e2e8f0; }
+
+  /* ===== MACRO ONE-LINER ===== */
+  .macro-oneliner {
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 10px; padding: 1rem 1.25rem;
+    display: flex; align-items: flex-start; gap: 0.75rem;
+  }
+  .macro-oneliner .icon { font-size: 1.4rem; flex-shrink: 0; }
+  .macro-oneliner p { font-size: 0.88rem; color: #fca5a5; font-weight: 600; }
+
+  /* ===== DISCLAIMER ===== */
+  .disclaimer {
+    background: var(--panel-bg); border-top: 1px solid var(--border);
+    padding: 2rem 0;
+  }
+  .disclaimer p { font-size: 0.75rem; color: #475569; line-height: 1.7; }
+
+  /* ===== DIVIDER ===== */
+  .divider { height: 1px; background: var(--border); margin: 0.5rem 0 1rem; }
+
+  /* ===== SECTOR DIRECTION RIBBON ===== */
+  .direction-ribbon {
+    background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.04));
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+  }
+  .dr-left .dr-sector { font-size: 1.4rem; font-weight: 800; color: #f8fafc; }
+  .dr-left .dr-sub    { font-size: 0.8rem; color: #64748b; }
+  .dr-right { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .dr-stat .ds-label  { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; }
+  .dr-stat .ds-value  { font-size: 1.2rem; font-weight: 800; }
+
+  /* ===== UTILITY ===== */
+  .mt-05 { margin-top: 0.5rem; }
+  .mt-1  { margin-top: 1rem; }
+  .chip-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .chip {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.15rem 0.55rem;
+    font-size: 0.7rem; color: #94a3b8;
+  }
+</style>
+</head>
+<body><!--TC_NAV_START-->
+<style>
+.tcnav{position:sticky;top:0;z-index:99999;box-sizing:border-box;display:flex;
+  align-items:center;gap:14px;padding:10px 18px;background:#0f172a;color:#f8fafc;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.2;box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.tcnav *{box-sizing:border-box}
+.tcnav a{color:#f8fafc;text-decoration:none}
+.tcnav .tcnav-home{font-weight:600}
+.tcnav .tcnav-home:hover{text-decoration:underline}
+.tcnav .tcnav-title{font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcnav .tcnav-spacer{flex:1}
+.tcnav details.tcnav-dd{position:relative}
+.tcnav details.tcnav-dd>summary{cursor:pointer;list-style:none;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(255,255,255,.07);white-space:nowrap}
+.tcnav details.tcnav-dd>summary::-webkit-details-marker{display:none}
+.tcnav details.tcnav-dd>summary::after{content:" ▾";opacity:.7}
+.tcnav details.tcnav-dd[open]>summary{background:rgba(255,255,255,.16)}
+.tcnav details.tcnav-dd ul{position:absolute;right:0;top:calc(100% + 8px);margin:0;padding:6px;
+  list-style:none;background:#ffffff;color:#0f172a;border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);min-width:230px;max-height:60vh;overflow:auto}
+.tcnav details.tcnav-dd li a{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 10px;border-radius:7px;font-size:13px;white-space:nowrap}
+.tcnav details.tcnav-dd li a:hover{background:#f1f5f9}
+.tcnav .tcnav-badge{font-size:10px;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:5px;color:#fff}
+.tcnav .b-bull{background:#16a34a}
+.tcnav .b-bear{background:#dc2626}
+.tcnav .b-neut{background:#64748b}
+@media print{.tcnav{display:none}}
+@media (max-width:560px){.tcnav .tcnav-title{display:none}}
+</style>
+<div class="tcnav">
+  <a class="tcnav-home" href="/">&larr; All Sectors</a>
+  <span class="tcnav-title">Semiconductors &middot; 2026-06-23</span>
+  <span class="tcnav-spacer"></span>
+  
+</div><!--TC_NAV_END-->
+
+<!-- ════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════ -->
+<header class="report-header">
+  <div class="container">
+    <div class="header-inner">
+      <div>
+        <p style="font-size:0.75rem;color:#6366f1;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:0.3rem;">
+          MODE A — Single Sector
+        </p>
+        <h1 style="color:#f8fafc;">Semiconductors Swing Report</h1>
+        <p style="font-size:0.9rem;color:#64748b;margin-top:0.3rem;">
+          SMH / SOXX · AI Chips · Memory · Foundry · Equipment
+        </p>
+        <div class="header-badges">
+          <span class="badge badge-green">BULLISH</span>
+          <span class="badge badge-indigo">Conviction: Medium-High</span>
+          <span class="badge badge-gray">Swing Horizon: 3 days – 6 weeks</span>
+        </div>
+      </div>
+      <div class="report-meta">
+        <p>Report Generated</p>
+        <p class="timestamp">June 23, 2026</p>
+        <p style="margin-top:0.3rem;">Data verified up to market close Jun 22, 2026</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════
+     TL;DR
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="tldr-box">
+      <h2>⚡ TL;DR — Five Things You Need To Know Right Now</h2>
+      <ul class="tldr-list">
+        <li>
+          <span class="tldr-bullet">▲</span>
+          <span><b>Semiconductors are BULLISH (Direction Score: +58)</b> — AI infrastructure demand is structural, global chip sales hit $791.7B in 2025, HBM memory is sold out through 2026, and the sector bounced hard after the U.S.–Iran peace deal on June 15.</span>
+        </li>
+        <li>
+          <span class="tldr-bullet">▲</span>
+          <span><b>SOXX pulled back from its June 15 pivot top but the longer-term setup remains intact.</b> The ETF sits above its 50/200-day MAs, RSI is neutral (~50), and a MACD sell signal on the daily is near-term caution — not a trend break. Pullback = opportunity in this tape.</span>
+        </li>
+        <li>
+          <span class="tldr-bullet">⚠️</span>
+          <span><b>Micron (MU) earnings land TOMORROW (June 24 after close) — massive event risk.</b> Options are pricing a ±17% move. MU is at an all-time high ~$1,134. If you want clean technicals without binary event risk, trade NVDA or MRVL instead; MU is an earnings play, not a swing trade.</span>
+        </li>
+        <li>
+          <span class="tldr-bullet">▲</span>
+          <span><b>The Fed is hawkish and the macro is mixed</b> — Core PCE 3.3%, rate HIKE odds for September now ~50–68%. Higher-for-longer is a headwind for valuation multiples but AI capex spending from hyperscalers remains unstoppable near-term, keeping chip demand anchored.</span>
+        </li>
+        <li>
+          <span class="tldr-bullet">⚠️</span>
+          <span><b>Key risk this week: Thursday's PCE print (June 26).</b> A hotter-than-expected number would spike yields and compress tech multiples fast. Chip export controls on China remain a policy wildcard that can gap stocks overnight.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     SECTOR DIRECTION
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🎯</div>
+      <h2>Sector Direction — Semiconductors (SMH / SOXX)</h2>
+    </div>
+
+    <!-- Direction Ribbon -->
+    <div class="direction-ribbon" style="margin-bottom:1.25rem;">
+      <div class="dr-left">
+        <div class="dr-sector">Semiconductors</div>
+        <div class="dr-sub">SMH (VanEck) · SOXX (iShares) · ETF Proxies</div>
+      </div>
+      <div class="dr-right">
+        <div class="dr-stat">
+          <div class="ds-label">Direction Score</div>
+          <div class="ds-value" style="color:var(--green);">+58 / 100</div>
+        </div>
+        <div class="dr-stat">
+          <div class="ds-label">Label</div>
+          <div class="ds-value" style="color:var(--green);">BULLISH</div>
+        </div>
+        <div class="dr-stat">
+          <div class="ds-label">Conviction</div>
+          <div class="ds-value" style="color:var(--accent-light);">Medium-High</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gauge Visual -->
+    <div class="gauge-container" style="margin-bottom:1.25rem;">
+      <div class="gauge-title">Direction Score Gauge — Semiconductors</div>
+      <div class="gauge-label bullish">BULLISH</div>
+      <div class="gauge-score">Score: +58 out of +100 maximum</div>
+      <div class="gauge-bar-wrap">
+        <div class="gauge-bar-track">
+          <div class="gauge-bar-center"></div>
+          <div class="gauge-bar-fill pos" style="width:29%;"></div>
+        </div>
+        <div class="gauge-scale"><span>−100 MAX BEAR</span><span>0 NEUTRAL</span><span>+100 MAX BULL</span></div>
+      </div>
+      <div class="conviction-line">Conviction: <span>Medium-High</span> — Most inputs are aligned but near-term MACD sell signal and macro rate risk introduce caution.</div>
+    </div>
+
+    <!-- Scoring Table -->
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+        <thead>
+          <tr style="background:var(--panel-bg);">
+            <th style="padding:0.65rem 0.9rem;text-align:left;color:#64748b;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);">Input</th>
+            <th style="padding:0.65rem 0.9rem;text-align:center;color:#64748b;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);">Weight</th>
+            <th style="padding:0.65rem 0.9rem;text-align:center;color:#64748b;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);">Raw Score</th>
+            <th style="padding:0.65rem 0.9rem;text-align:left;color:#64748b;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);">Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#e2e8f0;font-weight:600;">Trend &amp; Price Structure</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;color:#94a3b8;">30%</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);">+65</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#94a3b8;">SOXX ~$600 is above its 200-day MA (~$480 est.), near-term MACD sell signal after June 15 pivot top but long-term uptrend intact. 52-week range $222–$630; currently near upper quartile. SOXX broke above upper Bollinger Band May 26, now consolidating. SMH recently showing -7% single-session volatility but trend structure remains higher highs.</td>
+          </tr>
+          <tr>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#e2e8f0;font-weight:600;">Relative Strength vs SPY</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;color:#94a3b8;">25%</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);">+60</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#94a3b8;">Global semiconductor sales rose 25.6% to $791.7B in 2025 vs S&amp;P flat/modest. SMH 1-yr total return ~141%, vastly outpacing SPY (~24% for same period). Avg quarterly sector price growth +77%. Sector leads on AI-infrastructure rotation money flows.</td>
+          </tr>
+          <tr>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#e2e8f0;font-weight:600;">Macro Tailwind / Headwind</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;color:#94a3b8;">20%</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--amber);">+35</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#94a3b8;">MIXED: Fed held at 3.5–3.75% but hawkish June 17 meeting raised hike odds for September to ~50–68%. Core PCE 3.3% (April). U.S.-Iran peace deal June 15 → oil prices lower → inflation relief → positive for growth stocks near-term. 10-yr yield ~4.5% is a valuation headwind. DXY ~101 (mildly negative for global semis).</td>
+          </tr>
+          <tr>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#e2e8f0;font-weight:600;">News &amp; Catalyst Flow</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;color:#94a3b8;">15%</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);">+75</td>
+            <td style="padding:0.7rem 0.9rem;border-bottom:1px solid var(--border);color:#94a3b8;">Morgan Stanley top picks: NVDA, AVGO, ALAB. BofA: agentic AI = next $1T chip opportunity. Micron HBM capacity sold out through 2026+. NVDA Jensen Huang called MRVL "next trillion-dollar company" at Computex. Multiple major PT upgrades for MU, MRVL, AMD. Samsung/SK Hynix HBM partnership news. Intel/Google 3M TPU chip order. Applied Materials CEO: "strongest period ever."</td>
+          </tr>
+          <tr>
+            <td style="padding:0.7rem 0.9rem;color:#e2e8f0;font-weight:600;">Momentum / Breadth</td>
+            <td style="padding:0.7rem 0.9rem;text-align:center;color:#94a3b8;">10%</td>
+            <td style="padding:0.7rem 0.9rem;text-align:center;font-weight:700;color:var(--amber);">+45</td>
+            <td style="padding:0.7rem 0.9rem;color:#94a3b8;">NVDA RSI ~50 (neutral, not overbought — room to run). SOXX Aroon entered uptrend. Weekly avg volume growth +65%. Near-term MACD sell signal on SOXX is a caution flag but not a break. Avg monthly price growth for sector +10%. Not exhausted but short-term momentum cooling after May rally.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Weighted total -->
+    <div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:10px;padding:0.9rem 1.2rem;margin-top:1rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+      <div>
+        <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;">Weighted Direction Score</span>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--green);margin-top:0.1rem;">+58 / 100 → BULLISH</div>
+      </div>
+      <div>
+        <span style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;">Calculation</span>
+        <div style="font-size:0.82rem;color:#94a3b8;margin-top:0.2rem;">
+          (65×0.30) + (60×0.25) + (35×0.20) + (75×0.15) + (45×0.10) = 19.5 + 15 + 7 + 11.25 + 4.5 = <b style="color:#f8fafc;">57.25 ≈ +58</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MACRO STRIP
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📊</div>
+      <h2>Macro &amp; Geopolitical Backdrop</h2>
+    </div>
+    <div class="macro-strip">
+      <div class="macro-tile">
+        <div class="label">Fed Funds Rate</div>
+        <div class="value flat">3.50–3.75%</div>
+        <div class="impact">Held June 17. <span class="neg">Hike risk Sep (~50-68%)</span>. New chair Warsh hawkish.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">Core PCE (April)</div>
+        <div class="value up">3.3% YoY</div>
+        <div class="impact">Rising from 3.0% Dec 2025. <span class="neg">Above 2% target.</span> PCE print due Jun 26.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">10-Year Treasury</div>
+        <div class="value up">~4.45–4.5%</div>
+        <div class="impact"><span class="neg">Valuation headwind</span> for high-multiple semis. Iran deal pushed yield lower briefly.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">VIX</div>
+        <div class="value flat">~17</div>
+        <div class="impact">Below long-term avg (~19). <span class="pos">Complacency = conducive to swing longs</span> but quick spikes possible.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">DXY (US Dollar)</div>
+        <div class="value flat">~101</div>
+        <div class="impact">Mildly weak. <span class="pos">Positive for global demand signals</span> for US chip exporters marginally.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">Jobs (May 2026)</div>
+        <div class="value flat">Unemp: 4.3%</div>
+        <div class="impact">+117K/mo private payrolls. <span class="flat">Stable labor. Reduces pressure for quick cuts.</span></div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">Oil (WTI)</div>
+        <div class="value down">~$73–76/bbl</div>
+        <div class="impact">Down from $113 peak (April). <span class="pos">Iran deal → further decline possible</span>. Eases inflation, positive for semis.</div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">Geopolitics</div>
+        <div class="value flat">US-Iran Deal</div>
+        <div class="impact">June 15 peace deal. Strait of Hormuz reopened. <span class="pos">Short-term positive for risk-on.</span></div>
+      </div>
+      <div class="macro-tile">
+        <div class="label">Chip Export Policy</div>
+        <div class="value up">25% Tariff</div>
+        <div class="impact">BIS: restrictions on chips to China subsidiaries outside China clarified June 1. <span class="neg">NVDA China revenue at risk.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     TOP 3 STOCKS
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🏆</div>
+      <h2>Top 3 Stock Picks — Bullish Semiconductors</h2>
+    </div>
+    <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.25rem;">
+      All three are <strong style="color:var(--green);">LONG</strong> candidates selected for maximum move potential in the sector's bullish direction. Ranked by Swing-Conviction Score.
+    </p>
+
+    <!-- ── STOCK 1: NVDA ── -->
+    <div class="stock-card" style="margin-bottom:1.25rem;border-color:rgba(99,102,241,0.4);">
+      <div class="stock-card-header">
+        <div>
+          <div class="stock-ticker">#1 · NVDA</div>
+          <div class="stock-name">NVIDIA Corporation</div>
+          <div class="chip-wrap">
+            <span class="chip">GPU / AI Accelerator</span>
+            <span class="chip">Mega-cap · $5.05T</span>
+            <span class="chip">NASDAQ</span>
+          </div>
+        </div>
+        <span class="dir-badge long">Long</span>
+      </div>
+
+      <!-- DUAL METERS -->
+      <div class="meters-row">
+        <div class="meter-box" style="border-color:rgba(99,102,241,0.3);">
+          <div class="meter-label">📈 Technical Driver</div>
+          <div class="meter-title">Swing-Conviction Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big tech">82 / 100</div>
+            <span class="badge badge-green" style="font-size:0.65rem;">Strong Long</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill swing" style="width:82%;"></div></div>
+          <p style="font-size:0.7rem;color:#64748b;margin-top:0.4rem;">Drives stock selection — technicals first</p>
+        </div>
+        <div class="meter-box" style="border-color:rgba(34,197,94,0.3);">
+          <div class="meter-label">🏛 Fundamental Support</div>
+          <div class="meter-title">Fundamental Health Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big fund-hi">92 / 100</div>
+            <span class="fuel-badge adds">⛽ ADDS FUEL</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fund-hi" style="width:92%;"></div></div>
+          <div class="fund-metrics"><span>Revenue (FY25 YoY): ~+113% · Gross Margin: ~75%+ · EBITDA margin: 61.7% · FCF: exceptional · EPS beat streak: consistent · Market cap $5.05T · All-time high May 14 @ $236.54 · Next earnings: Aug 26, 2026 (outside swing window ✓)</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="card-thesis">
+        NVIDIA is the irreplaceable AI accelerator monopoly. Jensen Huang's Vera Rubin platform begins H2 2026 ramp — every hyperscaler capex dollar spent on AI pulls NVDA revenue with it. The stock sits in a healthy pullback from its May 14 all-time high of $236.54, currently ~$201–210. RSI is a neutral ~50: not exhausted, not overbought — textbook swing entry zone. The 50-day MA (~$209) and the 200-day MA (~$189) both remain rising, and price is testing the 50-day for support right now. A reclaim of $210 re-opens the $220–$236 ATH zone over the swing horizon.
+      </p>
+
+      <ul class="card-points">
+        <li>RSI ~50 is neutral — no overbought baggage; 24/26 technical indicators signaling bullish as of June 21; 7 MA buy signals vs 5 sell signals (Investing.com daily).</li>
+        <li>Morgan Stanley top pick for 2026: "Vera Rubin deployments ramp in H2 2026 could deliver highest cloud-computing returns." NVDA B200 compute rental slipped to $4.22/hr by June 21 from $6.11 peak — supply normalization, not demand destruction.</li>
+        <li>52-week range $164–$236; current ~$201–210 is a mid-range pullback from ATH, not a breakdown. GF Score 96/100. No earnings until Aug 26 — clean swing window with no binary event risk.</li>
+      </ul>
+
+      <div class="card-footer">
+        <div class="card-footer-item">
+          <div class="cfi-label">📅 Next Earnings</div>
+          <div class="cfi-value event">Aug 26, 2026 — <span style="color:var(--green);font-size:0.75rem;">✓ Outside swing window</span></div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">⚠️ Biggest Risk</div>
+          <div class="cfi-value risk">Export controls tightening on China (BIS clarification June 1); H20/Blackwell China revenue at risk. Any further restriction = overnight gap down.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📍 Technical Reference (Observation Only)</div>
+          <div class="cfi-value entry">Entry zone: ~$200–$210 (50-day MA test zone). Support ~$190–$195 (50-day dip / prior base). Resistance: $220 → $236 ATH. Stop concept: close below $193.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📐 Key Technicals</div>
+          <div class="cfi-value" style="color:#94a3b8;">RSI ~50 (neutral) · MACD -1.00 (buy signal on daily) · 50-day ~$209 · 200-day ~$189 · Price testing 50-day for support</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STOCK 2: MRVL ── -->
+    <div class="stock-card" style="margin-bottom:1.25rem;">
+      <div class="stock-card-header">
+        <div>
+          <div class="stock-ticker">#2 · MRVL</div>
+          <div class="stock-name">Marvell Technology, Inc.</div>
+          <div class="chip-wrap">
+            <span class="chip">Custom ASIC / Networking</span>
+            <span class="chip">Data Center Connectivity</span>
+            <span class="chip">NASDAQ</span>
+          </div>
+        </div>
+        <span class="dir-badge long">Long</span>
+      </div>
+
+      <!-- DUAL METERS -->
+      <div class="meters-row">
+        <div class="meter-box" style="border-color:rgba(99,102,241,0.3);">
+          <div class="meter-label">📈 Technical Driver</div>
+          <div class="meter-title">Swing-Conviction Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big tech">78 / 100</div>
+            <span class="badge badge-green" style="font-size:0.65rem;">Strong Long</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill swing" style="width:78%;"></div></div>
+          <p style="font-size:0.7rem;color:#64748b;margin-top:0.4rem;">Drives stock selection — technicals first</p>
+        </div>
+        <div class="meter-box" style="border-color:rgba(34,197,94,0.3);">
+          <div class="meter-label">🏛 Fundamental Support</div>
+          <div class="meter-title">Fundamental Health Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big fund-hi">78 / 100</div>
+            <span class="fuel-badge adds">⛽ ADDS FUEL</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fund-hi" style="width:78%;"></div></div>
+          <div class="fund-metrics"><span>Revenue (YoY): +42.09% · Net income +401.71% YoY · Gross margin ~51.5% · Beta 2.277 (high-beta swing vehicle) · FY27 rev growth projected ~50% · 44 analysts Strong Buy · PT raised to $365 (BofA, June 23) · No imminent earnings risk</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="card-thesis">
+        Marvell is the "quiet beneficiary" of AI infrastructure — it builds the custom ASICs and high-speed networking silicon that connect GPU clusters in hyperscale data centers. NVDA CEO Jensen Huang publicly named MRVL "the next trillion-dollar company" at Computex 2026, which served as a massive public endorsement catalyst. The stock has surged +338% over the past year, yet multiple analysts raised price targets this very week (BofA to $365), and revenue growth of 42% is accelerating. With a beta of 2.27, MRVL delivers big moves when the sector is in gear — exactly what swing traders want.
+      </p>
+
+      <ul class="card-points">
+        <li>Jensen Huang's Computex endorsement of MRVL coincided with record quarterly earnings and a sharp move higher. Recent upgrades: BofA PT raised to $365 (June 23), B. Riley PT to $345 (June 12) — estimate revision momentum is positive.</li>
+        <li>Revenue +42% YoY, net income +401% — the company is executing a textbook pivot from networking hardware to AI infrastructure silicon. Celestial AI and Xconn acquisitions (silicon photonics / CXL) add optionality the street is beginning to price in.</li>
+        <li>Beta 2.27 = moves more than 2× the market; when semis rally, MRVL rips. 44-analyst Strong Buy consensus as of June 23. Earnings are not imminent — clean swing window.</li>
+      </ul>
+
+      <div class="card-footer">
+        <div class="card-footer-item">
+          <div class="cfi-label">📅 Next Earnings</div>
+          <div class="cfi-value event">~Late August / September 2026 (FQ2 FY27) — <span style="color:var(--green);font-size:0.75rem;">✓ Outside swing window</span></div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">⚠️ Biggest Risk</div>
+          <div class="cfi-value risk">Hyperscaler capex slowdown or execution issues integrating Celestial AI / Xconn. Stock up +338% in a year — crowded long; any macro shock causes outsized drawdowns given beta 2.27.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📍 Technical Reference (Observation Only)</div>
+          <div class="cfi-value entry">Price currently ~$226 (avg analyst PT). BofA raised to $365 = ~61% upside. Entry zone: pullbacks toward $210–$220. Key support: $200 round level / prior breakout. Resistance: all-time highs and PT cluster ~$345–$365.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📐 Key Technicals</div>
+          <div class="cfi-value" style="color:#94a3b8;">High-beta 2.27 · Call volume above normal bullish directional · Revenue acceleration trend · +29% best avg monthly gainer in semis sector · Relative strength vs sector: strong</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STOCK 3: MU ── -->
+    <div class="stock-card">
+      <div class="stock-card-header">
+        <div>
+          <div class="stock-ticker">#3 · MU</div>
+          <div class="stock-name">Micron Technology, Inc.</div>
+          <div class="chip-wrap">
+            <span class="chip">HBM / DRAM / NAND Memory</span>
+            <span class="chip">AI Infrastructure</span>
+            <span class="chip">NASDAQ</span>
+          </div>
+        </div>
+        <span class="dir-badge long">Long</span>
+      </div>
+
+      <!-- EARNINGS WARNING BANNER -->
+      <div class="earnings-flag">
+        <span>⚠️</span>
+        <span><strong>BINARY EVENT RISK:</strong> MU reports Q3 FY2026 earnings TOMORROW, June 24 after close. Options are pricing a ±17% move (~$940–$1,327 range). This is an EARNINGS PLAY, not a clean swing. Sized small or post-earnings entry only.</span>
+      </div>
+
+      <!-- DUAL METERS -->
+      <div class="meters-row" style="margin-top:1rem;">
+        <div class="meter-box" style="border-color:rgba(99,102,241,0.3);">
+          <div class="meter-label">📈 Technical Driver</div>
+          <div class="meter-title">Swing-Conviction Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big tech">71 / 100</div>
+            <span class="badge badge-amber" style="font-size:0.65rem;">Earnings Risk</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill swing" style="width:71%;"></div></div>
+          <p style="font-size:0.7rem;color:#64748b;margin-top:0.4rem;">Score reflects post-earnings clarity; pre-earnings is speculative</p>
+        </div>
+        <div class="meter-box" style="border-color:rgba(34,197,94,0.3);">
+          <div class="meter-label">🏛 Fundamental Support</div>
+          <div class="meter-title">Fundamental Health Score</div>
+          <div class="meter-score-row">
+            <div class="meter-score-big fund-hi">90 / 100</div>
+            <span class="fuel-badge adds">⛽ ADDS FUEL</span>
+          </div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fund-hi" style="width:90%;"></div></div>
+          <div class="fund-metrics"><span>Revenue est Q3 FY26: $34.7B · EPS est: ~$19.95 · Gross margin guidance ~81% (vs 74.4% last Q) · HBM capacity sold out 2026+ · FY26 EPS est $57.71 (vs $7.68 FY25 = +651%) · Needham PT $1,550 · Mkt cap crossed $1T · Multiple long-term supply agreements signed</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="card-thesis">
+        Micron has made the rare transformation from commodity cyclical to structural AI-infrastructure compounder. HBM4 ramps at twice the speed of HBM3E, NVIDIA's Vera Rubin platform integrates Micron memory, and capacity is sold out through at least early 2027. The stock hit an all-time high of ~$1,134 just days ago with +830% 1-year return. Wall Street is unanimously bullish: 27 analysts Strong Buy, price targets ranging $1,200–$1,550. The fundamental story is extraordinary. The swing trade challenge: earnings are tomorrow (June 24 after close), and options price a ±17% move. This is event risk, not technical setup.
+      </p>
+
+      <ul class="card-points">
+        <li>Consensus FY2026 EPS of $57.71 vs $7.68 in FY2025 — a 651% growth rate. Gross margin guided to ~81% for Q3, up from 74.4% last quarter. "Structural" re-rating from cyclical to secular grower is underway.</li>
+        <li>TD Cowen PT $1,500, Needham PT $1,550, Bernstein $1,300 — all cited HBM pricing power extending into 2027. Memory's role in AI is described as "structural, not cyclical." LTAs (long-term agreements) secured with hyperscalers.</li>
+        <li>New megafab in New York (with Bechtel), $25B+ FY26 capex, U.S. domestic production of 1α DRAM in Virginia — CHIPS Act beneficiary with multi-year capacity runway.</li>
+      </ul>
+
+      <div class="card-footer">
+        <div class="card-footer-item">
+          <div class="cfi-label">📅 Next Earnings</div>
+          <div class="cfi-value event" style="color:var(--amber);">⚠️ June 24, 2026 (TOMORROW) — INSIDE swing window. ±17% implied move. Consider post-print entry only.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">⚠️ Biggest Risk</div>
+          <div class="cfi-value risk">Stock at ATH ~$1,134, "priced for perfection." Any Q3 guidance miss or margin softness = violent sell-off. Memory cycle history: fast reversals. SK Hynix competition intensifying. Insider selling ticked up.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📍 Technical Reference (Observation Only)</div>
+          <div class="cfi-value entry">Pre-earnings: avoid entry unless sized tiny for the binary bet. Post-earnings: if beats + guides up strongly, look for entry on any pullback from initial spike toward ~$1,050–$1,100. Support zone ~$940 (put strike cluster). If misses: $896 was last major support.</div>
+        </div>
+        <div class="card-footer-item">
+          <div class="cfi-label">📐 Key Technicals</div>
+          <div class="cfi-value" style="color:#94a3b8;">ATH ~$1,134 (Jun 18) · 10-day IV near 120% · 30-day price return +51% · 1-year return +830% · Forward P/E 11x (vs 31x sector median — cheap on earnings) · Implied 1-day move ±$193 off close</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     CROSS-CURRENTS / COUNTER-ARGUMENTS
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">⚖️</div>
+      <h2>Cross-Currents — What Could Make This Wrong</h2>
+    </div>
+
+    <div class="grid-2">
+      <div class="crosscurrent-card">
+        <h3 class="bear">Bear Counter-Argument #1: Rate Shock</h3>
+        <p>The Fed's new chair Warsh struck a decidedly hawkish tone at the June 17 meeting. Markets are now pricing a ~50–68% chance of a September rate hike. If Thursday's PCE print (June 26) comes in hot — say 3.5%+ — expect a rapid reprice higher in yields and a sharp multiple compression in high-PE semiconductor names. NVDA trades at ~25× forward, MRVL at an even richer premium. A 50bp yield spike can easily trigger a 10–15% sector correction even with strong fundamentals intact.</p>
+      </div>
+      <div class="crosscurrent-card">
+        <h3 class="bear">Bear Counter-Argument #2: Export Controls Escalation</h3>
+        <p>The U.S. tightened export restrictions on AI chip shipments to Chinese company subsidiaries outside China on June 1, 2026. Congress is actively debating bills that would treat NVDA Blackwell chip exports as akin to weapons sales. Any sudden announcement of blanket Blackwell/Rubin export restrictions could immediately hit NVDA's China revenue estimates (which remain material) and gap the entire sector down overnight. This is a low-probability but high-impact tail risk that doesn't show up in any chart.</p>
+      </div>
+      <div class="crosscurrent-card">
+        <h3 class="bear">Bear Counter-Argument #3: Consumer Chip Demand Collapse</h3>
+        <p>IDC projected the global smartphone market to fall 13% YoY — its largest decline on record. Memory producers like Micron have strategically redirected output to AI data centers, but this creates a "zero-sum" constraint on packaging/wafer capacity. If AI capex from hyperscalers moderates or shifts to efficiency-focused architectures (DeepSeek-style models needing fewer chips), the supply crunch that underpins Micron's pricing power could ease faster than expected, reversing the secular narrative rapidly.</p>
+      </div>
+      <div class="crosscurrent-card">
+        <h3 class="bull" style="color:var(--green);">Bull Counter-Argument (why the bears are wrong near-term)</h3>
+        <p>Hyperscaler capex remains at record levels, and management teams (Microsoft, Google, Meta, Amazon) have all guided UP on AI infrastructure spending for 2026–2027. Applied Materials CEO stated the semiconductor industry is in "its strongest period ever." LTAs signed between memory suppliers and cloud giants provide multi-year revenue visibility that no previous semiconductor cycle has had. The AI buildout is not a short-cycle inventory story — it's a multi-decade infrastructure shift.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MACRO ONE-LINER
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🚨</div>
+      <h2>Macro One-Liner — The Single Biggest Swing Risk This Week</h2>
+    </div>
+    <div class="macro-oneliner">
+      <div class="icon">🔥</div>
+      <p>Thursday June 26 PCE inflation print: if Core PCE comes in above 3.5%, it will confirm the Fed's hawkish pivot, spike the 10-year yield above 4.6%, compress technology multiples, and likely trigger a 3–5% sector sell-off in semis regardless of fundamentals — position sizing should reflect this known binary date.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     EVENT CALENDAR
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📅</div>
+      <h2>Event Calendar — Next 14 Days (June 23 – July 7, 2026)</h2>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="event-table">
+        <thead>
+          <tr>
+            <th style="min-width:100px;">Date</th>
+            <th>Event</th>
+            <th>Impact</th>
+            <th>What to Watch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Jun 24 (Tue)</strong></td>
+            <td>🔴 Micron (MU) Q3 FY2026 Earnings — After Close</td>
+            <td><span class="ev-high">CRITICAL</span></td>
+            <td>Revenue ~$34.7B, EPS ~$19.95, gross margin ~81%, HBM4 ramp commentary, Q4 guide. Options pricing ±17% move. Will set sector tone for rest of week.</td>
+          </tr>
+          <tr>
+            <td><strong>Jun 26 (Thu)</strong></td>
+            <td>🔴 PCE Inflation Report (May 2026) — Fed Preferred Gauge</td>
+            <td><span class="ev-high">CRITICAL</span></td>
+            <td>Core PCE expected ~3.3–3.4%. Above 3.5% = hawkish shock. Below 3.0% = rate-hike odds fall, semis rally. Most important macro print of the week.</td>
+          </tr>
+          <tr>
+            <td><strong>Jun 27 (Fri)</strong></td>
+            <td>🟡 Consumer Spending &amp; Income Data</td>
+            <td><span class="ev-med">MODERATE</span></td>
+            <td>Shows health of consumer discretionary demand; indirect read for PC/mobile chip demand.</td>
+          </tr>
+          <tr>
+            <td><strong>Jul 1–2 (Wed-Thu)</strong></td>
+            <td>🟡 ISM Manufacturing PMI + Construction Spending</td>
+            <td><span class="ev-med">MODERATE</span></td>
+            <td>Chip demand in industrial segment. PMI >50 = positive for analog/embedded semis (TXN, ADI, NXP).</td>
+          </tr>
+          <tr>
+            <td><strong>Jul 3 (Thu)</strong></td>
+            <td>🔴 NFP Jobs Report (June 2026) — Partial Week</td>
+            <td><span class="ev-high">HIGH</span></td>
+            <td">Beats = Fed hike odds rise → headwind for tech multiples. Misses = cut hopes return → tailwind for growth.</td>
+          </tr>
+          <tr>
+            <td><strong>Jul 4 (Fri)</strong></td>
+            <td>🔵 US Independence Day — Markets Closed</td>
+            <td><span class="ev-low">LOW</span></td>
+            <td>Low volume week. Positions can gap on thin overnight news flow.</td>
+          </tr>
+          <tr>
+            <td><strong>Late Jul (TBD)</strong></td>
+            <td>🟡 Next FOMC Meeting (July 28–29, 2026)</td>
+            <td><span class="ev-med">MODERATE</span></td>
+            <td>No live meeting in next 14 days but commentary from Fed officials will drip. Watch for Warsh speeches.</td>
+          </tr>
+          <tr>
+            <td><strong>Aug 26 (Approx)</strong></td>
+            <td>🟡 NVIDIA (NVDA) Q2 FY27 Earnings</td>
+            <td><span class="ev-med">HIGH (future)</span></td>
+            <td>Outside swing window for most traders. Key for Vera Rubin ramp commentary. Flag on calendar.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     HOW TO READ THIS REPORT — LEGEND FOR NOVICES
+════════════════════════════════════════════════ -->
+<div class="container">
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📖</div>
+      <h2>How to Read This Report — A Quick Guide</h2>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <h4>🎯 What is the Direction Score Gauge?</h4>
+        <p>The gauge runs from <b>−100 (maximum bearish)</b> to <b>+100 (maximum bullish)</b>. It scores the overall sector using five weighted inputs: trend/price structure, relative strength vs the S&P 500, macro tailwinds, news/catalysts, and momentum/breadth. A score above +40 is Bullish. Below −40 is Bearish. Scores in between are Neutral.</p>
+      </div>
+      <div class="legend-item">
+        <h4>📈 What is the Swing-Conviction Score (0–100)?</h4>
+        <p>This is a <b>technically-led score</b> rating how strongly each stock is set up to move in the sector's direction over the <b>swing horizon (3 days to 6 weeks)</b>. It covers technical setup quality (35%), relative strength (25%), upcoming catalysts (20%), and move-strength potential (20%). Higher = cleaner setup, more likely to deliver an outsized move. <b>This score drives stock selection.</b></p>
+      </div>
+      <div class="legend-item">
+        <h4>🏛 What is the Fundamental Health Score (0–100)?</h4>
+        <p>This is a <b>separate score</b> that measures the quality of the underlying <b>business</b> — not the chart. It covers revenue growth, EPS trends, margins, free cash flow, balance sheet, analyst revisions, guidance, and capital returns. It answers "is this a good company?" independently of whether the chart is good or bad. A high fundamental score on a long idea <b>adds fuel</b> to the technical trade.</p>
+      </div>
+      <div class="legend-item">
+        <h4>⛽ What does "ADDS FUEL" vs "⚠ FIGHTS TREND" mean?</h4>
+        <p><b>⛽ ADDS FUEL</b> = the fundamental picture reinforces the trade direction. For a long: Health ≥ 65. For a short: Health ≤ 40 (a weak company is easier to short). <b>⚠ FIGHTS TREND</b> = for a long, Health &lt; 45 (shaky fundamentals risk the rally stalling); for a short, Health &gt; 60 (strong fundamentals make it a riskier short — flag this honestly). The technical score drives selection; fundamentals show how much fuel is in the tank.</p>
+      </div>
+      <div class="legend-item">
+        <h4>⏱ What does "Swing Horizon" mean?</h4>
+        <p>This report optimizes for <b>3 days to 6 weeks</b>. It is NOT a day-trading alert and NOT a buy-and-hold recommendation. We look for setups that can deliver meaningful moves over this medium-term window, balancing technical momentum with near-term catalysts and macro context.</p>
+      </div>
+      <div class="legend-item">
+        <h4>📍 Are the technical reference levels guaranteed targets?</h4>
+        <p><b>No.</b> Entry zones, support levels, and resistance levels are observations based on the current chart — they are discussion points, not instructions to trade. Markets can gap through any level instantly. The "technical reference" section is a framework for thinking about risk/reward, not a promise about where the stock will go.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     DISCLAIMER
+════════════════════════════════════════════════ -->
+<footer class="disclaimer">
+  <div class="container">
+    <p style="color:var(--accent-light);font-weight:700;font-size:0.78rem;margin-bottom:0.5rem;">⚖️ IMPORTANT DISCLAIMER — Please Read Before Acting</p>
+    <p>
+      This report is produced for <strong>educational and informational purposes only</strong> and does not constitute personal financial advice, a recommendation to buy or sell any security, or an offer or solicitation of any kind. The analysis presented reflects the author's assessment of probabilities based on data available as of <strong>June 23, 2026</strong> — it does not constitute a guarantee of any outcome, and markets can and do move violently against any thesis without warning.
+    </p>
+    <p style="margin-top:0.5rem;">
+      All prices, technical levels, earnings dates, analyst targets, and macro figures cited were verified from publicly available sources at time of writing. <strong>This data goes stale quickly</strong> — always verify current prices, upcoming events, and any material changes before acting. Past performance of any sector, ETF, or individual security is not indicative of future results.
+    </p>
+    <p style="margin-top:0.5rem;">
+      <strong>You are solely responsible for your own investment decisions, position sizing, and risk management.</strong> Trading in equities, options, or any financial instrument involves substantial risk of loss, including possible loss of all capital invested. Swing trading is inherently speculative and not suitable for all investors. Consult a licensed financial advisor before making investment decisions.
+    </p>
+    <p style="margin-top:0.5rem;color:#334155;">
+      Report generated: June 23, 2026 · Analysis horizon: 3 days – 6 weeks · Mode: A (Single Sector: Semiconductors) · Sector ETFs covered: SMH, SOXX · Stocks analyzed: NVDA, MRVL, MU
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,758 @@
+I'll start by confirming today's date and gathering all required live data before building the report.I now have sufficient data to build the complete report. Let me synthesize all findings and produce the HTML.
+
+**Date confirmed: June 23, 2026**
+
+Key data gathered:
+- **Fed/Macro**: Fed funds rate 3.50–3.75%, new Chair Kevin Warsh struck hawkish tone at June 16–17 FOMC. Markets now pricing ~68% probability of a rate hike by September. 10-yr yield ~4.48–4.5%, rising. CPI April 3.8%+, SPF Q2 2026 headline CPI forecast 3.5% for full year. GDP Q1 +2.0%. DXY ~101. VIX ~17.28. US-Iran ceasefire/peace deal in progress; oil easing.
+- **XLV**: ~$149.77 (Jun 22), 52-wk range $127.96–$160.59. Up ~5% in 1 month. 50-day MA crossed above on June 3. 50-day recently crossed below 200-day (death cross mid-May). Net outflows 3-month: -$1.08B. Sector is recovering from a trough but still below 52-wk high.
+- **Policy headwinds**: Medicaid cuts ($1T+ over decade), ACA subsidy expiration, drug price pressure (MFN pricing, Medicare negotiation), Medicaid work requirements 2027. DOJ probe on UNH.
+- **LLY**: Q1 2026 revenue $19.8B (+56% YoY), EPS $8.55 vs $6.66 est. Raised 2026 guidance to $82–85B revenue, $35.50–37 EPS. Current price ~$1,098 area. Next earnings ~late July/early August 2026.
+- **UNH**: DOJ civil and criminal investigation into Medicare billing. CEO departed, guidance pulled, trades ~$280-354 area. Q1 2026 adjusted EPS $7.23, showing early margin recovery. Major overhang.
+- **ISRG**: Q1 2026 revenue $2.77B (+23%), non-GAAP EPS $2.50 vs $1.92 est. Next earnings July 21/28, 2026. Price ~$426 area. 52-wk range $396.68–$603.88. Recovering from correction.
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Care Sector Swing Report — June 23, 2026</title>
+<style>
+  :root {
+    --bull: #1a9e5c;
+    --bull-light: #e8f8ef;
+    --bear: #d63b3b;
+    --bear-light: #fdf0f0;
+    --neutral: #6b7280;
+    --neutral-light: #f3f4f6;
+    --accent: #2563eb;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --fuel-green: #065f46;
+    --fuel-green-bg: #d1fae5;
+    --fuel-red: #991b1b;
+    --fuel-red-bg: #fee2e2;
+    --fuel-amber-bg: #fef3c7;
+    font-size: 15px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* ── Layout ─────────────────── */
+  .wrap { max-width: 960px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* ── Header ─────────────────── */
+  .report-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    color: #fff;
+    padding: 32px 28px 24px;
+    border-radius: 12px;
+    margin-bottom: 22px;
+  }
+  .report-header .badge {
+    display: inline-block;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 20px;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    margin-bottom: 10px;
+  }
+  .report-header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 6px; }
+  .report-header .meta { font-size: 13px; opacity: .7; display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; }
+
+  /* ── TL;DR Box ───────────────── */
+  .tldr {
+    background: #fffef2;
+    border-left: 5px solid #f59e0b;
+    border-radius: 8px;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+  }
+  .tldr h2 { font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--amber); margin-bottom: 12px; }
+  .tldr ul { list-style: none; }
+  .tldr ul li { padding: 5px 0; padding-left: 22px; position: relative; font-size: 15px; }
+  .tldr ul li::before { content: "▸"; position: absolute; left: 0; color: var(--amber); font-size: 13px; top: 6px; }
+
+  /* ── Section titles ──────────── */
+  .section-title {
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 16px;
+    margin-top: 32px;
+  }
+
+  /* ── Sector gauge ────────────── */
+  .gauge-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 22px;
+  }
+  .gauge-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .gauge-header-left h3 { font-size: 1.15rem; font-weight: 700; }
+  .gauge-header-left p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .direction-badge {
+    display: inline-block;
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .badge-bull { background: var(--bull-light); color: var(--bull); }
+  .badge-bear { background: var(--bear-light); color: var(--bear); }
+  .badge-neutral { background: var(--neutral-light); color: var(--neutral); }
+  .conviction { font-size: 12px; color: var(--muted); margin-left: 10px; }
+
+  /* gauge bar */
+  .gauge-bar-wrap { margin-bottom: 16px; }
+  .gauge-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .gauge-track {
+    height: 18px;
+    background: linear-gradient(to right, #d63b3b 0%, #f97316 30%, #e5e7eb 50%, #86efac 70%, #1a9e5c 100%);
+    border-radius: 9px;
+    position: relative;
+  }
+  .gauge-needle {
+    position: absolute;
+    top: -5px;
+    width: 4px;
+    height: 28px;
+    background: #1e293b;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2px #fff;
+  }
+  .gauge-score { text-align: center; font-size: 1.8rem; font-weight: 800; margin-top: 8px; }
+  .score-bull { color: var(--bull); }
+  .score-bear { color: var(--bear); }
+  .score-neutral { color: var(--neutral); }
+
+  /* scoring table */
+  .score-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+  .score-table th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .score-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .score-table tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .pill-bull { background: var(--bull-light); color: var(--bull); }
+  .pill-bear { background: var(--bear-light); color: var(--bear); }
+  .pill-neutral { background: var(--neutral-light); color: var(--neutral); }
+
+  /* ── Stock cards ─────────────── */
+  .stock-cards { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @media(min-width:720px) { .stock-cards { grid-template-columns: 1fr 1fr 1fr; } }
+  .stock-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-top {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-top .ticker { font-size: 1.2rem; font-weight: 800; letter-spacing: .02em; }
+  .card-top .company { font-size: 12px; color: var(--muted); }
+  .card-top .dir-badge { margin-top: 8px; }
+  .card-body { padding: 16px 18px; flex: 1; }
+
+  /* mini score bars */
+  .mini-score-wrap { margin-bottom: 14px; }
+  .mini-score-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .mini-score-label { font-size: 11px; color: var(--muted); width: 105px; flex-shrink: 0; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .mini-bar-track { flex: 1; height: 10px; border-radius: 5px; background: var(--border); position: relative; }
+  .mini-bar-fill { height: 10px; border-radius: 5px; position: absolute; left: 0; top: 0; }
+  .fill-tech { background: var(--accent); }
+  .fill-fund-green { background: var(--bull); }
+  .fill-fund-amber { background: var(--amber); }
+  .fill-fund-red { background: var(--bear); }
+  .mini-score-num { font-size: 12px; font-weight: 800; width: 30px; text-align: right; flex-shrink: 0; }
+
+  /* fuel tag */
+  .fuel-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 700;
+    margin-left: 8px;
+  }
+  .fuel-add { background: var(--fuel-green-bg); color: var(--fuel-green); }
+  .fuel-fight { background: var(--fuel-red-bg); color: var(--fuel-red); }
+  .fuel-neutral { background: var(--fuel-amber-bg); color: var(--amber); }
+
+  .card-section { margin-bottom: 12px; }
+  .card-section-title { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .card-section p { font-size: 13px; line-height: 1.5; }
+  .bullet-list { list-style: none; }
+  .bullet-list li { font-size: 13px; padding: 2px 0 2px 16px; position: relative; }
+  .bullet-list li::before { content:"✓"; position: absolute; left:0; color: var(--bull); font-size: 11px; top: 3px; }
+  .risk-tag { background: var(--bear-light); color: var(--bear); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-top: 6px; }
+  .earnings-tag { background: #eff6ff; color: #1d4ed8; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-top: 6px; font-weight: 600; }
+  .tech-tag { background: var(--neutral-light); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-top: 6px; font-style: italic; }
+  .fund-metrics { background: #f8fafc; border-radius: 6px; padding: 7px 10px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .event-risk-flag {
+    background: #fff7ed; border: 1px solid #fed7aa;
+    border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #9a3412;
+    margin-top: 6px; font-weight: 600;
+  }
+
+  /* ── Macro strip ─────────────── */
+  .macro-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 8px; }
+  @media(min-width:600px) { .macro-grid { grid-template-columns: repeat(3,1fr); } }
+  @media(min-width:900px) { .macro-grid { grid-template-columns: repeat(6,1fr); } }
+  .macro-cell {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .macro-cell .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+  .macro-cell .value { font-size: 1.1rem; font-weight: 800; }
+  .macro-cell .note { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .macro-impact { font-size: 12px; margin-top: 8px; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); }
+
+  /* ── Cross-currents / event ──── */
+  .two-col { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media(min-width:600px) { .two-col { grid-template-columns: 1fr 1fr; } }
+  .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .info-card h4 { font-size: .85rem; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .info-card ul { list-style: none; }
+  .info-card ul li { padding: 5px 0; padding-left: 18px; position: relative; font-size: 13px; border-bottom: 1px solid var(--border); }
+  .info-card ul li:last-child { border-bottom: none; }
+  .info-card ul li::before { content:"→"; position: absolute; left:0; color: var(--accent); font-size: 11px; top: 7px; }
+  .event-date { font-weight: 700; color: var(--text); margin-right: 6px; }
+  .macro-one-liner { background: linear-gradient(135deg,#1e3a5f,#0f172a); color: #fff; border-radius: 10px; padding: 14px 18px; font-size: 14px; font-weight: 500; margin-top: 12px; }
+  .macro-one-liner strong { color: #fbbf24; }
+
+  /* ── Legend ──────────────────── */
+  .legend { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .legend h4 { font-size: .85rem; font-weight: 700; margin-bottom: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .legend-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media(min-width:600px) { .legend-grid { grid-template-columns: 1fr 1fr; } }
+  .legend-item { font-size: 12.5px; padding-left: 12px; border-left: 3px solid var(--border); }
+  .legend-item strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 3px; }
+
+  /* ── Footer ──────────────────── */
+  .footer {
+    margin-top: 40px;
+    padding: 20px;
+    background: #1e293b;
+    color: #94a3b8;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .footer strong { color: #e2e8f0; }
+
+  /* print */
+  @media print {
+    body { background: #fff; }
+    .wrap { max-width: 100%; padding: 0; }
+    .report-header { border-radius: 0; }
+  }
+</style>
+</head>
+<body><!--TC_NAV_START-->
+<style>
+.tcnav{position:sticky;top:0;z-index:99999;box-sizing:border-box;display:flex;
+  align-items:center;gap:14px;padding:10px 18px;background:#0f172a;color:#f8fafc;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.2;box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.tcnav *{box-sizing:border-box}
+.tcnav a{color:#f8fafc;text-decoration:none}
+.tcnav .tcnav-home{font-weight:600}
+.tcnav .tcnav-home:hover{text-decoration:underline}
+.tcnav .tcnav-title{font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcnav .tcnav-spacer{flex:1}
+.tcnav details.tcnav-dd{position:relative}
+.tcnav details.tcnav-dd>summary{cursor:pointer;list-style:none;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(255,255,255,.07);white-space:nowrap}
+.tcnav details.tcnav-dd>summary::-webkit-details-marker{display:none}
+.tcnav details.tcnav-dd>summary::after{content:" ▾";opacity:.7}
+.tcnav details.tcnav-dd[open]>summary{background:rgba(255,255,255,.16)}
+.tcnav details.tcnav-dd ul{position:absolute;right:0;top:calc(100% + 8px);margin:0;padding:6px;
+  list-style:none;background:#ffffff;color:#0f172a;border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);min-width:230px;max-height:60vh;overflow:auto}
+.tcnav details.tcnav-dd li a{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 10px;border-radius:7px;font-size:13px;white-space:nowrap}
+.tcnav details.tcnav-dd li a:hover{background:#f1f5f9}
+.tcnav .tcnav-badge{font-size:10px;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:5px;color:#fff}
+.tcnav .b-bull{background:#16a34a}
+.tcnav .b-bear{background:#dc2626}
+.tcnav .b-neut{background:#64748b}
+@media print{.tcnav{display:none}}
+@media (max-width:560px){.tcnav .tcnav-title{display:none}}
+</style>
+<div class="tcnav">
+  <a class="tcnav-home" href="/">&larr; All Sectors</a>
+  <span class="tcnav-title">Health Care &middot; 2026-06-23</span>
+  <span class="tcnav-spacer"></span>
+  
+</div><!--TC_NAV_END-->
+<div class="wrap">
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<div class="report-header">
+  <div class="badge">MODE A · Single Sector</div>
+  <h1>Health Care Sector (XLV) — Swing Analysis</h1>
+  <div class="meta">
+    <span>📅 Generated: <strong>June 23, 2026</strong></span>
+    <span>⏱ Horizon: 3 days – 6 weeks</span>
+    <span>📊 ETF Proxy: XLV (~$149.77)</span>
+    <span>🔬 Analyst: Multi-Disciplinary Equity Strategy Desk</span>
+  </div>
+</div>
+
+<!-- ══════════════════ TL;DR ══════════════════ -->
+<div class="tldr">
+  <h2>⚡ TL;DR — Five Things You Need to Know Right Now</h2>
+  <ul>
+    <li><strong>Health Care is NEUTRAL with a cautious-bullish lean (+22).</strong> XLV is recovering from its May trough — it cleared its 50-day MA on June 3 — but remains ~7% below its 52-week high and faces a 50/200-day "death cross" from mid-May that caps conviction.</li>
+    <li><strong>Eli Lilly (LLY) is the standout long.</strong> Q1 2026 revenue surged +56% YoY to $19.8B, guidance was raised twice, Mounjaro jumped +125%, and a brand-new oral GLP-1 pill (Foundayo) is now on shelves. Technically it's bouncing off support with improving momentum.</li>
+    <li><strong>Intuitive Surgical (ISRG) is a quality technical recovery play.</strong> +6% off its June 2 pivot bottom, buy signal active on MACD, with Q2 earnings not until July 21 — giving a clean 4-week trade window before the event-risk clock starts.</li>
+    <li><strong>UnitedHealth (UNH) is Avoid-or-Cautious-Long only for specialists.</strong> DOJ civil and criminal investigations into Medicare billing, CEO departure, pulled guidance, and a 55%+ decline from the all-time high make this a fundamentally impaired restructuring story, not a clean swing trade.</li>
+    <li><strong>The biggest macro risk is a hawkish Fed.</strong> New Chair Kevin Warsh struck a hawkish tone at the June 16–17 FOMC; markets now price ~68% odds of a rate hike by September. Rising rates hurt rate-sensitive names inside health care (REITs, managed care valuations) but leave defensives like LLY and ISRG largely insulated by their fundamentals.</li>
+  </ul>
+</div>
+
+<!-- ══════════════════ SECTOR DIRECTION ══════════════════ -->
+<div class="section-title">Step 2 — Sector Direction Score</div>
+
+<div class="gauge-container">
+  <div class="gauge-header">
+    <div class="gauge-header-left">
+      <h3>XLV — Health Care Select Sector SPDR</h3>
+      <p>~$149.77 (Jun 22 close) &nbsp;|&nbsp; 52-wk range: $127.96 – $160.59 &nbsp;|&nbsp; AUM: ~$38.2B</p>
+    </div>
+    <div>
+      <span class="direction-badge badge-neutral">NEUTRAL</span>
+      <span class="conviction">Conviction: <strong>Medium</strong></span>
+    </div>
+  </div>
+
+  <!-- Gauge bar (0 = far left = -100, 100 = far right = +100; needle at +22 → position 61%) -->
+  <div class="gauge-bar-wrap">
+    <div class="gauge-labels"><span>−100 Bearish</span><span>0 Neutral</span><span>+100 Bullish</span></div>
+    <div class="gauge-track">
+      <!-- needle position: (score + 100) / 200 * 100% → (22+100)/200 = 61% -->
+      <div class="gauge-needle" style="left:61%"></div>
+    </div>
+  </div>
+  <div class="gauge-score score-neutral">+22 / 100</div>
+
+  <table class="score-table" style="margin-top:20px">
+    <thead>
+      <tr>
+        <th style="width:28%">Input (Weight)</th>
+        <th style="width:10%">Signal</th>
+        <th style="width:10%">Score</th>
+        <th>Reasoning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Trend & Price Structure</strong> (30%)</td>
+        <td><span class="pill pill-neutral">Mixed</span></td>
+        <td>+4 / 30</td>
+        <td>XLV moved back above its 50-day MA on June 3 and its 10-day crossed above the 50-day on May 22 — short-term bullish impulse. However, the 50-day crossed below the 200-day (death cross) in mid-May, a longer-term bearish structural signal. Price is ~7% below 52-wk high ($160.59) and ~4% above 52-wk support zone. Weak rising trend in short term, falling long-term. Net: mildly constructive but not clean.</td>
+      </tr>
+      <tr>
+        <td><strong>Relative Strength vs SPY</strong> (25%)</td>
+        <td><span class="pill pill-neutral">Lagging</span></td>
+        <td>+2 / 25</td>
+        <td>XLV is up ~5% over the past 30 days and ~12.7% over 12 months — decent in absolute terms, but this largely reflects a recovery bounce. Net 3-month ETF outflows of −$1.08B signal institutional rotation out, not in. Healthcare tends to lag in risk-on environments with a rising market (S&P 500 near 7,472). Relative strength is recovering but still below par vs SPY on a 3-month basis.</td>
+      </tr>
+      <tr>
+        <td><strong>Macro Tailwind/Headwind</strong> (20%)</td>
+        <td><span class="pill pill-neutral">Mixed</span></td>
+        <td>+6 / 20</td>
+        <td>Healthcare's defensive nature is a mild tailwind in the current higher-for-longer rate regime — non-cyclical demand persists regardless of rate environment. However: (1) CPI remains elevated (~3.8%), reducing probability of easing. (2) The hawkish new Fed Chair signals possible rate hike, compressing valuations. (3) DXY ~101 is mildly negative for multinational pharma revenues. Net macro is a slight positive via defensiveness but not a strong tailwind.</td>
+      </tr>
+      <tr>
+        <td><strong>News & Catalyst Flow</strong> (15%)</td>
+        <td><span class="pill pill-neutral">Mixed</span></td>
+        <td>+6 / 15</td>
+        <td>LLY's massive Q1 beat (+56% revenue) and guidance raise are powerfully positive for the sector. ISRG's 23% revenue growth beat is also constructive. Against this: UNH's DOJ criminal and civil investigation is a severe headwind for the managed care sub-sector (UNH is a large XLV constituent). Medicaid cuts (>$1T over a decade per CBO) under Trump's reconciliation bill weigh on hospital operators and insurers. Drug pricing pressure (MFN pricing, Medicare negotiations) is a persistent ceiling on pharma margins. Net catalyst flow is mixed, with biotech/pharma bright spots offset by insurer/hospital headwinds.</td>
+      </tr>
+      <tr>
+        <td><strong>Momentum & Breadth</strong> (10%)</td>
+        <td><span class="pill pill-bull">Improving</span></td>
+        <td>+4 / 10</td>
+        <td>Momentum indicator crossed above 0 on May 18; 3-month MACD has a buy signal. XLV broke above upper Bollinger Band June 4 (short-term overbought warning), then pulled back. Price has risen in 6 of last 10 days. Volume fell on the last up-day (June 16), a mild divergence warning. RSI likely in 45–55 range — not overbought. Breadth is improving but not yet convincingly broad. Constructive but not strong.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:16px; padding:12px; background:#f8fafc; border-radius:8px; font-size:13px;">
+    <strong>Verdict:</strong> Health Care earns a <strong>+22 NEUTRAL</strong> score with <strong>Medium conviction</strong>. The sector is in early-stage technical recovery after a rough first half — the short-term trend has turned positive, LLY's fundamentals are spectacular, and the defensive profile helps in a higher-for-longer macro environment. However, structural headwinds (UNH DOJ probe, Medicaid cuts, drug pricing pressure, persistent outflows) prevent a clean bullish call. The best plays are <em>stock-specific within</em> health care, not a pure ETF-level bet.
+  </div>
+</div>
+
+<!-- ══════════════════ TOP 3 STOCKS ══════════════════ -->
+<div class="section-title">Step 3 — Top 3 Stock Picks (Direction: Long)</div>
+
+<div class="stock-cards">
+
+  <!-- ── CARD 1: LLY ── -->
+  <div class="stock-card">
+    <div class="card-top">
+      <div class="ticker">LLY</div>
+      <div class="company">Eli Lilly and Company</div>
+      <div class="dir-badge">
+        <span class="direction-badge badge-bull">LONG</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="mini-score-wrap">
+        <div class="mini-score-row">
+          <span class="mini-score-label">⚙ Swing Score</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-tech" style="width:82%"></div></div>
+          <span class="mini-score-num" style="color:var(--accent)">82</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">Technical setup drives the pick ↑</div>
+        <div class="mini-score-row">
+          <span class="mini-score-label">📊 Fund. Health</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-fund-green" style="width:91%"></div></div>
+          <span class="mini-score-num" style="color:var(--bull)">91</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Business strength behind the move ↑</div>
+        <div>
+          <span class="fuel-tag fuel-add">⛽ ADDS FUEL</span>
+        </div>
+      </div>
+
+      <div class="fund-metrics">
+        <strong>Key Metrics:</strong> Q1 2026 revenue +56% YoY to $19.8B; EPS $8.55 vs $6.66 est; guidance raised to $82–85B revenue, $35.50–37 EPS; operating margin expanded to 49%; Mounjaro +125% YoY; Zepbound +80% YoY; $7.98B cash at Q1 end; new oral pill Foundayo now on shelves.
+      </div>
+
+      <div class="card-section" style="margin-top:12px;">
+        <div class="card-section-title">📝 Plain-English Thesis</div>
+        <p>LLY is the world's premier GLP-1 franchise — Mounjaro and Zepbound together generated $12.8B in a single quarter. With guidance raised twice in quick succession, 56% revenue growth, and its new oral obesity pill Foundayo just launched, Lilly is in a rare combination of fundamental acceleration and (post-earnings-selloff recovery) technical reset. The stock pulled back from post-earnings highs and is now consolidating — offering a potentially better entry point than the April spike.</p>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">✅ Supporting Points</div>
+        <ul class="bullet-list">
+          <li>Revenue growth accelerating: 56% in Q1, guidance now implies ~28% full-year growth at midpoint — rare for a $1T+ company</li>
+          <li>Foundayo (oral GLP-1) addresses a massive addressable market expansion — injection-averse patients — and is already reaching new-to-class users</li>
+          <li>Operating margins at 49% and expanding; Mounjaro/Zepbound pricing pressure is manageable given volume growth velocity</li>
+        </ul>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">⚠️ Biggest Risk</div>
+        <div class="risk-tag">Drug pricing pressure deepens (MFN rules, Medicare negotiation expansion) or Novo Nordisk's competing oral GLP-1 gains FDA approval and market share faster than expected — both could reset the premium multiple.</div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📅 Next Earnings</div>
+        <div class="earnings-tag">~Late July / Early August 2026 (Q2 2026) — exact date not yet confirmed. Falls within the 6-week swing window. <strong>Event risk: position size accordingly.</strong></div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📐 Technical Reference</div>
+        <div class="tech-tag">Current price ~$1,098. Key support around the $1,020–$1,050 zone (prior consolidation base). Resistance near $1,150–$1,200 (post-Q1 earnings peak). Entry zone on pullbacks toward $1,040–$1,070. Stop conceptually below $1,020. This is observation, not a guarantee.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── CARD 2: ISRG ── -->
+  <div class="stock-card">
+    <div class="card-top">
+      <div class="ticker">ISRG</div>
+      <div class="company">Intuitive Surgical, Inc.</div>
+      <div class="dir-badge">
+        <span class="direction-badge badge-bull">LONG</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="mini-score-wrap">
+        <div class="mini-score-row">
+          <span class="mini-score-label">⚙ Swing Score</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-tech" style="width:74%"></div></div>
+          <span class="mini-score-num" style="color:var(--accent)">74</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">Technical setup drives the pick ↑</div>
+        <div class="mini-score-row">
+          <span class="mini-score-label">📊 Fund. Health</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-fund-green" style="width:84%"></div></div>
+          <span class="mini-score-num" style="color:var(--bull)">84</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Business strength behind the move ↑</div>
+        <div>
+          <span class="fuel-tag fuel-add">⛽ ADDS FUEL</span>
+        </div>
+      </div>
+
+      <div class="fund-metrics">
+        <strong>Key Metrics:</strong> Q1 2026 revenue $2.77B (+23% YoY); non-GAAP EPS $2.50 vs $1.92 est (30% beat); instruments & accessories +23%; da Vinci 5 adoption accelerating globally; $7.98B in cash/investments; FY2026 procedure growth guided 13–15%; shares repurchased $1.1B in Q1.
+      </div>
+
+      <div class="card-section" style="margin-top:12px;">
+        <div class="card-section-title">📝 Plain-English Thesis</div>
+        <p>ISRG is the razor-and-blade of robotic surgery — once a hospital installs a da Vinci system, it buys instruments and accessories forever. Q1 beat handily (30% EPS beat), da Vinci 5 is being adopted rapidly across the US and Europe, and the stock has bounced +6% off a June 2 pivot bottom with rising volume. With a clean 4-week runway before Q2 earnings (July 21), this is one of the better-set-up technical recoveries in health care right now.</p>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">✅ Supporting Points</div>
+        <ul class="bullet-list">
+          <li>Buy signal from June 2 pivot bottom + MACD buy signal + volume rising with price — a technically clean setup</li>
+          <li>Recurring revenue model: 61% of Q1 revenue from instruments/accessories — highly predictable, compounding installed base now 10,488+ systems</li>
+          <li>International expansion (EU MDR clearance for da Vinci 5 in mid-2025, Japan clearance) opens new revenue runway</li>
+        </ul>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">⚠️ Biggest Risk</div>
+        <div class="risk-tag">China/Japan procedure growth has been flagged as a headwind (lower growth rates cited on Q1 call). If macro weakness or geopolitical friction slows international procedure growth more than expected, the 2026 guidance range (13–15%) could be at risk.</div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📅 Next Earnings</div>
+        <div class="earnings-tag">July 21, 2026 (Q2 2026) — confirmed. Just outside the 4-week mark from today. If holding into earnings, this is a <strong>flagged event risk.</strong></div>
+        <div class="event-risk-flag">⚠ EARNINGS PROXIMITY: July 21 earnings lands inside the 6-week swing window. Consider trimming into earnings or setting a hard stop.</div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📐 Technical Reference</div>
+        <div class="tech-tag">Current price ~$426 (as of early June). 52-wk range $396.68–$603.88. Stock is recovering from the 52-wk low zone. Key support: ~$397–$410. Resistance: ~$450–$470 (prior consolidation). Entry on shallow pullbacks toward $415–$425. Long-term MA still a headwind — position size for a shorter trade. Observation only.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── CARD 3: UNH ── -->
+  <div class="stock-card">
+    <div class="card-top">
+      <div class="ticker">UNH</div>
+      <div class="company">UnitedHealth Group Inc.</div>
+      <div class="dir-badge">
+        <span class="direction-badge badge-neutral">CAUTIOUS / AVOID</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="mini-score-wrap">
+        <div class="mini-score-row">
+          <span class="mini-score-label">⚙ Swing Score</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-tech" style="width:38%"></div></div>
+          <span class="mini-score-num" style="color:var(--amber)">38</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">Technical setup drives the pick ↑</div>
+        <div class="mini-score-row">
+          <span class="mini-score-label">📊 Fund. Health</span>
+          <div class="mini-bar-track"><div class="mini-bar-fill fill-fund-amber" style="width:48%"></div></div>
+          <span class="mini-score-num" style="color:var(--amber)">48</span>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Business strength behind the move ↑</div>
+        <div>
+          <span class="fuel-tag fuel-neutral">⚠ NEUTRAL</span>
+        </div>
+      </div>
+
+      <div class="fund-metrics">
+        <strong>Key Metrics:</strong> FY2025 revenue $447.6B (+12% YoY); Q1 2026 adj. EPS $7.23 — early margin recovery signs; 2026 guidance pulled (first revenue decline in a decade projected); DOJ civil + criminal investigation confirmed into Medicare billing practices; CEO Andrew Witty departed May 2026; stock ~$280–$355 range, down 55%+ from ATH.
+      </div>
+
+      <div class="card-section" style="margin-top:12px;">
+        <div class="card-section-title">📝 Plain-English Thesis</div>
+        <p>UNH is included here as a "watch-with-caution" name rather than a clean swing long. The fundamentals are impaired but not broken — the company still generates enormous cash flows, analysts maintain Buy ratings with average targets of ~$385–$410 (implying 15–30% upside), and Q1 showed early margin recovery. However, for a 3–6 week swing trade, the DOJ headline risk is binary and unquantifiable. This is a restructuring/recovery story that requires a multi-month or multi-quarter horizon to play properly.</p>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">⚠️ Why It's "Cautious / Avoid" for Swing</div>
+        <ul class="bullet-list">
+          <li>DOJ civil and criminal investigation into Medicare billing practices — any new headline can cause immediate 5–15% gap-downs with no warning</li>
+          <li>CEO departed, guidance pulled — management uncertainty makes forward modeling unreliable for a short swing window</li>
+          <li>Down 55%+ from ATH — technically in a long-term downtrend with overhead supply at every resistance level up to $500+</li>
+        </ul>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">⚠️ Biggest Risk</div>
+        <div class="risk-tag">New DOJ headline, criminal charge escalation, or adverse court ruling could create a catastrophic gap-down with no technical support level providing meaningful protection.</div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📅 Next Earnings</div>
+        <div class="earnings-tag">~Mid-July 2026 (Q2 2026) — exact date not confirmed. Falls within the 6-week swing window. <strong>Combination of earnings + DOJ risk = elevated binary event exposure.</strong></div>
+      </div>
+
+      <div class="card-section">
+        <div class="card-section-title">📐 Technical Reference</div>
+        <div class="tech-tag">Current price ~$280–$355 range (highly volatile). Support zone ~$265–$280. Analyst consensus target ~$385–$410. The asymmetry for a speculative recovery trade exists, but the risk of a new negative headline making any technical analysis irrelevant is high. Proceed only with defined, limited risk (e.g., defined-risk options structures). Observation only.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end stock-cards -->
+
+<!-- ══════════════════ MACRO STRIP ══════════════════ -->
+<div class="section-title">Macro & Geopolitical Backdrop</div>
+
+<div class="macro-grid">
+  <div class="macro-cell">
+    <div class="label">Fed Funds Rate</div>
+    <div class="value" style="color:var(--bear)">3.50–3.75%</div>
+    <div class="note">Hawkish new Chair Warsh; hike odds ~68% by Sep</div>
+  </div>
+  <div class="macro-cell">
+    <div class="label">CPI (Apr 2026)</div>
+    <div class="value" style="color:var(--bear)">~3.8%</div>
+    <div class="note">Above 2% target; sticky; SPF full-year est. 3.5%</div>
+  </div>
+  <div class="macro-cell">
+    <div class="label">10-Yr Treasury</div>
+    <div class="value" style="color:var(--bear)">~4.48–4.5%</div>
+    <div class="note">Rising; PCE report due this week will be key</div>
+  </div>
+  <div class="macro-cell">
+    <div class="label">DXY (Dollar)</div>
+    <div class="value" style="color:var(--neutral)">~101</div>
+    <div class="note">Reclaimed 100 level; mildly negative for multinational pharma</div>
+  </div>
+  <div class="macro-cell">
+    <div class="label">VIX</div>
+    <div class="value" style="color:var(--bull)">~17.28</div>
+    <div class="note">Below LT avg (~20); elevated vs mid-June 16.4 low</div>
+  </div>
+  <div class="macro-cell">
+    <div class="label">GDP Q1 2026</div>
+    <div class="value" style="color:var(--neutral)">+2.0%</div>
+    <div class="note">Supported by investment &amp; exports; slowdown risks ahead</div>
+  </div>
+</div>
+
+<div class="macro-impact">
+  <strong>🏥 Health Care Sector Macro Impacts:</strong><br>
+  <span style="color:var(--bull)">Helps:</span> Higher-for-longer rates increase appeal of defensive sectors with non-discretionary demand (HC is a top-2 defensive sector historically). GLP-1 market growth secular and rate-insensitive. Iran ceasefire progress → oil easing → lower cost pressures across health care supply chains.<br>
+  <span style="color:var(--bear)">Hurts:</span> Elevated rates compress managed care valuation multiples. DXY ~101 is a mild headwind for LLY/ISRG international revenue. Sticky inflation raises input costs (labor, supplies) for hospital systems and device makers. Drug pricing pressure (MFN rules, Medicare negotiation) structurally caps pharma pricing power.
+</div>
+
+<div class="macro-one-liner" style="margin-top:14px;">
+  🌐 <strong>Single Biggest Override Risk This Week:</strong> Thursday's PCE inflation report. A hotter-than-expected print would cement Fed rate hike expectations, spike the 10-year yield above 4.6%, and could trigger a broad defensive rotation — ironically helping XLV on a relative basis vs growth, but hurting the premium-multiple names (LLY especially) in absolute terms.
+</div>
+
+<!-- ══════════════════ CROSS-CURRENTS & EVENTS ══════════════════ -->
+<div class="section-title">Step 4 — Added Value: Cross-Currents & Event Calendar</div>
+
+<div class="two-col">
+  <div class="info-card">
+    <h4>🔄 Cross-Currents — What Would Make This Wrong</h4>
+    <ul>
+      <li><strong>Bull case invalidation:</strong> If the DOJ probe against UNH escalates to charges or a settlement demand, it could re-infect the broader sector sentiment, pulling XLV down even as LLY and ISRG remain fundamentally strong. Sector ETF holders would feel this even if stock pickers don't.</li>
+      <li><strong>LLY bear case:</strong> A meaningful acceleration in Novo Nordisk's oral semaglutide market penetration, or unexpected pricing capitulation under MFN rules, could swiftly reverse the valuation premium. LLY trades at a stretched multiple — any guidance miss would be punished severely.</li>
+      <li><strong>ISRG bear case:</strong> If Q2 earnings (July 21) show China/Japan procedure growth deterioration beyond what's already guided, or if the da Vinci 5 capital cycle peaks earlier than expected, the stock could break below its 52-wk low zone.</li>
+      <li><strong>Macro override:</strong> A genuine US recession fear (if labor market data weakens sharply) would broadly strengthen health care defensively — counterintuitively bullish for XLV on a relative basis.</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h4>📅 Event Calendar — Next 2 Weeks</h4>
+    <ul>
+      <li><span class="event-date">Jun 26 (Thu)</span>May PCE Inflation Report — Fed's preferred gauge. <em>Critical for rate hike pricing.</em></li>
+      <li><span class="event-date">Jun 26 (Thu)</span>Initial Jobless Claims — labor market health check</li>
+      <li><span class="event-date">Jun 27 (Fri)</span>Personal Spending / Personal Income data</li>
+      <li><span class="event-date">Jul 2 (Wed)</span>ADP Employment Change (private sector jobs)</li>
+      <li><span class="event-date">Jul 4 (Fri)</span>US Independence Day — markets closed</li>
+      <li><span class="event-date">Jul 7 (Mon)</span>ISM Services PMI</li>
+      <li><span class="event-date">~Mid-Jul</span>UNH Q2 2026 Earnings (exact date TBC) — <em>major event risk for managed care sub-sector</em></li>
+      <li><span class="event-date">Jul 21</span>ISRG Q2 2026 Earnings — confirmed, end of 4-week trade window</li>
+      <li><span class="event-date">~Late Jul</span>LLY Q2 2026 Earnings (exact date TBC) — <em>major catalyst potential</em></li>
+      <li><span class="event-date">Jul 29–30</span>Next FOMC Meeting — rate decision under Chair Warsh</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ HOW TO READ ══════════════════ -->
+<div class="section-title">How to Read This Report — Novice Guide</div>
+
+<div class="legend">
+  <h4>📖 Mini-Legend</h4>
+  <div class="legend-grid">
+    <div class="legend-item">
+      <strong>Swing Trading Horizon</strong>
+      We are optimizing for trades lasting roughly 3 days to 6 weeks — not day trades, not long-term investments. We exit before the thesis changes materially.
+    </div>
+    <div class="legend-item">
+      <strong>Direction Score (−100 to +100)</strong>
+      The gauge measures how bullish or bearish we think the sector is right now. Above 0 = more bullish signals than bearish. Below 0 = more bearish. +22 means "slightly tilted bullish, but not convincingly so."
+    </div>
+    <div class="legend-item">
+      <strong>Conviction (High / Medium / Low)</strong>
+      How aligned are all five inputs? High = all pointing the same way. Medium = mixed signals but a lean. Low = messy tape, unclear setup. "Medium" here means we see a lean but acknowledge real counter-arguments.
+    </div>
+    <div class="legend-item">
+      <strong>⚙ Swing-Conviction Score (0–100)</strong>
+      This is the <em>technical</em> score — it answers "how good is the chart setup and momentum?" and drives our stock selection. 80+ = strong setup. 60–79 = decent. Below 50 = weak or risky.
+    </div>
+    <div class="legend-item">
+      <strong>📊 Fundamental Health Score (0–100)</strong>
+      Measures the company's underlying business quality: revenue growth, earnings, margins, cash flow. It's <em>separate</em> from the technical score. A company can have a great chart with weak fundamentals (risky) or bad chart with great fundamentals (opportunity). <strong>Green ≥65 | Amber 45–64 | Red &lt;45</strong>
+    </div>
+    <div class="legend-item">
+      <strong>⛽ Fuel Tags</strong>
+      <em>Adds Fuel</em> = fundamentals support the trade direction (e.g., great business for a long). <em>Fights Trend</em> = fundamentals argue against the trade (risky). <em>Neutral</em> = fundamentals neither help nor hurt the directional case.
+    </div>
+    <div class="legend-item">
+      <strong>Color Code</strong>
+      Green = bullish / long signals. Red = bearish / short-or-avoid signals. Gray/Amber = neutral or mixed. Consistent throughout.
+    </div>
+    <div class="legend-item">
+      <strong>⚠ Earnings Proximity Warning</strong>
+      If a company reports earnings inside the 6-week swing window, we flag it in orange. Earnings create binary event risk — the stock can gap up or down 5–15% overnight regardless of your technical read. Size accordingly.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<div class="footer">
+  <strong>⚠ DISCLAIMER — PLEASE READ</strong><br><br>
+  This report is produced for <strong>educational and informational purposes only</strong>. It is <strong>not personal financial advice</strong>, not a solicitation to buy or sell any security, and not a guarantee of any outcome. All analysis reflects probabilities based on publicly available data as of the generation date — <strong>June 23, 2026</strong> — and goes stale rapidly as market conditions change.<br><br>
+  Markets can and do move against any thesis, including well-reasoned ones. Every trade carries risk of loss, including total loss of capital invested. Past performance of any strategy or sector is not indicative of future results. Technical levels, price references, and support/resistance zones are observations based on historical data, not predictions.<br><br>
+  Fundamental data has been sourced from public SEC filings, earnings releases, and reputable financial news sources. Where specific figures could not be independently verified, this has been noted. Never rely solely on any single analysis for investment decisions.<br><br>
+  <strong>You are responsible for your own investment decisions and risk management.</strong> Consult a qualified financial advisor before making investment decisions. The authors of this report may hold positions in securities mentioned.
+</div>
+
+</div><!-- end .wrap -->
+</body>
+</html>
+```
+
+Here is a summary of the key data citations used throughout this analysis:
+
+**Macro:** The Federal Reserve's target range sits at 3.50% to 3.75%, with markets currently pricing the probability of a rate increase in September at around 68%, up from 29% last week after new Fed Chair Kevin Warsh struck a hawkish tone at the June 16–17 FOMC. The yield on the US 10-year Treasury note hovered around 4.5%, and CPI rose to 3.8% in April with headline CPI for full-year 2026 expected to average 3.5% per professional forecasters.
+
+**XLV Technicals:** XLV moved above its 50-day moving average on June 3, 2026, and the 10-day moving average crossed bullishly above the 50-day on May 22, 2026. However, the 50-day moving average for XLV moved below the 200-day moving average on May 18, 2026, — a long-term bearish signal. Five-day net flows for XLV were −$159.5M, and 3-month net flows were −$1.08B.
+
+**LLY:** Eli Lilly reported first-quarter earnings and revenue that blew past estimates, as demand for Zepbound and Mounjaro spiked; the company hiked its full-year sales outlook by $2 billion. Operating margin expanded to 49% in Q1 2026, up from 43% in Q1 2025. During the quarter, Lilly received FDA approval for Foundayo, an oral GLP-1 pill for weight management.
+
+**UNH:** UnitedHealth Group officially confirmed both criminal and civil Department of Justice investigations into its Medicare billing practices, and the 2026 outlook calls for revenue of greater than $439 billion — a 2% year-over-year decline and the first time in a decade UNH has guided for falling revenue; the stock now trades around $280, down roughly 55% from its all-time high.
+
+**ISRG:** First quarter 2026 revenue was $2.77 billion, an increase of 23% compared with Q1 2025, driven by growth in procedure volume, higher da Vinci system placements, and an increase in the installed base. Intuitive Surgical is expected to release next earnings on 07/21/2026.

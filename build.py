@@ -31,6 +31,7 @@ import json
 import os
 import re
 import sys
+import html
 import datetime
 import urllib.request
 from pathlib import Path
@@ -60,17 +61,27 @@ MAX_TOKENS = 32000            # max length of the report the model may write.
 # Sectors are loaded from sectors.json so you can edit that ONE file to change
 # what gets reported. (Edit sectors.json, not this list.)
 
-# --- Email notification (sent via Resend when the reports are published) ---
-EMAIL_TO = ["support@mwtradecoach.com", "sulloa@treelink.lat"]   # who gets notified
-EMAIL_FROM = (os.environ.get("EMAIL_FROM")
-              or "MW Trade AI Reports <reports@mwtradecoach.com>")
-# ^ the "from" address MUST be on a domain you've verified in Resend. Set it via
-#   the EMAIL_FROM repo variable once your domain is verified.
+# --- Notifications ---------------------------------------------------------
+# When the reports are published, build.py sends ONE notification. It picks the
+# channel by which credentials are set in the environment:
+#   1. Telegram  — if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set (preferred;
+#                  needs no domain or DNS).
+#   2. Email via Resend — else if RESEND_API_KEY is set (needs a Resend-verified
+#                  sending domain, i.e. DNS access).
+#   3. Otherwise the notification is skipped (the build still succeeds).
+#
+# Telegram: TELEGRAM_BOT_TOKEN is a GitHub secret; TELEGRAM_CHAT_ID is a repo
+# variable holding one chat id, or several comma-separated (one message each).
+
 SITE_URL = (os.environ.get("SITE_URL") or "").rstrip("/")     # public hub URL,
 #   e.g. https://tradeclub-sector-reports.pages.dev — set via the SITE_URL repo
-#   variable so the email can link to the reports. Empty = links omitted.
-# RESEND_API_KEY is read from the environment (a GitHub secret). If it is unset,
-# the email step is skipped (so local test runs don't error).
+#   variable so the notification can link to the reports. Empty = links omitted.
+
+# Email (Resend) fallback settings. Only used if Telegram isn't configured.
+EMAIL_TO = ["support@mwtradecoach.com", "sulloa@treelink.lat"]   # who gets emailed
+EMAIL_FROM = (os.environ.get("EMAIL_FROM")
+              or "MW Trade AI Reports <reports@mwtradecoach.com>")
+# ^ the "from" address MUST be on a domain you've verified in Resend.
 
 # --- Cost estimation (drives the per-run cost report + the email) ---
 # Dollars per 1,000,000 tokens. cache_write = 1.25x input, cache_read = 0.1x
@@ -644,17 +655,67 @@ def send_email_resend(api_key: str, subject: str, html: str):
         r.read()
 
 
-def notify_email(records: list, cost: dict, date: str):
-    """Email the recipients that the reports are live, with today's cost."""
-    api_key = os.environ.get("RESEND_API_KEY")
-    if not api_key:
-        print("  .. RESEND_API_KEY not set — skipping email notification.")
-        return
+def build_telegram_message(records: list, cost: dict, date: str) -> str:
+    """Compose the notification as a Telegram HTML message (no tables — Telegram
+    only supports a small HTML subset, so we use one line per sector)."""
     n_ok = sum(1 for r in records if r["status"] == "ok")
-    subject = (f"AI Sector Reports live — {date} "
-               f"({n_ok}/{len(records)} refreshed, ${cost['cost']:.2f})")
-    send_email_resend(api_key, subject, build_email_html(records, cost, date))
-    print(f"  .. notification email sent to {', '.join(EMAIL_TO)}.")
+    dot = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⚪"}
+    e = html.escape
+    lines = ["<b>📊 Swing-Trade Sector Reports are live</b>",
+             f"{date} · {n_ok}/{len(records)} refreshed · est. cost ${cost['cost']:.2f}",
+             ""]
+    for r in records:
+        if r["status"] == "ok":
+            lines.append(f"{dot.get(r['label'], '⚪')} <b>{e(r['sector'])}</b> "
+                         f"{r['label']} {r['direction_score']:+d} · {e(r['conviction'])}")
+            lines.append(f"   <i>{e(r['tldr'])}</i>")
+        else:
+            lines.append(f"⏭️ <b>{e(r['sector'])}</b> — kept yesterday's (refresh failed)")
+    if SITE_URL:
+        lines += ["", f'<a href="{e(SITE_URL)}/">Open the hub →</a>']
+    per_sector = " · ".join(f"{e(r['sector'])} ${r['cost']:.2f}" for r in records)
+    lines += ["", f"<b>Today's cost: ${cost['cost']:.2f}</b> ({e(MODEL)})", per_sector]
+    return "\n".join(lines)
+
+
+def send_telegram(token: str, chat_id: str, text: str):
+    """POST one message to the Telegram Bot API."""
+    payload = json.dumps({
+        "chat_id": chat_id, "text": text,
+        "parse_mode": "HTML", "disable_web_page_preview": True,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload, method="POST",
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        r.read()
+
+
+def notify(records: list, cost: dict, date: str):
+    """Send ONE notification that the reports are live, with today's cost.
+    Channel is chosen by which credentials are configured (Telegram preferred)."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if token and chat:
+        text = build_telegram_message(records, cost, date)
+        chat_ids = [c.strip() for c in chat.split(",") if c.strip()]
+        for cid in chat_ids:
+            send_telegram(token, cid, text)
+        print(f"  .. Telegram notification sent to {len(chat_ids)} chat(s).")
+        return
+
+    api_key = os.environ.get("RESEND_API_KEY")
+    if api_key:
+        n_ok = sum(1 for r in records if r["status"] == "ok")
+        subject = (f"AI Sector Reports live — {date} "
+                   f"({n_ok}/{len(records)} refreshed, ${cost['cost']:.2f})")
+        send_email_resend(api_key, subject, build_email_html(records, cost, date))
+        print(f"  .. notification email sent to {', '.join(EMAIL_TO)}.")
+        return
+
+    print("  .. no notifier configured (set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID, "
+          "or RESEND_API_KEY) — skipping notification.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -696,13 +757,13 @@ def main():
     have_site = any(
         (SITE / slugify(s) / "index.html").exists() for s in sectors)
 
-    # Email the recipients that the reports are live + today's cost. Never let
-    # an email problem fail the build — the reports are already published.
+    # Notify (Telegram or email) that the reports are live + today's cost. Never
+    # let a notification problem fail the build — the reports are published.
     if have_site:
         try:
-            notify_email(records, cost, today_str())
+            notify(records, cost, today_str())
         except Exception as e:
-            print(f"  !! email notification failed (non-fatal) — {e}")
+            print(f"  !! notification failed (non-fatal) — {e}")
 
     # If literally nothing succeeded AND we had no prior site, fail so the
     # operator notices. Otherwise exit cleanly (a partial run still publishes

@@ -31,12 +31,17 @@ jobs:
       - name: Build reports (Anthropic API + live web search)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Email notification (Resend). RESEND_API_KEY is a secret; EMAIL_FROM
-          # and SITE_URL are repo Variables you can edit in the GitHub UI
-          # (Settings -> Secrets and variables -> Actions -> Variables).
-          # If RESEND_API_KEY is unset, the email step is simply skipped.
+          # Notification (build.py picks Telegram if set, else Resend, else skips).
+          # Secrets: Settings -> Secrets and variables -> Actions -> Secrets.
+          # Variables (TELEGRAM_CHAT_ID, SITE_URL, EMAIL_FROM): the Variables tab.
+          #
+          # Telegram (preferred — no domain/DNS needed):
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          # Email via Resend (fallback — needs a DNS-verified sending domain):
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          # Public hub URL, used by either channel to link to the reports:
           SITE_URL: ${{ vars.SITE_URL }}
         run: python build.py
 

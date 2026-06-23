@@ -39,18 +39,22 @@ If a sector's API call fails or the sidecar is missing/invalid, that sector is
 **skipped** and yesterday's files are left untouched — a broken report never
 gets published.
 
-## Cost report + email notification
+## Cost report + notification
 
 Every run prints a **cost report** to the Actions log — per-sector token usage,
 web-search count, and estimated dollar cost (including any retries), plus a
 daily total. Costs are estimated from the API `usage` at the list prices in the
 `PRICING` table at the top of `build.py`.
 
-When the reports are published, `build.py` emails **`EMAIL_TO`**
-(support@mwtradecoach.com and sulloa@treelink.lat) via **Resend** with: which
-sectors refreshed vs. kept yesterday's, each sector's call + TL;DR, links to the
-reports, and today's full cost breakdown. If `RESEND_API_KEY` is not set the
-email is skipped (so local runs don't error) — the build still succeeds.
+When the reports are published, `build.py` sends **one notification** with: which
+sectors refreshed vs. kept yesterday's, each sector's call + TL;DR, a link to the
+reports, and today's full cost breakdown. The channel is chosen by which
+credentials are set (the build still succeeds if none are):
+
+1. **Telegram** (preferred — needs no domain or DNS): set `TELEGRAM_BOT_TOKEN`
+   and `TELEGRAM_CHAT_ID`.
+2. **Email via Resend** (fallback — needs a DNS-verified sending domain): set
+   `RESEND_API_KEY`; recipients are `EMAIL_TO` at the top of `build.py`.
 
 ## Run it locally
 
@@ -74,19 +78,22 @@ python build.py
    endpoint, weekdays pre-market (same fine-grained-PAT approach as Sniper):
    `POST https://api.github.com/repos/<owner>/<repo>/actions/workflows/build.yml/dispatches`
    with body `{"ref":"main"}`.
-6. **Set up email (Resend):**
-   - Create a free account at [resend.com](https://resend.com).
-   - **Verify a sending domain** you own (e.g. `mwtradecoach.com`) by adding the
-     DNS records Resend shows you. (Until a domain is verified you can only send
-     to yourself from `onboarding@resend.dev`.)
-   - Create an API key and add it as the GitHub **secret** `RESEND_API_KEY`.
-   - Add two repo **Variables** (Settings → Secrets and variables → Actions →
-     *Variables* tab):
-     - `EMAIL_FROM` — e.g. `MW Trade AI Reports <reports@mwtradecoach.com>`
-       (must be on the verified domain).
-     - `SITE_URL` — your Cloudflare Pages URL (e.g.
-       `https://tradeclub-sector-reports.pages.dev`) so the email links work.
-   - Recipients are `EMAIL_TO` at the top of `build.py` — edit there to change them.
+6. **Set up notifications — Telegram (recommended, no DNS needed):**
+   - In Telegram, message **@BotFather**, send `/newbot`, follow the prompts, and
+     copy the **bot token** it gives you.
+   - Decide who gets notified. Easiest: create a Telegram **group**, add your bot
+     to it, and have each person join. (Or notify people individually.)
+   - Get the **chat id**: send any message in that group (or DM the bot), then open
+     `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser and copy the
+     `chat.id` (group ids are negative, e.g. `-1001234567890`).
+   - Add the GitHub **secret** `TELEGRAM_BOT_TOKEN`, and the repo **Variable**
+     `TELEGRAM_CHAT_ID` (one id, or several comma-separated for multiple chats).
+   - Add the repo **Variable** `SITE_URL` (your Cloudflare Pages URL, e.g.
+     `https://tradeclub-sector-reports.pages.dev`) so the message links work.
+
+   *(Alternative — email via Resend, only if you have DNS access:* verify a
+   sending domain in [resend.com](https://resend.com), add the `RESEND_API_KEY`
+   secret and the `EMAIL_FROM` variable; recipients are `EMAIL_TO` in `build.py`.)*
 7. Run once manually (Actions → "Build sector reports" → Run workflow) and
    confirm the hub renders, a sector report opens, the cost report appears in the
-   log, and the notification email arrives.
+   log, and the notification arrives.

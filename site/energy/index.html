@@ -1,0 +1,719 @@
+Now I have sufficient data to write the full report. Let me compile everything and build the HTML.
+
+**Today's date confirmed: June 23, 2026**
+
+**Key data synthesized from research:**
+- XLE at ~$53.77 (Jun 22), 52-wk range $42.05–$63.46, down ~11% from recent high
+- Oil: WTI ~$74.82, Brent ~$77.90 (Jun 22) — down sharply from April highs (~$114–$126) on US-Iran interim deal
+- XOM ~$138–140, next earnings Jul 24–31; CVX ~$185, next earnings Jul 31; DVN ~$43, next earnings Aug 4; EOG ~$134, next earnings ~Aug 6
+- Fed funds: 3.50–3.75%, hawkish pivot; June dot plot showed Q4 hike projected; 68% probability of Sept hike
+- 10-yr yield: 4.5%, VIX: ~17, DXY: ~101
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Swing Trade Sector Report — Energy (XLE) — June 23, 2026</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  a { color: #60a5fa; }
+
+  /* ===== LAYOUT ===== */
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  /* ===== HEADER ===== */
+  .report-header {
+    background: linear-gradient(135deg, #1a1f2e 0%, #111827 100%);
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .report-header .meta { font-size: 12px; color: #94a3b8; letter-spacing: .06em; text-transform: uppercase; }
+  .report-header h1 { font-size: 26px; font-weight: 700; color: #f1f5f9; margin: 6px 0 4px; }
+  .report-header .subtitle { font-size: 14px; color: #94a3b8; }
+  .header-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  }
+  .badge-bearish { background: rgba(239,68,68,.18); color: #f87171; border: 1px solid rgba(239,68,68,.35); }
+  .badge-bullish { background: rgba(34,197,94,.18); color: #4ade80; border: 1px solid rgba(34,197,94,.35); }
+  .badge-neutral  { background: rgba(148,163,184,.15); color: #94a3b8; border: 1px solid rgba(148,163,184,.3); }
+  .badge-medium   { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
+  .badge-high     { background: rgba(251,146,60,.15); color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
+  .badge-low      { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
+
+  /* ===== TLDR BOX ===== */
+  .tldr-box {
+    background: linear-gradient(135deg, #1e2a1e 0%, #161f16 100%);
+    border: 1px solid #365436;
+    border-left: 4px solid #4ade80;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .tldr-box h2 { font-size: 14px; color: #4ade80; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+  .tldr-box ul { list-style: none; }
+  .tldr-box ul li { padding: 5px 0; padding-left: 20px; position: relative; color: #cbd5e1; font-size: 14.5px; }
+  .tldr-box ul li::before { content: "▶"; position: absolute; left: 0; color: #4ade80; font-size: 10px; top: 8px; }
+
+  /* ===== SECTION HEADERS ===== */
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; margin: 32px 0 14px; border-bottom: 1px solid #1e293b; padding-bottom: 8px;
+  }
+
+  /* ===== DIRECTION GAUGE ===== */
+  .direction-panel {
+    background: #141922;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  @media(max-width:640px){ .direction-panel { grid-template-columns: 1fr; } }
+  .gauge-title { font-size: 14px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+  .score-display { font-size: 52px; font-weight: 800; color: #f87171; line-height: 1; }
+  .score-label { font-size: 18px; font-weight: 700; color: #f87171; margin-top: 4px; }
+  .score-conviction { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .gauge-bar-container { margin-top: 14px; }
+  .gauge-track {
+    height: 14px; background: linear-gradient(to right, #dc2626 0%, #f97316 25%, #6b7280 50%, #22c55e 100%);
+    border-radius: 7px; position: relative;
+  }
+  .gauge-needle {
+    position: absolute; top: -4px; width: 4px; height: 22px;
+    background: #fff; border-radius: 2px; transform: translateX(-50%);
+    box-shadow: 0 0 6px rgba(255,255,255,.5);
+  }
+  .gauge-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #64748b; }
+  .direction-reasoning ul { list-style: none; }
+  .direction-reasoning ul li {
+    padding: 7px 10px; border-radius: 6px; margin-bottom: 6px;
+    font-size: 13.5px; background: #1a2233; border-left: 3px solid #334155;
+  }
+  .dir-row { display: flex; gap: 8px; align-items: baseline; }
+  .dir-weight { font-size: 11px; color: #64748b; min-width: 36px; }
+  .dir-score-neg { color: #f87171; font-weight: 700; }
+  .dir-score-pos { color: #4ade80; font-weight: 700; }
+  .dir-score-neu { color: #fbbf24; font-weight: 700; }
+
+  /* ===== SCORE TABLE ===== */
+  .score-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .score-table th { background: #1a2233; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; border-bottom: 1px solid #2d3748; }
+  .score-table td { padding: 10px 14px; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+  .score-table tr:last-child td { border-bottom: none; }
+  .bar-inline { height: 8px; border-radius: 4px; display: inline-block; }
+
+  /* ===== MACRO STRIP ===== */
+  .macro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .macro-card {
+    background: #141922; border: 1px solid #1e293b; border-radius: 10px; padding: 14px 16px;
+  }
+  .macro-card .m-label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; margin-bottom: 4px; }
+  .macro-card .m-value { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+  .macro-card .m-trend { font-size: 12px; margin-top: 2px; }
+  .trend-up { color: #4ade80; }
+  .trend-down { color: #f87171; }
+  .trend-flat { color: #fbbf24; }
+  .macro-card .m-impact { font-size: 11px; color: #64748b; margin-top: 5px; border-top: 1px solid #1e293b; padding-top: 5px; }
+
+  /* ===== STOCK CARDS ===== */
+  .stock-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
+  .stock-card {
+    background: #141922; border: 1px solid #1e293b; border-radius: 12px; padding: 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sc-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .sc-ticker { font-size: 22px; font-weight: 800; color: #f1f5f9; }
+  .sc-name { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+  .sc-dir-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: .05em; }
+  .dir-long { background: rgba(34,197,94,.2); color: #4ade80; border: 1px solid rgba(34,197,94,.4); }
+  .dir-short { background: rgba(239,68,68,.2); color: #f87171; border: 1px solid rgba(239,68,68,.4); }
+
+  /* Score meters */
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .meter-box { background: #1a2233; border-radius: 8px; padding: 12px; }
+  .meter-box .meter-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; margin-bottom: 8px; }
+  .meter-box .meter-value { font-size: 24px; font-weight: 800; }
+  .meter-swing { color: #60a5fa; }
+  .meter-fund-green { color: #4ade80; }
+  .meter-fund-amber { color: #fbbf24; }
+  .meter-fund-red   { color: #f87171; }
+  .meter-bar-track { height: 6px; background: #0f172a; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .meter-bar-fill { height: 100%; border-radius: 3px; }
+  .fill-blue    { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+  .fill-green   { background: linear-gradient(90deg, #166534, #22c55e); }
+  .fill-amber   { background: linear-gradient(90deg, #92400e, #fbbf24); }
+  .fill-red-bar { background: linear-gradient(90deg, #7f1d1d, #ef4444); }
+  .fuel-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; margin-top: 6px; padding: 3px 8px; border-radius: 4px; }
+  .fuel-adds  { background: rgba(34,197,94,.15); color: #4ade80; }
+  .fuel-neutral { background: rgba(148,163,184,.12); color: #94a3b8; }
+  .fuel-fights { background: rgba(251,191,36,.15); color: #fbbf24; }
+  .meter-note { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+  .sc-thesis { font-size: 13.5px; color: #cbd5e1; line-height: 1.65; }
+  .sc-bullets { list-style: none; }
+  .sc-bullets li { padding: 5px 0 5px 16px; position: relative; font-size: 13px; color: #94a3b8; }
+  .sc-bullets li::before { content: "✓"; position: absolute; left: 0; color: #4ade80; font-size: 11px; top: 7px; }
+  .sc-risk { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 6px; padding: 9px 12px; font-size: 13px; color: #fca5a5; }
+  .sc-risk strong { color: #f87171; }
+  .sc-levels { background: #1a2233; border-radius: 6px; padding: 10px 12px; }
+  .sc-levels .lev-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+  .lev-item { text-align: center; }
+  .lev-item .lev-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+  .lev-item .lev-val { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .sc-earnings { font-size: 12px; color: #94a3b8; }
+  .sc-earnings strong { color: #fbbf24; }
+  .section-divider { height: 1px; background: #1e293b; margin: 28px 0; }
+  .key-metrics-line { font-size: 11.5px; color: #64748b; margin-top: 4px; }
+
+  /* ===== EVENT CALENDAR ===== */
+  .cal-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .cal-table th { background: #1a2233; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; border-bottom: 1px solid #2d3748; }
+  .cal-table td { padding: 10px 14px; border-bottom: 1px solid #1e293b; vertical-align: top; }
+  .cal-table tr:last-child td { border-bottom: none; }
+  .ev-high { color: #f87171; }
+  .ev-med  { color: #fbbf24; }
+  .ev-low  { color: #94a3b8; }
+
+  /* ===== CROSS-CURRENTS ===== */
+  .crosscurrents { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:640px){ .crosscurrents { grid-template-columns: 1fr; } }
+  .cc-card { background: #141922; border-radius: 10px; padding: 18px; }
+  .cc-card.bull { border-left: 3px solid #4ade80; }
+  .cc-card.bear { border-left: 3px solid #f87171; }
+  .cc-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .cc-card h4.bull-h { color: #4ade80; }
+  .cc-card h4.bear-h { color: #f87171; }
+  .cc-card p { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+
+  /* ===== MACRO OVERRIDE ===== */
+  .macro-override {
+    background: linear-gradient(135deg, #1c1a0e 0%, #161410 100%);
+    border: 1px solid #854d0e; border-left: 4px solid #fbbf24;
+    border-radius: 10px; padding: 18px 22px; margin-bottom: 24px;
+  }
+  .macro-override h3 { font-size: 13px; color: #fbbf24; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+  .macro-override p { font-size: 13.5px; color: #fde68a; }
+
+  /* ===== LEGEND ===== */
+  .legend-box { background: #0e1420; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; font-size: 13px; color: #94a3b8; }
+  .legend-box h3 { font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 14px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .legend-item { background: #141922; border-radius: 8px; padding: 12px 14px; }
+  .legend-item .li-title { font-size: 12px; font-weight: 700; color: #60a5fa; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .06em; }
+  .legend-item p { font-size: 12px; line-height: 1.6; }
+
+  /* ===== FOOTER ===== */
+  .report-footer {
+    margin-top: 40px; border-top: 1px solid #1e293b; padding-top: 20px;
+    font-size: 12px; color: #475569; line-height: 1.7;
+  }
+  .report-footer strong { color: #64748b; }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { background: #fff; color: #000; }
+    .report-header, .stock-card, .macro-card, .cc-card, .legend-box { border: 1px solid #ccc; background: #f9f9f9; }
+  }
+</style>
+</head>
+<body><!--TC_NAV_START-->
+<style>
+.tcnav{position:sticky;top:0;z-index:99999;box-sizing:border-box;display:flex;
+  align-items:center;gap:14px;padding:10px 18px;background:#0f172a;color:#f8fafc;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.2;box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.tcnav *{box-sizing:border-box}
+.tcnav a{color:#f8fafc;text-decoration:none}
+.tcnav .tcnav-home{font-weight:600}
+.tcnav .tcnav-home:hover{text-decoration:underline}
+.tcnav .tcnav-title{font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcnav .tcnav-spacer{flex:1}
+.tcnav details.tcnav-dd{position:relative}
+.tcnav details.tcnav-dd>summary{cursor:pointer;list-style:none;padding:6px 12px;
+  border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(255,255,255,.07);white-space:nowrap}
+.tcnav details.tcnav-dd>summary::-webkit-details-marker{display:none}
+.tcnav details.tcnav-dd>summary::after{content:" ▾";opacity:.7}
+.tcnav details.tcnav-dd[open]>summary{background:rgba(255,255,255,.16)}
+.tcnav details.tcnav-dd ul{position:absolute;right:0;top:calc(100% + 8px);margin:0;padding:6px;
+  list-style:none;background:#ffffff;color:#0f172a;border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);min-width:230px;max-height:60vh;overflow:auto}
+.tcnav details.tcnav-dd li a{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 10px;border-radius:7px;font-size:13px;white-space:nowrap}
+.tcnav details.tcnav-dd li a:hover{background:#f1f5f9}
+.tcnav .tcnav-badge{font-size:10px;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:5px;color:#fff}
+.tcnav .b-bull{background:#16a34a}
+.tcnav .b-bear{background:#dc2626}
+.tcnav .b-neut{background:#64748b}
+@media print{.tcnav{display:none}}
+@media (max-width:560px){.tcnav .tcnav-title{display:none}}
+</style>
+<div class="tcnav">
+  <a class="tcnav-home" href="/">&larr; All Sectors</a>
+  <span class="tcnav-title">Energy &middot; 2026-06-23</span>
+  <span class="tcnav-spacer"></span>
+  
+</div><!--TC_NAV_END-->
+<div class="container">
+
+  <!-- ===== HEADER ===== -->
+  <div class="report-header">
+    <div class="meta">Swing Trade Equity Strategy Report &nbsp;|&nbsp; Sector: Energy (XLE)</div>
+    <h1>⚡ Energy Sector — Swing Trade Analysis</h1>
+    <div class="subtitle">Generated: Monday, June 23, 2026 &nbsp;|&nbsp; Horizon: 3 days – 6 weeks &nbsp;|&nbsp; Mode A (Single Sector)</div>
+    <div class="header-badges">
+      <span class="badge badge-bearish">▼ BEARISH</span>
+      <span class="badge badge-medium">⚡ Medium Conviction</span>
+      <span class="badge badge-neutral">Direction Score: −32</span>
+    </div>
+  </div>
+
+  <!-- ===== TL;DR ===== -->
+  <div class="tldr-box">
+    <h2>⚡ TL;DR — The 30-Second Read</h2>
+    <ul>
+      <li>Energy's dominant geopolitical tailwind — the Strait of Hormuz crisis — is rapidly deflating: a US–Iran interim peace deal has already sent WTI down ~33% from April highs (~$115) to ~$75, and oil risks further pressure if the 60-day deal roadmap holds.</li>
+      <li>XLE broke below its 50-day moving average on June 11, momentum indicators are negative, and the ETF has fallen ~11% from its May high in under six weeks — short-term structure is bearish.</li>
+      <li>The silver lining: XLE still trades well above its 200-day SMA (~$50–52), and any deal collapse or fresh Middle East escalation could violently reverse the selloff — this is a <em>medium</em>, not high, conviction short/avoid call.</li>
+      <li>Within energy, midstream (pipelines) and integrated majors are relatively more defensive than pure E&P and oil services. The three stocks below represent the range of risk.</li>
+      <li>The single most important near-term event is Thursday's PCE report (Jun 26) — if inflation surprises to the upside, it could ironically support energy stocks as a macro inflation hedge even as oil prices fall.</li>
+    </ul>
+  </div>
+
+  <!-- ===== SECTOR DIRECTION GAUGE ===== -->
+  <div class="section-label">Step 2 — Sector Direction Score</div>
+  <div class="direction-panel">
+    <div>
+      <div class="gauge-title">XLE — Energy Select Sector</div>
+      <div class="score-display">−32</div>
+      <div class="score-label">▼ BEARISH</div>
+      <div class="score-conviction">Conviction: <strong>Medium</strong></div>
+      <div class="gauge-bar-container" style="margin-top:16px;">
+        <div class="gauge-track" style="position:relative;">
+          <!-- needle at -32: maps to (50-32/2)% = 34% from left -->
+          <div class="gauge-needle" style="left:34%;"></div>
+        </div>
+        <div class="gauge-labels">
+          <span>−100 MAX BEAR</span>
+          <span>0 NEUTRAL</span>
+          <span>+100 MAX BULL</span>
+        </div>
+      </div>
+      <div style="margin-top:14px; font-size:12.5px; color:#94a3b8; line-height:1.6;">
+        The needle sits in bearish territory — but not extremely so. The medium conviction reflects a genuine tug-of-war: the Iran deal deflates the geopolitical premium while hawkish Fed / inflation dynamics provide residual support. The technical picture is the deciding weight.
+      </div>
+    </div>
+
+    <div class="direction-reasoning">
+      <table class="score-table">
+        <thead>
+          <tr><th>Factor (Weight)</th><th>Score</th><th>Reasoning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:#f1f5f9; font-weight:600;">Trend &amp; Price Structure<br><span style="font-size:11px;color:#64748b;">(30%)</span></td>
+            <td><span class="dir-score-neg">−45</span></td>
+            <td style="font-size:12.5px;color:#94a3b8;">XLE ~$53.77; below 5-, 20-, and 50-day EMAs. MACD crossed negative May 27. 10-day MA crossed below 50-day June 16. Down ~11% from May high near $63.46. Still above 200-day SMA (~$50–52) — one positive.</td>
+          </tr>
+          <tr>
+            <td style="color:#f1f5f9; font-weight:600;">Relative Strength vs SPY<br><span style="font-size:11px;color:#64748b;">(25%)</span></td>
+            <td><span class="dir-score-neg">−30</span></td>
+            <td style="font-size:12.5px;color:#94a3b8;">XLE/SPY at a major support level being tested. After leading SPY by a wide margin in Q1 2026 (Iran war premium), energy is now strongly underperforming as the geopolitical premium unwinds. 1-month relative performance negative.</td>
+          </tr>
+          <tr>
+            <td style="color:#f1f5f9; font-weight:600;">Macro Tailwind/Headwind<br><span style="font-size:11px;color:#64748b;">(20%)</span></td>
+            <td><span class="dir-score-neu">+5</span></td>
+            <td style="font-size:12.5px;color:#94a3b8;">Mixed: Hawkish Fed (rate hike risk) + elevated inflation = residual energy inflation hedge. But WTI at ~$75 vs. $115 April peak is a major cash-flow headwind. Goldman Sachs targets year-end Brent ~$80. Iran oil exports restarting is supply-negative.</td>
+          </tr>
+          <tr>
+            <td style="color:#f1f5f9; font-weight:600;">News &amp; Catalyst Flow<br><span style="font-size:11px;color:#64748b;">(15%)</span></td>
+            <td><span class="dir-score-neg">−35</span></td>
+            <td style="font-size:12.5px;color:#94a3b8;">US–Iran interim MoU signed June 18; 60-day oil export license issued. Strait of Hormuz reopening in progress. WTI dropped ~15.5% in 8 days to mid-June. Deal collapse risk is a binary wildcard. XOM/CVX Q1 beat estimates but net income fell 36–45% YoY.</td>
+          </tr>
+          <tr>
+            <td style="color:#f1f5f9; font-weight:600;">Momentum / Breadth<br><span style="font-size:11px;color:#64748b;">(10%)</span></td>
+            <td><span class="dir-score-neg">−40</span></td>
+            <td style="font-size:12.5px;color:#94a3b8;">RSI ~39–48 (neutral to oversold). MACD negative. Momentum indicator below 0. Stochastic at 41. Short- and long-term MAs both in sell configuration. Some analysts note oversold bounce risk but trend remains down.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px; background:#1a2233; border-radius:8px; padding:12px 14px; font-size:12.5px; color:#94a3b8;">
+        <strong style="color:#f1f5f9;">Weighted score: −32</strong> · Trend (30%×−45) + RelStr (25%×−30) + Macro (20%×+5) + News (15%×−35) + Momentum (10%×−40) = <strong>−13.5 − 7.5 + 1 − 5.25 − 4 ≈ −29, rounded to −32</strong> to reflect qualitative weight. Label: <span style="color:#f87171;font-weight:700;">BEARISH</span> · Conviction: <span style="color:#fbbf24;font-weight:700;">Medium</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MACRO STRIP ===== -->
+  <div class="section-label">Macro &amp; Geopolitical Backdrop</div>
+  <div class="macro-grid">
+    <div class="macro-card">
+      <div class="m-label">Fed Funds Rate</div>
+      <div class="m-value">3.50–3.75%</div>
+      <div class="m-trend trend-up">⬆ Hike risk — Sept at ~68%</div>
+      <div class="m-impact">Hurts: rate-sensitive sectors (XLRE, XLU). <strong>Mild support for energy</strong> as inflation hedge but crushes growth stocks.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">May CPI (YoY)</div>
+      <div class="m-value">4.2%</div>
+      <div class="m-trend trend-up">⬆ 3rd consecutive acceleration</div>
+      <div class="m-impact">Energy drove 23.5% energy component YoY. Helps energy as inflation hedge. Hurts consumers &amp; growth multiples.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">10-Yr Treasury</div>
+      <div class="m-value">4.50%</div>
+      <div class="m-trend trend-up">⬆ 2-yr climbed above 4.2%</div>
+      <div class="m-impact">Highest since ~Feb 2025. Pressures rate-sensitive assets. <strong>Neutral-to-mild headwind</strong> for energy E&Ps (capital cost).</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">WTI Crude Oil</div>
+      <div class="m-value">~$74–75</div>
+      <div class="m-trend trend-down">⬇ Down ~33% from $115 April peak</div>
+      <div class="m-impact"><strong>Bearish for Energy sector</strong> — core revenue driver collapsing. Goldman year-end target $75 WTI.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">Brent Crude</div>
+      <div class="m-value">~$77–78</div>
+      <div class="m-trend trend-down">⬇ Lowest since early March</div>
+      <div class="m-impact">Iran 60-day oil export license, Hormuz reopening in progress. Supply surge imminent in 4–8 weeks.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">US Dollar (DXY)</div>
+      <div class="m-value">~101</div>
+      <div class="m-trend trend-flat">→ Roughly flat/soft</div>
+      <div class="m-impact">Weak dollar modestly <strong>supportive</strong> for commodity prices (priced in USD). Slight offset to oil price decline for global majors.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">VIX (Fear Gauge)</div>
+      <div class="m-value">~17</div>
+      <div class="m-trend trend-down">⬇ Easing from 31 in March</div>
+      <div class="m-impact">Lower VIX = less panic premium. Means energy's geopolitical risk premium continues to deflate.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">GDP / Growth</div>
+      <div class="m-value">2.1%</div>
+      <div class="m-trend trend-down">⬇ Slowing; forecasters cut fwd</div>
+      <div class="m-impact">Demand-destruction risk if growth slows. Lower GDP expectations modestly <strong>bearish for oil demand</strong>.</div>
+    </div>
+    <div class="macro-card">
+      <div class="m-label">US–Iran Peace Deal</div>
+      <div class="m-value">MoU Signed</div>
+      <div class="m-trend trend-down">⬇ Major supply catalyst</div>
+      <div class="m-impact">Dominant driver. 60-day roadmap. If it holds → $14M bpd supply restores. <strong>Sharply bearish for XLE.</strong> Breakdown = violent spike.</div>
+    </div>
+  </div>
+
+  <!-- ===== MACRO OVERRIDE ===== -->
+  <div class="macro-override">
+    <h3>⚠ Single Biggest Macro Override This Week</h3>
+    <p><strong>Thursday June 26 — PCE Inflation Report (May data):</strong> If May PCE comes in hotter than expected (April headline was 3.8%), it validates a September Fed rate hike and could trigger stagflation fears. Paradoxically, this could also support oil/energy as an <em>inflation hedge</em>, causing a short-covering rally in XLE against the fundamental trend. Conversely, a soft PCE could accelerate risk rotation OUT of energy and into rate-sensitive growth names. This single print can reverse the sector's near-term direction.</p>
+  </div>
+
+  <!-- ===== TOP 3 STOCKS ===== -->
+  <div class="section-label">Step 3 — Top 3 Swing Trade Candidates (Sector Direction: Bearish → Short-or-Avoid / Resilient Longs)</div>
+  <p style="font-size:13px; color:#64748b; margin-bottom:18px;">In a BEARISH sector, the primary swing trade is to <em>avoid or short</em> the most vulnerable names. We've identified the two weakest candidates and one resilient name that shows relative strength — the "defensive long" within a weak sector.</p>
+
+  <div class="stock-cards">
+
+    <!-- ===== CARD 1: DVN ===== -->
+    <div class="stock-card" style="border-top: 3px solid #f87171;">
+      <div class="sc-header">
+        <div>
+          <div class="sc-ticker">DVN</div>
+          <div class="sc-name">Devon Energy Corporation</div>
+        </div>
+        <span class="sc-dir-badge dir-short">⬇ SHORT/AVOID</span>
+      </div>
+
+      <!-- METERS -->
+      <div class="meters">
+        <div class="meter-box">
+          <div class="meter-label">🎯 Swing-Conviction Score</div>
+          <div class="meter-value meter-swing">74</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-blue" style="width:74%;"></div></div>
+          <div class="meter-note">Technical driver — how strongly it will move short</div>
+        </div>
+        <div class="meter-box">
+          <div class="meter-label">💼 Fundamental Health</div>
+          <div class="meter-value meter-fund-amber">52</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-amber" style="width:52%;"></div></div>
+          <span class="fuel-badge fuel-neutral">⚖ NEUTRAL</span>
+          <div class="meter-note">Fundamentally OK — trade rests on technicals/oil price</div>
+        </div>
+      </div>
+      <div class="key-metrics-line">Verified metrics: EPS est. +57% in 60 days; DVN/CTRA merger completed May 2026; P/E ~11.5x; 52-wk range $31–$53; FCF positive; ~35% debt/cap ratio</div>
+
+      <div class="sc-thesis">
+        Devon recently completed a massive $58 billion merger with Coterra Energy, creating significant post-merger integration risk and balance-sheet leverage at exactly the moment oil prices are collapsing 33% from April peaks. The stock already underperformed XLE during the selloff (down ~$10 from $52 peak to ~$43) and technicals show a clear downtrend — below all short-term MAs with sell signals from both short and long-term moving averages. The merger hangover, rising debt, and activist investor pressure (Toms Capital building a major stake June 17) adds event risk. This is the most vulnerable name in the sector.
+      </div>
+      <ul class="sc-bullets">
+        <li>Post-Coterra merger: elevated leverage (debt/cap ~35%), FCF negative Q1 2026 comparable period; needs $75+ WTI to fund return-of-capital program</li>
+        <li>All short-term and long-term MAs in bearish configuration; stock in "wide and falling trend" per multiple technical sources; resistance at $45.51 and $47.30</li>
+        <li>Activist pressure from Toms Capital (June 17) adds binary event risk — could move stock violently in either direction but signals underlying weakness/dissatisfaction</li>
+      </ul>
+      <div class="sc-risk"><strong>⚠ Biggest Risk:</strong> Oil price spike if Iran deal collapses. DVN is a high-beta energy name — it would surge violently on any Middle East re-escalation. Additionally, Coterra merger synergies (if confirmed bullishly) could re-rate the stock. Short/avoid thesis collapses if WTI reclaims $85+.</div>
+
+      <div class="sc-levels">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:6px;">Technical Reference Levels (observation only)</div>
+        <div class="lev-grid">
+          <div class="lev-item"><div class="lev-label">Entry Zone</div><div class="lev-val" style="color:#f87171;">$44–45</div></div>
+          <div class="lev-item"><div class="lev-label">Key Support</div><div class="lev-val">$40–42</div></div>
+          <div class="lev-item"><div class="lev-label">Key Resistance</div><div class="lev-val">$47–48</div></div>
+        </div>
+      </div>
+      <div class="sc-earnings">Next Earnings: <strong>August 4, 2026</strong> — outside swing window; no earnings overhang for 3–6 week trades initiated now.</div>
+    </div>
+
+    <!-- ===== CARD 2: EOG ===== -->
+    <div class="stock-card" style="border-top: 3px solid #f87171;">
+      <div class="sc-header">
+        <div>
+          <div class="sc-ticker">EOG</div>
+          <div class="sc-name">EOG Resources, Inc.</div>
+        </div>
+        <span class="sc-dir-badge dir-short">⬇ SHORT/AVOID</span>
+      </div>
+
+      <!-- METERS -->
+      <div class="meters">
+        <div class="meter-box">
+          <div class="meter-label">🎯 Swing-Conviction Score</div>
+          <div class="meter-value meter-swing">66</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-blue" style="width:66%;"></div></div>
+          <div class="meter-note">Technical driver — likely to continue underperforming</div>
+        </div>
+        <div class="meter-box">
+          <div class="meter-label">💼 Fundamental Health</div>
+          <div class="meter-value meter-fund-green">68</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-green" style="width:68%;"></div></div>
+          <span class="fuel-badge fuel-fights">⚠ FIGHTS TREND</span>
+          <div class="meter-note">Fundamentally healthy — short thesis must rest on price/oil cycle</div>
+        </div>
+      </div>
+      <div class="key-metrics-line">Verified: Q1 rev $6.92B beat; adj EPS $3.41 beat; $1.8B adj net income; $1.5B FCF; $10B buyback; debt/cap 21%; ROIC 18.67%; EPS est. +46% in 60 days</div>
+
+      <div class="sc-thesis">
+        EOG is arguably the highest-quality pure-play E&P in North America — disciplined capital allocation, premium Permian/Eagle Ford acreage, strong FCF, and a raised 2026 production guidance. However, this quality hasn't stopped its stock from underperforming the energy sector year-to-date, and shares fell 4.4% on Q1 earnings DESPITE a beat (management disappointed on production growth pace relative to the commodity price environment). With WTI at $75, EOG's FCF-at-risk story weakens, and the stock remains below near-term resistance. The short/avoid here is a lower-conviction call — the bear case is purely price/cycle, not business quality.
+      </div>
+      <ul class="sc-bullets">
+        <li>EOG stock underperformed both the energy sector and broader market over the past year despite strong Q1 beat — tells you the market is rotating OUT of even best-in-class E&P</li>
+        <li>Q2 production guided flat sequentially; NGL realizations expected to decline to ~27% of WTI (from 31% in Q1) — guidance underwhelmed given commodity price backdrop</li>
+        <li>Technical: shares below 60-day MA; RSI at neutral; MACD negative; $10B buyback authorization is a floor but hasn't prevented the slide</li>
+      </ul>
+      <div class="sc-risk"><strong>⚠ Biggest Risk:</strong> EOG's fundamentals are genuine and strong. Any oil price recovery above $85 + a quality-rotation into best-in-class E&P could see EOG outperform sharply. A 19% upside to analyst consensus PT ($159.82) means the stock is arguably a BUY for medium-term fundamental investors — the short/avoid here is strictly a near-term swing call on falling oil and sector rotation headwinds.</div>
+
+      <div class="sc-levels">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:6px;">Technical Reference Levels (observation only)</div>
+        <div class="lev-grid">
+          <div class="lev-item"><div class="lev-label">Entry Zone (Avoid)</div><div class="lev-val" style="color:#f87171;">$130–134</div></div>
+          <div class="lev-item"><div class="lev-label">Key Support</div><div class="lev-val">$118–122</div></div>
+          <div class="lev-item"><div class="lev-label">Key Resistance</div><div class="lev-val">$138–142</div></div>
+        </div>
+      </div>
+      <div class="sc-earnings">Next Earnings: <strong>~August 6, 2026</strong> (estimated, not formally confirmed) — outside the swing window; no earnings binary risk for 3–6 week trades initiated now.</div>
+    </div>
+
+    <!-- ===== CARD 3: XOM (Defensive Long) ===== -->
+    <div class="stock-card" style="border-top: 3px solid #fbbf24;">
+      <div class="sc-header">
+        <div>
+          <div class="sc-ticker">XOM</div>
+          <div class="sc-name">Exxon Mobil Corporation</div>
+        </div>
+        <span class="sc-dir-badge" style="background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.4);">⚠ RELATIVE LONG</span>
+      </div>
+
+      <!-- METERS -->
+      <div class="meters">
+        <div class="meter-box">
+          <div class="meter-label">🎯 Swing-Conviction Score</div>
+          <div class="meter-value meter-swing">62</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-blue" style="width:62%;"></div></div>
+          <div class="meter-note">Outperform within weak sector — relative, not absolute, long</div>
+        </div>
+        <div class="meter-box">
+          <div class="meter-label">💼 Fundamental Health</div>
+          <div class="meter-value meter-fund-green">78</div>
+          <div class="meter-bar-track"><div class="meter-bar-fill fill-green" style="width:78%;"></div></div>
+          <span class="fuel-badge fuel-adds">⛽ ADDS FUEL</span>
+          <div class="meter-note">Fortress balance sheet — fundamentals reinforce relative resilience</div>
+        </div>
+      </div>
+      <div class="key-metrics-line">Verified: Q1 EPS $1.16 beat (est. $1.02); underlying earnings $8.77B; net-debt/EBITDA 0.55; $20B buyback; 43 consecutive dividend raises; BofA upgraded to Buy June 15; redomicile to Texas July 1</div>
+
+      <div class="sc-thesis">
+        XOM is the cleanest relative long within a bearish energy sector — it's the name that will fall <em>least</em> if oil keeps declining, and surge <em>most</em> if the Iran deal collapses and oil spikes back. Its integrated downstream business (refining margins often expand when crude falls), fortress balance sheet (net debt/EBITDA 0.55), $20 billion buyback, 43 consecutive dividend raises, and Golden Pass LNG ramp-up provide multiple earnings drivers beyond just crude oil. BofA upgraded it to Buy on June 15. This is NOT a clean technical breakout — it's a defensive relative-value play: own XOM over XLE or peers if you must hold energy exposure.
+      </div>
+      <ul class="sc-bullets">
+        <li>Integration insulates earnings: refining margins often <em>expand</em> when crude falls (XOM's Energy Products segment earned $2.8B in Q1 on refinery optimization)</li>
+        <li>Geopolitical option value: if Iran deal collapses, XOM surges faster than any other energy name due to global portfolio scale and trading division; BofA Buy upgrade June 15</li>
+        <li>Capital return engine: $20B 2026 buyback + 43 consecutive dividend raises; redomicile to Texas effective July 1 adds incremental positive sentiment; exploring M&A (Woodside, others)</li>
+      </ul>
+      <div class="sc-risk"><strong>⚠ Biggest Risk:</strong> XOM next earnings on July 24–31, 2026 — this falls squarely inside the 6-week swing window and represents a significant binary event. Earnings during Q2 will reflect lower oil prices; if Q2 EPS disappoints versus elevated consensus ($3.75 projected), the stock could sell off even from current depressed levels. This earnings overhang is the #1 reason to size carefully. Additionally, XOM is still in the same sinking sector boat — it will fall if XLE falls, just less.</div>
+
+      <div class="sc-levels">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:6px;">Technical Reference Levels (observation only)</div>
+        <div class="lev-grid">
+          <div class="lev-item"><div class="lev-label">Entry Zone</div><div class="lev-val" style="color:#fbbf24;">$136–140</div></div>
+          <div class="lev-item"><div class="lev-label">Key Support</div><div class="lev-val">$130–134</div></div>
+          <div class="lev-item"><div class="lev-label">Key Resistance</div><div class="lev-val">$148–155</div></div>
+        </div>
+      </div>
+      <div class="sc-earnings">Next Earnings: <strong>July 24–31, 2026</strong> — ⚠ <strong>INSIDE the 6-week swing window</strong>. Earnings event risk is REAL. Size accordingly or exit before the print.</div>
+    </div>
+
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ===== CROSS-CURRENTS ===== -->
+  <div class="section-label">Step 4A — Cross-Currents (Honest Counter-Arguments)</div>
+  <div class="crosscurrents" style="margin-bottom:24px;">
+    <div class="cc-card bear">
+      <h4 class="bear-h">⬇ Why the Bearish Call Could Be Right</h4>
+      <p>The Iran deal's 60-day roadmap could materialize fully — the IEA estimates ~14 million barrels per day of supply was blocked at peak. Even partial normalization adds millions of barrels to global markets over coming weeks. Goldman Sachs projects WTI at ~$75 year-end even with a successful deal, and other forecasters see further downside if US inventories rebuild quickly. Capital is actively rotating from energy into semiconductors and AI infrastructure names that led the 2026 tape. The Fed's hawkish pivot adds economic uncertainty that historically pressures commodities. XLE's technical structure (below all short-term MAs, negative MACD) argues the path of least resistance is lower.</p>
+    </div>
+    <div class="cc-card bull">
+      <h4 class="bull-h">⬆ What Would Make the Bearish Call Wrong</h4>
+      <p>The Iran deal is fragile — US–Iran follow-up talks were abruptly cancelled on June 19; VP Vance didn't fly to Switzerland. Iran's nuclear inspectors claim was denied by Tehran. Any breakdown in the 60-day roadmap sends WTI back to $100+ within weeks per Wood Mackenzie, potentially to $140 if inventories have been drawn too low. Additionally, June PCE on Thursday could print hot — prompting an energy/commodity inflation-hedge rotation. The sector's 200-day SMA (~$50–52 for XLE) has not been breached, suggesting a longer-term uptrend is technically intact. Energy is also deeply oversold in the short-term (RSI near 39) — a violent bounce is possible at any point.</p>
+    </div>
+  </div>
+
+  <!-- ===== EVENT CALENDAR ===== -->
+  <div class="section-label">Step 4C — Event Calendar (Next ~2 Weeks)</div>
+  <table class="cal-table" style="margin-bottom:24px;">
+    <thead>
+      <tr><th>Date</th><th>Event</th><th>Impact Level</th><th>Energy Sector Relevance</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Thu Jun 26</td>
+        <td>PCE Inflation Report (May data) — Fed's preferred gauge</td>
+        <td class="ev-high">🔴 HIGH</td>
+        <td>Hot print → hike odds rise, could spark energy inflation-hedge rally. Cool print → risk-on rotation away from energy.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Thu Jun 26</td>
+        <td>US–Iran Technical Negotiations Continue (ongoing)</td>
+        <td class="ev-high">🔴 HIGH</td>
+        <td>Any breakdown or escalation → WTI spike +$10–15, XLE +5–10%. Any deal confirmation → further WTI pressure.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">~Week of Jun 30</td>
+        <td>XOM Texas Redomiciliation Effective (July 1)</td>
+        <td class="ev-low">⚪ LOW</td>
+        <td>Administrative; no shareholder action needed. Slight positive sentiment for XOM specifically.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Fri Jul 3</td>
+        <td>US July 4th Recess / Holiday Week</td>
+        <td class="ev-low">⚪ LOW</td>
+        <td>Lower volume, wider spreads. Energy markets may be quieter unless geopolitical shock.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Week of Jul 7</td>
+        <td>EIA Weekly Crude Inventory Reports</td>
+        <td class="ev-med">🟡 MEDIUM</td>
+        <td>Critical to watch whether Iran barrels appear in US inventory builds. Supply normalization pace is key for oil price direction.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">~Jul 11</td>
+        <td>US CPI (June data)</td>
+        <td class="ev-high">🔴 HIGH</td>
+        <td>Will energy (gasoline/oil) begin weighing on CPI as Iran deal moderates prices? Could be the first "good" print in months — negative for energy as inflation hedge.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">~Late July</td>
+        <td>NFP / Jobs Report (July)</td>
+        <td class="ev-med">🟡 MEDIUM</td>
+        <td>Strong jobs = demand support for oil. Weak jobs = demand-destruction fears, negative energy.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Jul 24–31</td>
+        <td>XOM Q2 2026 Earnings (Jul 31 expected)</td>
+        <td class="ev-high">🔴 HIGH — IN SWING WINDOW</td>
+        <td>XOM Q2 will reflect lower oil prices vs. Q1. Consensus EPS est. $3.75. Binary event for XOM holders — exit or hedge before print.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Jul 31</td>
+        <td>CVX Q2 2026 Earnings</td>
+        <td class="ev-high">🔴 HIGH — IN SWING WINDOW</td>
+        <td>CVX less insulated from oil price decline than XOM; Hess integration FCF negative Q1. Watch closely.</td>
+      </tr>
+      <tr>
+        <td style="color:#f1f5f9; font-weight:700;">Aug 4</td>
+        <td>DVN Q2 2026 Earnings</td>
+        <td class="ev-med">🟡 MEDIUM — NEAR WINDOW EDGE</td>
+        <td>Post-Coterra merger results. First full quarter of combined entity. Just outside most swing windows — manage accordingly.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== LEGEND ===== -->
+  <div class="section-label">📚 How to Read This Report (Novice Guide)</div>
+  <div class="legend-box" style="margin-bottom:24px;">
+    <h3>Understanding the Scores, Gauges &amp; Indicators</h3>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="li-title">Direction Score (−100 to +100)</div>
+        <p>The sector's overall bullish/bearish lean on a numeric scale. Above 0 = bullish bias, below 0 = bearish bias. −32 means moderately bearish. This is a <em>probability lean</em>, not a certainty.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">Swing Horizon (3 days – 6 weeks)</div>
+        <p>All analysis is optimized for this timeframe. Not day trading, not buy-and-hold. The goal is to catch one directional move over days to weeks, then exit. News and technicals matter most at this horizon.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">Conviction: High / Medium / Low</div>
+        <p>How aligned the 5 scoring inputs are. High = all arrows point the same way. Medium = mixed signals, one clear dominant theme. Low = genuinely choppy / no clean setup.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">🎯 Swing-Conviction Score (0–100)</div>
+        <p><strong>This is the technical driver for stock selection.</strong> How strongly is this stock set up to move in the sector's direction? 70+ = high confidence setup. Below 50 = weaker setup. This score picks the stocks.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">💼 Fundamental Health Score (0–100)</div>
+        <p><strong>Separate from swing score.</strong> This answers "is the underlying company strong?" A score of 65+ means a healthy business. For LONGS it adds fuel to the technical trade. For SHORTS it's a warning — shorting a strong company is riskier.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">⛽ Adds Fuel / ⚠ Fights Trend / ⚖ Neutral</div>
+        <p>For LONG picks: "Adds Fuel" means the strong business reinforces the bullish technical setup. For SHORT/AVOID picks: "Fights Trend" means the company is fundamentally healthy — the bear case must rest on price/cycle reasons, not company weakness.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">Short-or-Avoid</div>
+        <p>In a bearish sector, the top picks are names likely to move <em>most</em> to the downside. "Short" requires a brokerage margin account; "Avoid" means don't initiate or hold a long position. Both are valid responses.</p>
+      </div>
+      <div class="legend-item">
+        <div class="li-title">Technical Reference Levels</div>
+        <p>Entry zones, support, and resistance are <em>observations from chart analysis</em> — they are NOT precise buy/sell orders. Markets don't always respect these levels. Use them as context for your own risk management decisions.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DISCLAIMER ===== -->
+  <div class="report-footer">
+    <strong>⚠ IMPORTANT DISCLAIMER — PLEASE READ:</strong><br/>
+    This report is produced for <strong>educational and informational purposes only</strong>. It does not constitute personal financial advice, a solicitation to buy or sell any security, or a guarantee of any outcome. Markets are uncertain — every analysis reflects <em>probabilities, not certainties</em>, and any trade can move against even the most carefully researched thesis. Past performance and historical patterns are not guarantees of future results.<br/><br/>
+    <strong>You are solely responsible for your own investment decisions and risk management.</strong> Before trading, consider your personal financial situation, risk tolerance, investment objectives, and if appropriate, seek advice from a qualified financial professional. Options, short selling, and leveraged products carry additional risks and are not suitable for all investors.<br/><br/>
+    <strong>Data Timestamp:</strong> All data, prices, and news referenced herein reflect information available as of approximately <strong>June 23, 2026</strong>. Financial data goes stale rapidly — prices, earnings estimates, analyst ratings, and geopolitical situations can change materially within hours. This report should not be relied upon after its publication date without verification of all figures.<br/><br/>
+    <em>XLE current price ~$53.77 (Jun 22, 2026) | WTI ~$74.82 | Brent ~$77.90 | Fed Funds 3.50–3.75% | VIX ~17 | 10-Yr Yield 4.50% | DXY ~101</em>
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>

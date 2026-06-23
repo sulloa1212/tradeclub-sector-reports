@@ -50,7 +50,11 @@ MODEL = "claude-sonnet-4-6"   # the model that writes the reports.
 KEEP = 5                      # how many dated reports to keep per sector.
 MAX_SEARCHES = 15             # max web searches the model may run per sector
                               # (caps cost). Raise/lower as needed.
-MAX_TOKENS = 16000            # max length of the report the model may write.
+MAX_TOKENS = 32000            # max length of the report the model may write.
+                              # Reports are large (full HTML + SVG). Too low and
+                              # the model gets cut off before the JSON sidecar,
+                              # which makes the sector skip. Sonnet 4.6 allows up
+                              # to 64000 — raise this if sectors still truncate.
 
 # Sectors are loaded from sectors.json so you can edit that ONE file to change
 # what gets reported. (Edit sectors.json, not this list.)
@@ -151,6 +155,13 @@ def call_model(client: Anthropic, master_prompt: str, sector: str) -> str:
     )
     if not text.strip():
         raise ValueError("model returned no text")
+    # If the model ran out of room, the report was cut off mid-stream and the
+    # JSON sidecar (which comes last) never made it. Say so plainly — the fix is
+    # to raise MAX_TOKENS, not to chase a phantom parse bug.
+    if getattr(resp, "stop_reason", None) == "max_tokens":
+        raise ValueError(
+            f"report was truncated at MAX_TOKENS={MAX_TOKENS} "
+            "(raise MAX_TOKENS so the full report + sidecar fit)")
     return text
 
 

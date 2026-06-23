@@ -17,7 +17,7 @@ jobs:
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d "{\"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\", \"text\": \"${{ github.event.inputs.message }}\"}")
+            -d "{\"chat_id\": \"${{ vars.TELEGRAM_CHAT_ID }}\", \"text\": \"${{ github.event.inputs.message }}\"}")
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)

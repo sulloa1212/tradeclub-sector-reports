@@ -31,6 +31,13 @@ jobs:
       - name: Build reports (Anthropic API + live web search)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Email notification (Resend). RESEND_API_KEY is a secret; EMAIL_FROM
+          # and SITE_URL are repo Variables you can edit in the GitHub UI
+          # (Settings -> Secrets and variables -> Actions -> Variables).
+          # If RESEND_API_KEY is unset, the email step is simply skipped.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: python build.py
 
       - name: Commit & push the rebuilt site

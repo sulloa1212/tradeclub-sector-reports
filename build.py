@@ -32,6 +32,7 @@ import os
 import re
 import sys
 import datetime
+import urllib.request
 from pathlib import Path
 
 import pandas_market_calendars as mcal
@@ -58,6 +59,27 @@ MAX_TOKENS = 32000            # max length of the report the model may write.
 
 # Sectors are loaded from sectors.json so you can edit that ONE file to change
 # what gets reported. (Edit sectors.json, not this list.)
+
+# --- Email notification (sent via Resend when the reports are published) ---
+EMAIL_TO = ["mike@mwtradecoach.com", "sulloa@treelink.lat"]   # who gets notified
+EMAIL_FROM = (os.environ.get("EMAIL_FROM")
+              or "MW Trade AI Reports <reports@mwtradecoach.com>")
+# ^ the "from" address MUST be on a domain you've verified in Resend. Set it via
+#   the EMAIL_FROM repo variable once your domain is verified.
+SITE_URL = (os.environ.get("SITE_URL") or "").rstrip("/")     # public hub URL,
+#   e.g. https://tradeclub-sector-reports.pages.dev — set via the SITE_URL repo
+#   variable so the email can link to the reports. Empty = links omitted.
+# RESEND_API_KEY is read from the environment (a GitHub secret). If it is unset,
+# the email step is skipped (so local test runs don't error).
+
+# --- Cost estimation (drives the per-run cost report + the email) ---
+# Dollars per 1,000,000 tokens. cache_write = 1.25x input, cache_read = 0.1x
+# input (Anthropic prompt-cache pricing). Web search is billed separately.
+PRICING = {
+    "claude-sonnet-4-6": {"in": 3.0, "out": 15.0, "cache_write": 3.75, "cache_read": 0.30},
+    "claude-opus-4-8":   {"in": 5.0, "out": 25.0, "cache_write": 6.25, "cache_read": 0.50},
+}
+WEB_SEARCH_COST_PER_1K = 10.0   # $10 per 1,000 web searches
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -134,8 +156,12 @@ RETRY_REMINDER = (
 
 
 def call_model(client: Anthropic, master_prompt: str, sector: str,
-               extra_instruction: str = "") -> str:
+               extra_instruction: str = "") -> tuple:
     """Run the master prompt for ONE sector with live web search enabled.
+
+    Returns (text, usage, stop_reason). We return usage even when the reply is
+    unusable (e.g. truncated) so the caller can still bill the tokens it cost;
+    the caller decides whether the reply is good enough to use.
 
     The master prompt is sent as its own content block with prompt caching on,
     so after the first sector it is served from cache (it's identical every
@@ -172,16 +198,7 @@ def call_model(client: Anthropic, master_prompt: str, sector: str,
         block.text for block in resp.content
         if getattr(block, "type", None) == "text"
     )
-    if not text.strip():
-        raise ValueError("model returned no text")
-    # If the model ran out of room, the report was cut off mid-stream and the
-    # JSON sidecar (which comes last) never made it. Say so plainly — the fix is
-    # to raise MAX_TOKENS, not to chase a phantom parse bug.
-    if getattr(resp, "stop_reason", None) == "max_tokens":
-        raise ValueError(
-            f"report was truncated at MAX_TOKENS={MAX_TOKENS} "
-            "(raise MAX_TOKENS so the full report + sidecar fit)")
-    return text
+    return text, resp.usage, getattr(resp, "stop_reason", None)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -299,6 +316,39 @@ def validate_sidecar(s: dict):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Cost accounting
+# ─────────────────────────────────────────────────────────────────────────────
+
+_COUNT_KEYS = ("input", "output", "cache_write", "cache_read", "web_searches")
+
+
+def usage_counts(usage) -> dict:
+    """Pull the token / web-search counts out of one API response's usage."""
+    st = getattr(usage, "server_tool_use", None)
+    return {
+        "input": getattr(usage, "input_tokens", 0) or 0,
+        "output": getattr(usage, "output_tokens", 0) or 0,
+        "cache_write": getattr(usage, "cache_creation_input_tokens", 0) or 0,
+        "cache_read": getattr(usage, "cache_read_input_tokens", 0) or 0,
+        "web_searches": (getattr(st, "web_search_requests", 0) or 0) if st else 0,
+    }
+
+
+def add_counts(a: dict, b: dict) -> dict:
+    return {k: a.get(k, 0) + b.get(k, 0) for k in _COUNT_KEYS}
+
+
+def cost_of(counts: dict) -> float:
+    """Dollar cost for a bundle of token / web-search counts at MODEL's prices."""
+    p = PRICING.get(MODEL, PRICING["claude-sonnet-4-6"])
+    tokens = (counts["input"] * p["in"]
+              + counts["output"] * p["out"]
+              + counts["cache_write"] * p["cache_write"]
+              + counts["cache_read"] * p["cache_read"]) / 1_000_000
+    return tokens + counts["web_searches"] * WEB_SEARCH_COST_PER_1K / 1000
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Navigation bar injection
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -334,32 +384,64 @@ def inject_nav(html: str, nav: str) -> str:
 # Per-sector build
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_sector(client: Anthropic, master_prompt: str, sector: str) -> bool:
-    """Build one sector. Returns True on success, False if it was skipped
-    (in which case yesterday's files are left exactly as they were)."""
+def _record(sector, slug, status, usages, attempts, sidecar=None, date=None) -> dict:
+    """Assemble the per-sector result (status + cost) returned to main()."""
+    counts = {k: 0 for k in _COUNT_KEYS}
+    for u in usages:
+        counts = add_counts(counts, usage_counts(u))
+    rec = {"sector": sector, "slug": slug, "status": status,
+           "attempts": attempts, "counts": counts, "cost": cost_of(counts)}
+    if status == "ok" and sidecar:
+        rec.update({
+            "date": date,
+            "label": sidecar["label"],
+            "direction_score": int(round(float(sidecar["direction_score"]))),
+            "conviction": sidecar["conviction"],
+            "tldr": sidecar["tldr"],
+        })
+    return rec
+
+
+def build_sector(client: Anthropic, master_prompt: str, sector: str) -> dict:
+    """Build one sector. Returns a result record (status + cost). On a skip,
+    yesterday's files are left exactly as they were."""
     slug = slugify(sector)
     print(f"\n=== {sector}  ({slug}) ===")
 
     # 1) Ask the model, parse, and validate. If anything fails, make ONE
     #    automatic retry with a forceful format reminder before giving up. Only
     #    after the retry ALSO fails do we skip and keep yesterday's report.
+    #    Every call's usage is recorded (even failed/truncated ones) so the cost
+    #    report counts what the run actually spent, retries included.
+    usages = []
+
     def attempt(extra=""):
-        text = call_model(client, master_prompt, sector, extra)
+        text, usage, stop_reason = call_model(client, master_prompt, sector, extra)
+        if usage is not None:
+            usages.append(usage)
+        if not text.strip():
+            raise ValueError("model returned no text")
+        if stop_reason == "max_tokens":
+            raise ValueError(
+                f"report was truncated at MAX_TOKENS={MAX_TOKENS} "
+                "(raise MAX_TOKENS so the full report + sidecar fit)")
         body, sidecar = extract_parts(text)
         validate_sidecar(sidecar)
         return body, sidecar
 
+    attempts = 1
     try:
         body, sidecar = attempt()
     except Exception as e:
         print(f"  !! attempt 1 failed — {e}")
         print(f"  !! retrying '{sector}' once with a stricter format reminder...")
+        attempts = 2
         try:
             body, sidecar = attempt(RETRY_REMINDER)
         except Exception as e2:
             print(f"  !! SKIPPED — {e2}")
             print(f"  !! Keeping yesterday's report for '{sector}'.")
-            return False
+            return _record(sector, slug, "skipped", usages, attempts)
         print(f"  .. retry succeeded for '{sector}'.")
 
     sector_dir = SITE / slug
@@ -424,7 +506,7 @@ def build_sector(client: Anthropic, master_prompt: str, sector: str) -> bool:
 
     print(f"  OK — {sidecar['label']} {meta_by_date[today]['direction_score']:+d} "
           f"({sidecar['conviction']} conviction), {len(keep)} report(s) kept")
-    return True
+    return _record(sector, slug, "ok", usages, attempts, sidecar, today)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -456,6 +538,126 @@ def build_hub(sectors: list):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Cost report + email notification
+# ─────────────────────────────────────────────────────────────────────────────
+
+def summarize_cost(records: list) -> dict:
+    """Print a per-sector + total cost table to the log; return the totals."""
+    total = {k: 0 for k in _COUNT_KEYS}
+    print(f"\n----- Cost report (model: {MODEL}) -----")
+    print(f"  {'sector':<16}{'status':<9}{'input':>9}{'output':>8}"
+          f"{'cache_rd':>10}{'web':>5}{'cost':>9}")
+    for r in records:
+        c = r["counts"]
+        total = add_counts(total, c)
+        note = f"  (x{r['attempts']})" if r["attempts"] > 1 else ""
+        print(f"  {r['sector']:<16}{r['status']:<9}{c['input']:>9}{c['output']:>8}"
+              f"{c['cache_read']:>10}{c['web_searches']:>5}{('$%.3f' % r['cost']):>9}{note}")
+    total_cost = cost_of(total)
+    print(f"  {'TOTAL':<16}{'':<9}{total['input']:>9}{total['output']:>8}"
+          f"{total['cache_read']:>10}{total['web_searches']:>5}{('$%.2f' % total_cost):>9}")
+    print(f"  Estimated cost for today's run: ${total_cost:.2f}")
+    return {"counts": total, "cost": total_cost}
+
+
+def _label_color(label: str) -> str:
+    return {"BULLISH": "#16a34a", "BEARISH": "#dc2626"}.get(label, "#64748b")
+
+
+def build_email_html(records: list, cost: dict, date: str) -> str:
+    """Compose the notification email body (inline-styled HTML)."""
+    n_ok = sum(1 for r in records if r["status"] == "ok")
+    hub = f'<p><a href="{SITE_URL}/" style="color:#2563eb">Open the hub &rarr;</a></p>' if SITE_URL else ""
+
+    sector_rows = []
+    for r in records:
+        if r["status"] == "ok":
+            link = f'{SITE_URL}/{r["slug"]}/' if SITE_URL else ""
+            name = (f'<a href="{link}" style="color:#0f172a;text-decoration:none;font-weight:600">{r["sector"]}</a>'
+                    if link else f'<b>{r["sector"]}</b>')
+            badge = (f'<span style="background:{_label_color(r["label"])};color:#fff;font-size:11px;'
+                     f'font-weight:700;padding:2px 7px;border-radius:4px">{r["label"]}</span>')
+            call = f'{badge} &nbsp;<b>{r["direction_score"]:+d}</b> &middot; {r["conviction"]}'
+            tldr = r["tldr"]
+        else:
+            name = r["sector"]
+            call = '<span style="color:#b45309">kept yesterday\'s report</span>'
+            tldr = '<span style="color:#94a3b8">refresh failed &mdash; skipped</span>'
+        sector_rows.append(
+            f'<tr><td style="padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top">{name}</td>'
+            f'<td style="padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top;white-space:nowrap">{call}</td>'
+            f'<td style="padding:8px 10px;border-bottom:1px solid #eee;color:#475569">{tldr}</td></tr>')
+
+    cost_rows = []
+    for r in records:
+        c = r["counts"]
+        cost_rows.append(
+            f'<tr><td style="padding:5px 10px;border-bottom:1px solid #f1f5f9">{r["sector"]}</td>'
+            f'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:right">{c["input"]:,}</td>'
+            f'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:right">{c["output"]:,}</td>'
+            f'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:right">{c["web_searches"]}</td>'
+            f'<td style="padding:5px 10px;border-bottom:1px solid #f1f5f9;text-align:right">${r["cost"]:.3f}</td></tr>')
+    t = cost["counts"]
+
+    return f"""\
+<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;color:#0f172a">
+  <h2 style="margin:0 0 4px">Swing-Trade Sector Reports are live</h2>
+  <p style="color:#64748b;margin:0 0 16px">{date} &middot; {n_ok}/{len(records)} sectors refreshed
+     &middot; estimated cost <b>${cost['cost']:.2f}</b></p>
+  {hub}
+  <table style="border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 24px">
+    <thead><tr style="text-align:left;color:#64748b;font-size:12px">
+      <th style="padding:6px 10px">Sector</th><th style="padding:6px 10px">Call</th><th style="padding:6px 10px">TL;DR</th>
+    </tr></thead>
+    <tbody>{''.join(sector_rows)}</tbody>
+  </table>
+
+  <h3 style="margin:0 0 6px;font-size:15px">Today's cost &mdash; ${cost['cost']:.2f} <span style="color:#94a3b8;font-weight:400">({MODEL})</span></h3>
+  <table style="border-collapse:collapse;width:100%;font-size:13px;color:#334155">
+    <thead><tr style="text-align:right;color:#94a3b8;font-size:11px">
+      <th style="padding:5px 10px;text-align:left">Sector</th><th style="padding:5px 10px">Input tok</th>
+      <th style="padding:5px 10px">Output tok</th><th style="padding:5px 10px">Searches</th><th style="padding:5px 10px">Cost</th>
+    </tr></thead>
+    <tbody>{''.join(cost_rows)}
+      <tr style="font-weight:700"><td style="padding:6px 10px">TOTAL</td>
+        <td style="padding:6px 10px;text-align:right">{t['input']:,}</td>
+        <td style="padding:6px 10px;text-align:right">{t['output']:,}</td>
+        <td style="padding:6px 10px;text-align:right">{t['web_searches']}</td>
+        <td style="padding:6px 10px;text-align:right">${cost['cost']:.2f}</td></tr>
+    </tbody>
+  </table>
+  <p style="color:#94a3b8;font-size:12px;margin-top:18px">Cost is an estimate from token usage at list prices
+     (web search billed at ${WEB_SEARCH_COST_PER_1K:.0f}/1,000). Cloudflare may take a minute to publish.
+     Educational analysis, not financial advice.</p>
+</div>"""
+
+
+def send_email_resend(api_key: str, subject: str, html: str):
+    """POST the notification to the Resend API."""
+    payload = json.dumps({
+        "from": EMAIL_FROM, "to": EMAIL_TO, "subject": subject, "html": html,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.resend.com/emails", data=payload, method="POST",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        r.read()
+
+
+def notify_email(records: list, cost: dict, date: str):
+    """Email the recipients that the reports are live, with today's cost."""
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        print("  .. RESEND_API_KEY not set — skipping email notification.")
+        return
+    n_ok = sum(1 for r in records if r["status"] == "ok")
+    subject = (f"AI Sector Reports live — {date} "
+               f"({n_ok}/{len(records)} refreshed, ${cost['cost']:.2f})")
+    send_email_resend(api_key, subject, build_email_html(records, cost, date))
+    print(f"  .. notification email sent to {', '.join(EMAIL_TO)}.")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -480,22 +682,32 @@ def main():
     client = Anthropic(timeout=900)  # generous timeout: web search can be slow.
 
     print(f"Building {len(sectors)} sector(s) with model {MODEL}.")
-    succeeded = 0
-    for sector in sectors:
-        if build_sector(client, master_prompt, sector):
-            succeeded += 1
+    records = [build_sector(client, master_prompt, sector) for sector in sectors]
+    succeeded = sum(1 for r in records if r["status"] == "ok")
 
     # Always rebuild the hub from whatever reports exist (including ones kept
     # from previous runs for skipped sectors).
     build_hub(sectors)
 
+    # Per-run cost report (also drives the email).
+    cost = summarize_cost(records)
     print(f"\nDone: {succeeded}/{len(sectors)} sector(s) refreshed this run.")
+
+    have_site = any(
+        (SITE / slugify(s) / "index.html").exists() for s in sectors)
+
+    # Email the recipients that the reports are live + today's cost. Never let
+    # an email problem fail the build — the reports are already published.
+    if have_site:
+        try:
+            notify_email(records, cost, today_str())
+        except Exception as e:
+            print(f"  !! email notification failed (non-fatal) — {e}")
+
     # If literally nothing succeeded AND we had no prior site, fail so the
     # operator notices. Otherwise exit cleanly (a partial run still publishes
     # yesterday's good reports for the skipped sectors).
-    if succeeded == 0 and not any(
-        (SITE / slugify(s) / "index.html").exists() for s in sectors
-    ):
+    if succeeded == 0 and not have_site:
         print("ERROR: no reports were produced and there is no prior site.")
         sys.exit(1)
 

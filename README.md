@@ -13,7 +13,7 @@ This is a standalone project — it does not touch `sniper-dashboard`.
 | File | What it controls |
 |---|---|
 | **`sectors.json`** | The list of sectors. **Edit this one file to change what gets reported.** |
-| `build.py` (top) | Config knobs: `MODEL` (Sonnet ↔ Opus), `KEEP` (archive depth = 5), `MAX_SEARCHES` (web-search cap = 15), `MAX_TOKENS`. |
+| `build.py` (top) | Config knobs: `MODEL` (Sonnet ↔ Opus), `KEEP` (archive depth = 5), `MAX_SEARCHES` (web-search cap = 15), `MAX_TOKENS`, `EMAIL_TO` (notification recipients), `PRICING` (cost-report rates). |
 | `master_prompt.md` | The swing-trade master prompt + the required JSON sidecar instruction. |
 | `templates/hub.html.j2` | The landing page (sector cards). |
 | `templates/report.html.j2` | The navigation bar injected into each report. |
@@ -39,6 +39,19 @@ If a sector's API call fails or the sidecar is missing/invalid, that sector is
 **skipped** and yesterday's files are left untouched — a broken report never
 gets published.
 
+## Cost report + email notification
+
+Every run prints a **cost report** to the Actions log — per-sector token usage,
+web-search count, and estimated dollar cost (including any retries), plus a
+daily total. Costs are estimated from the API `usage` at the list prices in the
+`PRICING` table at the top of `build.py`.
+
+When the reports are published, `build.py` emails **`EMAIL_TO`**
+(mike@mwtradecoach.com and sulloa@treelink.lat) via **Resend** with: which
+sectors refreshed vs. kept yesterday's, each sector's call + TL;DR, links to the
+reports, and today's full cost breakdown. If `RESEND_API_KEY` is not set the
+email is skipped (so local runs don't error) — the build still succeeds.
+
 ## Run it locally
 
 ```bash
@@ -61,5 +74,19 @@ python build.py
    endpoint, weekdays pre-market (same fine-grained-PAT approach as Sniper):
    `POST https://api.github.com/repos/<owner>/<repo>/actions/workflows/build.yml/dispatches`
    with body `{"ref":"main"}`.
-6. Run once manually (Actions → "Build sector reports" → Run workflow) and
-   confirm the hub and one sector render correctly.
+6. **Set up email (Resend):**
+   - Create a free account at [resend.com](https://resend.com).
+   - **Verify a sending domain** you own (e.g. `mwtradecoach.com`) by adding the
+     DNS records Resend shows you. (Until a domain is verified you can only send
+     to yourself from `onboarding@resend.dev`.)
+   - Create an API key and add it as the GitHub **secret** `RESEND_API_KEY`.
+   - Add two repo **Variables** (Settings → Secrets and variables → Actions →
+     *Variables* tab):
+     - `EMAIL_FROM` — e.g. `MW Trade AI Reports <reports@mwtradecoach.com>`
+       (must be on the verified domain).
+     - `SITE_URL` — your Cloudflare Pages URL (e.g.
+       `https://tradeclub-sector-reports.pages.dev`) so the email links work.
+   - Recipients are `EMAIL_TO` at the top of `build.py` — edit there to change them.
+7. Run once manually (Actions → "Build sector reports" → Run workflow) and
+   confirm the hub renders, a sector report opens, the cost report appears in the
+   log, and the notification email arrives.

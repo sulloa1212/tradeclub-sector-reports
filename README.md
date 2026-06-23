@@ -47,7 +47,7 @@ daily total. Costs are estimated from the API `usage` at the list prices in the
 `PRICING` table at the top of `build.py`.
 
 When the reports are published, `build.py` emails **`EMAIL_TO`**
-(mike@mwtradecoach.com and sulloa@treelink.lat) via **Resend** with: which
+(support@mwtradecoach.com and sulloa@treelink.lat) via **Resend** with: which
 sectors refreshed vs. kept yesterday's, each sector's call + TL;DR, links to the
 reports, and today's full cost breakdown. If `RESEND_API_KEY` is not set the
 email is skipped (so local runs don't error) — the build still succeeds.

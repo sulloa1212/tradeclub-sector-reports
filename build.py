@@ -61,7 +61,7 @@ MAX_TOKENS = 32000            # max length of the report the model may write.
 # what gets reported. (Edit sectors.json, not this list.)
 
 # --- Email notification (sent via Resend when the reports are published) ---
-EMAIL_TO = ["mike@mwtradecoach.com", "sulloa@treelink.lat"]   # who gets notified
+EMAIL_TO = ["support@mwtradecoach.com", "sulloa@treelink.lat"]   # who gets notified
 EMAIL_FROM = (os.environ.get("EMAIL_FROM")
               or "MW Trade AI Reports <reports@mwtradecoach.com>")
 # ^ the "from" address MUST be on a domain you've verified in Resend. Set it via

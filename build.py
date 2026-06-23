@@ -34,6 +34,7 @@ import sys
 import datetime
 from pathlib import Path
 
+import pandas_market_calendars as mcal
 from anthropic import Anthropic
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -91,6 +92,17 @@ def today_str() -> str:
 def now_stamp() -> str:
     """Human-readable generation timestamp for the hub footer."""
     return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
+
+def market_open_today() -> bool:
+    """True if the NYSE holds a regular session today.
+
+    Uses the official NYSE calendar (via pandas_market_calendars), so weekends,
+    public holidays and any other non-trading day are handled automatically:
+    on a closed day the schedule for that single date comes back empty."""
+    today = today_str()
+    schedule = mcal.get_calendar("NYSE").schedule(start_date=today, end_date=today)
+    return not schedule.empty
 
 
 def slugify(name: str) -> str:
@@ -339,6 +351,13 @@ def build_hub(sectors: list):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
+    # Market-open guard: do nothing on weekends, holidays, or any non-trading
+    # day. This runs BEFORE the API key check and any sector loop / API call,
+    # so a closed day costs nothing and exits cleanly.
+    if not market_open_today():
+        print("US market closed today — skipping run.")
+        sys.exit(0)
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ERROR: ANTHROPIC_API_KEY is not set.")
         sys.exit(1)

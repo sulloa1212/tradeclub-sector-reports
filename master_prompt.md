@@ -189,10 +189,12 @@ respected by a pro.
   means, what conviction means, and crucially **what the Fundamental Health score and the ⛽ Fuel
   indicator mean** — that the technical score drives the pick and the fundamental score shows how
   much business strength is behind the move / direction).
-- **Footer disclaimer (required):** state clearly that this is **educational analysis, not personal
-  financial advice**; that it reflects probabilities not certainties; that markets can move against
-  any thesis; and that the reader is responsible for their own decisions and risk management. Note
-  the data is time-stamped and goes stale quickly.
+- **Footer disclaimer (required, VERBATIM):** the footer MUST contain this exact disclaimer, word for
+  word, with **"Terms & Conditions"** and **"Privacy Policy"** rendered as real HTML links
+  (`<a href>`) to the URLs given:
+  > Educational purposes only — not investment advice. The Freedom Management Group, Inc. d/b/a Michael Wade Trade Coaching is not a broker, adviser, or fiduciary. All trades are at your own risk; past performance does not guarantee future results. Options involve substantial risk and you can lose more than your investment — always paper trade first before risking real money. This report is generated with the assistance of artificial intelligence, and AI can make mistakes. The analysis, prices, technical levels, earnings dates, probabilities, and figures herein are produced by automated models that may misinterpret data, rely on sources that are outdated or inaccurate, or generate confident-sounding output that is simply wrong. Probabilities are options-implied estimates, not predictions, and real-world tails are fatter than a normal curve. Nothing here has been independently verified by a licensed professional. Always confirm every data point, price, and date against your own brokerage and primary sources before acting, and treat this report as a starting point for your own research — never as a substitute for your own judgment. By using our services, you agree to our [Terms & Conditions] and [Privacy Policy].
+  The two links MUST point to, respectively, `https://www.mwtradecoach.com/terms-and-conditions` and
+  `https://www.mwtradecoach.com/privacy-policy` (open in a new tab: `target="_blank" rel="noopener"`).
 - **Sources consulted (required):** immediately after the disclaimer, inside the footer of the HTML
   document, include a **"Sources consulted"** block — a concise, single-paragraph or short list of
   the key sources you actually used (e.g. "Federal Reserve FOMC statement; SEC EDGAR 8-K filings;

@@ -58,9 +58,27 @@
   .meter .fill{position:absolute;top:0;bottom:0}
   .meter .fill.bull{background:var(--bull)} .meter .fill.bear{background:var(--bear)} .meter .fill.neut{background:var(--neut)}
 
+  .card-main{display:block;text-decoration:none;color:inherit}
   .tldr{font-size:13.5px;color:var(--muted);margin:0}
   .arrow{color:var(--muted);font-size:13px;margin-top:12px}
   .card:hover .arrow{color:var(--ink)}
+
+  /* Per-card "Previous reports" dropdown — compact, no extra grid space */
+  .card-hist{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .card-hist>summary{cursor:pointer;list-style:none;font-size:12px;color:var(--muted);
+    display:inline-flex;align-items:center;gap:6px;user-select:none}
+  .card-hist>summary::-webkit-details-marker{display:none}
+  .card-hist>summary::after{content:"▾";font-size:10px;opacity:.7}
+  .card-hist[open]>summary{color:var(--ink)}
+  .card-hist[open]>summary::after{content:"▴"}
+  .card-hist ul{list-style:none;margin:10px 0 2px;padding:0;display:flex;flex-direction:column;gap:5px}
+  .card-hist li a{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    text-decoration:none;color:var(--ink);font-size:12.5px;padding:6px 9px;border-radius:7px;
+    background:var(--panel-2);border:1px solid var(--line);
+    font-variant-numeric:tabular-nums;transition:border-color .12s ease}
+  .card-hist li a:hover{border-color:var(--muted)}
+  .hbadge{font-size:9px;font-weight:800;letter-spacing:.03em;padding:2px 6px;border-radius:4px;color:#fff;white-space:nowrap}
+  .hbadge.bull{background:var(--bull)} .hbadge.bear{background:var(--bear)} .hbadge.neut{background:var(--neut)}
 
   .empty{text-align:center;color:var(--muted);border:1px dashed var(--line);
     border-radius:14px;padding:40px 20px}
@@ -89,22 +107,40 @@
       {% set s = c.direction_score | int %}
       {# meter geometry: 0 sits at center (50%); positive fills right, negative fills left #}
       {% set half = (s | abs) / 2 %}
-      <a class="card {{ cls }}" href="/{{ c.slug }}/">
-        <div class="top">
-          <h2>{{ c.sector }}</h2>
-          <span class="badge {{ cls }}">{{ c.label }}</span>
-        </div>
-        <div class="scorerow">
-          <span class="score {{ cls }}">{{ '%+d' | format(s) }}</span>
-          <span class="conv">{{ c.conviction }} conviction</span>
-        </div>
-        <div class="meter">
-          <div class="fill {{ cls }}" style="{% if s >= 0 %}left:50%;width:{{ half }}%{% else %}right:50%;width:{{ half }}%{% endif %}"></div>
-          <div class="center"></div>
-        </div>
-        <p class="tldr">{{ c.tldr }}</p>
-        <div class="arrow">View full report &rarr;</div>
-      </a>
+      <div class="card {{ cls }}">
+        <a class="card-main" href="/{{ c.slug }}/">
+          <div class="top">
+            <h2>{{ c.sector }}</h2>
+            <span class="badge {{ cls }}">{{ c.label }}</span>
+          </div>
+          <div class="scorerow">
+            <span class="score {{ cls }}">{{ '%+d' | format(s) }}</span>
+            <span class="conv">{{ c.conviction }} conviction</span>
+          </div>
+          <div class="meter">
+            <div class="fill {{ cls }}" style="{% if s >= 0 %}left:50%;width:{{ half }}%{% else %}right:50%;width:{{ half }}%{% endif %}"></div>
+            <div class="center"></div>
+          </div>
+          <p class="tldr">{{ c.tldr }}</p>
+          <div class="arrow">View full report &rarr;</div>
+        </a>
+        {% if c.history %}
+        <details class="card-hist">
+          <summary>Previous reports ({{ c.history | length }})</summary>
+          <ul>
+            {% for h in c.history %}
+            {% set hcls = 'bull' if h.label == 'BULLISH' else 'bear' if h.label == 'BEARISH' else 'neut' %}
+            <li>
+              <a href="/{{ c.slug }}/{{ h.date }}.html">
+                <span>{{ h.date }}</span>
+                <span class="hbadge {{ hcls }}">{{ h.label }}</span>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
       {% endfor %}
     </main>
     {% else %}

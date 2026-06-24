@@ -553,7 +553,11 @@ def build_hub(sectors: list):
         if not entries:
             continue
         latest = entries[0]
-        cards.append({"sector": sector, "slug": slug, **latest})
+        # history = the previously-kept reports (newest first), excluding the
+        # latest one the card already links to. Powers the per-card "Previous
+        # reports" dropdown on the hub.
+        cards.append({"sector": sector, "slug": slug, **latest,
+                      "history": entries[1:]})
 
     html = env.get_template("hub.html.j2").render(
         cards=cards, generated=now_stamp())

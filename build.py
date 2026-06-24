@@ -313,6 +313,11 @@ def extract_parts(text: str):
         m = re.search(r"(?is)<!doctype\s+html|<html[\s>]|<body[\s>]", body)
         if m:
             body = body[m.start():]
+    # The report is a complete HTML document, so drop anything the model appended
+    # after the closing </html> (e.g. a stray ``` fence and a citations summary).
+    end = body.rfind("</html>")
+    if end != -1:
+        body = body[:end + len("</html>")]
     body = re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
     if not body:
         raise ValueError("report HTML was empty")

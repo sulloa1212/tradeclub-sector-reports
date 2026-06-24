@@ -193,6 +193,12 @@ respected by a pro.
   financial advice**; that it reflects probabilities not certainties; that markets can move against
   any thesis; and that the reader is responsible for their own decisions and risk management. Note
   the data is time-stamped and goes stale quickly.
+- **Sources consulted (required):** immediately after the disclaimer, inside the footer of the HTML
+  document, include a **"Sources consulted"** block — a concise, single-paragraph or short list of
+  the key sources you actually used (e.g. "Federal Reserve FOMC statement; SEC EDGAR 8-K filings;
+  Investing.com price data; ..."). Style it smaller/muted so it reads as a reference line, not body
+  copy. Keep it brief (a dozen or so sources max). This MUST be part of the HTML document — do NOT
+  place any citations, summaries, or commentary AFTER the closing `</html>` tag.
 - Mobile-friendly (responsive), printable, and visually polished (consistent spacing, a restrained
   professional palette, readable typography).
 

@@ -300,10 +300,19 @@ def extract_parts(text: str):
     sidecar, start = _find_sidecar(text)
 
     body = text[:start].strip()
-    # If the model wrapped the report in ```html ... ``` fences, unwrap it, and
-    # drop any dangling fence opener (```html / ```json) left right before the
-    # sidecar in the fence-less fallback case.
-    body = re.sub(r"^```html\s*\n?", "", body)
+    # The model is told to emit the report first, but it sometimes prefixes the
+    # report with reasoning/chatter and wraps the report in a ```html fence. If
+    # such a fence exists anywhere, the real report begins right after its opener
+    # — drop everything before it (so the preamble never reaches the page). If
+    # there is no fence, fall back to trimming any prose before the first HTML
+    # tag. Finally strip a dangling closing fence (```html / ```json).
+    fence = re.search(r"```html\s*", body)
+    if fence:
+        body = body[fence.end():]
+    else:
+        m = re.search(r"(?is)<!doctype\s+html|<html[\s>]|<body[\s>]", body)
+        if m:
+            body = body[m.start():]
     body = re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
     if not body:
         raise ValueError("report HTML was empty")

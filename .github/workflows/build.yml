@@ -7,8 +7,16 @@ name: Build sector reports
 on:
   workflow_dispatch:
   schedule:
-    # ~08:30 ET on weekdays (12:30 UTC). Backup only — cron-job.org is primary.
-    - cron: '30 12 * * 1-5'
+    # 06:15 Costa Rica (UTC-6) = 12:15 UTC on weekdays. BACKUP ONLY — cron-job.org
+    # fires the primary at 06:00 CR. The guard step + concurrency below make this
+    # backup a no-op whenever the primary already ran, so it never double-bills.
+    - cron: '15 12 * * 1-5'
+
+# Serialize runs: if the primary and the backup both fire, the second one queues
+# and then the guard step skips it — never two paid builds for the same day.
+concurrency:
+  group: build-sector-reports
+  cancel-in-progress: false
 
 permissions:
   contents: write   # needed so the job can commit the rebuilt site/ back
@@ -20,15 +28,29 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Skip if today's reports already exist
+        id: guard
+        run: |
+          TODAY=$(date -u +%F)
+          if compgen -G "site/*/$TODAY.html" > /dev/null; then
+            echo "Reports for $TODAY already built — skipping (avoids a duplicate paid run)."
+            echo "already_built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_built=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Python
+        if: steps.guard.outputs.already_built == 'false'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
+        if: steps.guard.outputs.already_built == 'false'
         run: pip install -r requirements.txt
 
       - name: Build reports (Anthropic API + live web search)
+        if: steps.guard.outputs.already_built == 'false'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Notification (build.py picks Telegram if set, else Resend, else skips).
@@ -46,6 +68,7 @@ jobs:
         run: python build.py
 
       - name: Commit & push the rebuilt site
+        if: steps.guard.outputs.already_built == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

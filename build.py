@@ -1003,11 +1003,10 @@ def main_reports(slugs: list):
     cost = summarize_cost(records)
     ok = sum(1 for r in records if r["status"] == "ok")
     print(f"\nDone: {ok}/{len(selected)} report(s) refreshed this run.")
-    # Rebuild the report-cards hub so it reflects the latest report data. Until
-    # the final cutover it is written to /hub-preview/ (the live "/" stays the
-    # sector hub, rebuilt by the scheduled sector build). Non-fatal on error.
+    # Rebuild the report-cards hub at the homepage "/" (site/index.html) so it
+    # reflects the latest report data. This is the live hub now. Non-fatal.
     try:
-        build_reports_hub(out_path=str(SITE / "hub-preview" / "index.html"))
+        build_reports_hub()
     except Exception as e:
         print(f"  !! report-hub rebuild failed (non-fatal) — {e}")
     if ok == 0:
@@ -1043,9 +1042,10 @@ def main():
     records = [build_sector(client, master_prompt, sector) for sector in sectors]
     succeeded = sum(1 for r in records if r["status"] == "ok")
 
-    # Always rebuild the hub from whatever reports exist (including ones kept
-    # from previous runs for skipped sectors).
-    build_hub(sectors)
+    # NOTE: the homepage "/" is now the REPORT-CARDS hub, owned by the report
+    # pipeline (build_reports_hub). The old sector-cards hub is retired, so the
+    # sector build no longer writes site/index.html. (Sectors are now covered by
+    # the consolidated Sector Intelligence report.)
 
     # Per-run cost report (also drives the email).
     cost = summarize_cost(records)

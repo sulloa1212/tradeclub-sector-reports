@@ -915,6 +915,42 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     return _record(name, slug, "ok", usages, attempts)
 
 
+def build_reports_hub(out_path=None):
+    """Build the report-cards hub (one card per registry report) from reports.json
+    + each report's site/<slug>/index.json (latest sidecar) + its description.
+    Writes to out_path (default site/index.html); pass a path for a preview."""
+    cards = []
+    for r in load_reports():
+        slug = r["slug"]
+        latest = None
+        idx = SITE / slug / "index.json"
+        if idx.exists():
+            try:
+                entries = json.loads(idx.read_text(encoding="utf-8"))
+                if entries:
+                    latest = entries[0]
+            except Exception:
+                latest = None
+        cards.append({
+            "slug": slug, "name": r["name"],
+            "description": r.get("description", ""),
+            "run_time_et": r.get("run_time_et", ""),
+            "live": latest is not None,
+            "date": (latest or {}).get("date", ""),
+            "status_label": (latest or {}).get("status_label", ""),
+            "accent": (latest or {}).get("accent", "neutral"),
+            "headline": (latest or {}).get("headline", ""),
+            "metric": (latest or {}).get("metric", {}),
+        })
+    html = env.get_template("reports-hub.html.j2").render(
+        cards=cards, generated=now_stamp())
+    target = Path(out_path) if out_path else (SITE / "index.html")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(html, encoding="utf-8")
+    live = sum(1 for c in cards if c["live"])
+    print(f"Reports hub → {target} ({live} live / {len(cards)} reports).")
+
+
 def main_reports(slugs: list):
     """Entry point for `python build.py --report <slug> [...]`."""
     if not market_open_today():

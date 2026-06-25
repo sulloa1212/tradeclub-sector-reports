@@ -830,6 +830,28 @@ def call_report_model(client: Anthropic, cached_prompt: str, task_line: str,
     return text, resp.usage, getattr(resp, "stop_reason", None)
 
 
+# A small fixed "back to the hub" button injected into every generated report so
+# readers can always jump back to the reports hub (links to "/"). Hidden on print.
+HUB_BUTTON = (
+    '<style>.tc-hub-btn{position:fixed;left:16px;bottom:16px;z-index:99999;'
+    'display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;'
+    'background:#161b24;border:1px solid #2a3340;color:#e8edf3;'
+    'font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+    'text-decoration:none;box-shadow:0 3px 14px rgba(0,0,0,.55);transition:border-color .12s}'
+    '.tc-hub-btn:hover{border-color:#29b6f6;color:#fff}'
+    '@media print{.tc-hub-btn{display:none}}</style>'
+    '<a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>'
+)
+
+
+def inject_hub_button(html: str) -> str:
+    """Insert the fixed 'All Reports' hub button right after the opening <body>."""
+    if "tc-hub-btn" in html:
+        return html  # already present — don't double-inject
+    m = re.search(r"<body[^>]*>", html, re.IGNORECASE)
+    return (html[:m.end()] + HUB_BUTTON + html[m.end():]) if m else (HUB_BUTTON + html)
+
+
 def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     """Build ONE registry report → site/<slug>/ (dated + index.html + index.json).
     Returns a cost record. On failure, keeps yesterday's files for that report."""
@@ -882,6 +904,7 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     if not DATE_RE.match(date):
         date = today
 
+    body = inject_hub_button(body)
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 
     index_path = d / "index.json"

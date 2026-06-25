@@ -22,13 +22,25 @@ Green = bullish/up, red = bearish/down, grey = neutral, amber = warning/event-ri
 blue (`--accent`) = links & eyebrow. **NEVER** use white or light panel backgrounds
 — the entire report is dark. `html{scroll-behavior:smooth}`.
 
-## 2. Header (required, at the very top)
-- The Trade Club AI logo, LARGE and prominent, top-left:
-  `<img src="/assets/tradeclub-ai.png" alt="Trade Club AI" style="height:150px;width:auto">`
-- The Michael Wade logo, small, top-right:
-  `<img src="/assets/mw.png" alt="Michael Wade Trade Coaching" style="height:56px;width:auto">`
-- An eyebrow in accent caps `TRADE CLUB AI · <REPORT NAME>`, the report title (`<h1>`),
-  a one-line subtitle, and a stamp line (date + ET time + run-type).
+## 2. Header (required, at the very top) — use this EXACT horizontal layout
+ONE horizontal row: the Trade Club AI logo on the LEFT (height ~96px — NOT bigger),
+the text block to its RIGHT (eyebrow, title, subtitle, stamp), and the Michael Wade
+logo small in the TOP-RIGHT corner. Do **NOT** stack the logo on top of the title,
+do **NOT** center it, and do **NOT** make it larger than ~100px. Reproduce this
+structure (swap in the report's own text):
+```html
+<header style="display:flex;align-items:center;gap:22px;position:relative;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:10px">
+  <img src="/assets/tradeclub-ai.png" alt="Trade Club AI" style="height:96px;width:auto;flex:0 0 auto">
+  <div>
+    <div style="font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:6px">TRADE CLUB AI &middot; &lt;REPORT NAME&gt;</div>
+    <h1 style="margin:0 0 6px;font-size:30px;line-height:1.15">&lt;report title&gt;</h1>
+    <div style="font-size:14px;color:var(--muted)">&lt;one-line subtitle&gt;</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:6px">&lt;date &middot; ET time &middot; run-type&gt;</div>
+  </div>
+  <img src="/assets/mw.png" alt="Michael Wade Trade Coaching" style="position:absolute;top:0;right:0;height:50px;width:auto">
+</header>
+```
+On phones (max-width 560px) the logo may shrink to ~70px, but keep the row layout.
 
 ## 3. Sticky "JUMP TO" section nav (required)
 Right under the header, a **sticky** bar of pill links that jump to each major

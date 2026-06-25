@@ -1,6 +1,3 @@
-<!-- SOURCE PROMPT (raw, from the Mean-Reversion kit). PENDING pipeline
-     adaptation: same as gap-risk above. -->
-
 # Mean-Reversion Scan — Reusable Prompt (v2)
 
 > Paste this into a new chat to run the scan on any date. It is written to work

@@ -737,6 +737,221 @@ def notify(records: list, cost: dict, date: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Multi-report mode (report registry — Phase 2)
+#
+# Opt-in second build path: `python build.py --report <slug>` (or `--reports a,b`)
+# generates standalone reports from prompts/<...>.md driven by reports.json, each
+# saved to site/<slug>/. The default no-argument invocation (the scheduled sector
+# build) is completely untouched. Reports share prompts/_house.md (palette +
+# header + JUMP TO nav + sources + disclaimer + the common sidecar contract).
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPORTS_PATH = ROOT / "reports.json"
+HOUSE_PROMPT_PATH = ROOT / "prompts" / "_house.md"
+VALID_ACCENTS = {"bull", "bear", "neutral", "warn"}
+
+
+def load_reports() -> list:
+    """Read the report registry (reports.json)."""
+    try:
+        return json.loads(REPORTS_PATH.read_text(encoding="utf-8")).get("reports", [])
+    except Exception as e:
+        print(f"ERROR: could not read reports.json — {e}")
+        return []
+
+
+def _clean_report_html(raw: str) -> str:
+    """Same body-cleaning as extract_parts: drop any preamble before the document
+    and any postamble after </html>, plus a wrapping ```html fence."""
+    body = raw.strip()
+    fence = re.search(r"```html\s*", body)
+    if fence:
+        body = body[fence.end():]
+    else:
+        m = re.search(r"(?is)<!doctype\s+html|<html[\s>]|<body[\s>]", body)
+        if m:
+            body = body[m.start():]
+    end = body.rfind("</html>")
+    if end != -1:
+        body = body[:end + len("</html>")]
+    return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
+
+
+def extract_report_parts(text: str):
+    """Split a report reply into (html, sidecar) using the common contract."""
+    sidecar, start = _find_sidecar(text)
+    body = _clean_report_html(text[:start])
+    if not body:
+        raise ValueError("report HTML was empty")
+    return body, sidecar
+
+
+def validate_report_sidecar(s: dict):
+    """Fail loudly if the common sidecar is missing fields or malformed."""
+    req = ["report", "date", "status_label", "accent", "headline", "metric"]
+    missing = [k for k in req if k not in s]
+    if missing:
+        raise ValueError(f"report sidecar missing fields: {missing}")
+    if s["accent"] not in VALID_ACCENTS:
+        raise ValueError(f"bad accent: {s['accent']!r} (use {sorted(VALID_ACCENTS)})")
+    m = s["metric"]
+    if not isinstance(m, dict) or m.get("type") not in {"gauge", "text"}:
+        raise ValueError("metric must be an object with type 'gauge' or 'text'")
+    if m["type"] == "gauge":
+        v = float(m.get("value"))
+        if not (-100 <= v <= 100):
+            raise ValueError(f"gauge metric value out of range: {v}")
+    elif not str(m.get("value", "")).strip():
+        raise ValueError("text metric needs a non-empty value")
+
+
+def call_report_model(client: Anthropic, cached_prompt: str, task_line: str,
+                      extra_instruction: str = "") -> tuple:
+    """Like call_model, but the cached block is the composed house+report prompt
+    and the variable line is a short 'generate today's report' instruction."""
+    resp = client.messages.create(
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
+        tools=[{"type": "web_search_20250305", "name": "web_search",
+                "max_uses": MAX_SEARCHES}],
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": cached_prompt,
+                 "cache_control": {"type": "ephemeral"}},
+                {"type": "text",
+                 "text": f"\n\n{task_line}"
+                         + (f"\n\n{extra_instruction}" if extra_instruction else "")},
+            ],
+        }],
+    )
+    text = "".join(b.text for b in resp.content
+                   if getattr(b, "type", None) == "text")
+    return text, resp.usage, getattr(resp, "stop_reason", None)
+
+
+def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
+    """Build ONE registry report → site/<slug>/ (dated + index.html + index.json).
+    Returns a cost record. On failure, keeps yesterday's files for that report."""
+    slug = report["slug"]
+    name = report["name"]
+    print(f"\n=== {name}  ({slug}) ===")
+
+    prompt_path = ROOT / report["prompt"]
+    if not prompt_path.exists():
+        print(f"  !! prompt not found: {report['prompt']} — skipping.")
+        return _record(name, slug, "skipped", [], 1)
+
+    cached = (house_block + "\n\n---\n\n# REPORT-SPECIFIC PROMPT\n\n"
+              + prompt_path.read_text(encoding="utf-8"))
+    today = today_str()
+    task_line = (f"Generate today's {name} for {today} (pre-market run). Output the "
+                 "full HTML document first, then the JSON sidecar, per the house rules.")
+
+    usages = []
+
+    def attempt(extra=""):
+        text, usage, stop = call_report_model(client, cached, task_line, extra)
+        if usage is not None:
+            usages.append(usage)
+        if not text.strip():
+            raise ValueError("model returned no text")
+        if stop == "max_tokens":
+            raise ValueError(f"report truncated at MAX_TOKENS={MAX_TOKENS}")
+        body, sidecar = extract_report_parts(text)
+        validate_report_sidecar(sidecar)
+        return body, sidecar
+
+    attempts = 1
+    try:
+        body, sidecar = attempt()
+    except Exception as e:
+        print(f"  !! attempt 1 failed — {e}")
+        print(f"  !! retrying '{name}' once with a stricter format reminder...")
+        attempts = 2
+        try:
+            body, sidecar = attempt(RETRY_REMINDER)
+        except Exception as e2:
+            print(f"  !! SKIPPED — {e2}")
+            return _record(name, slug, "skipped", usages, attempts)
+        print(f"  .. retry succeeded for '{name}'.")
+
+    d = SITE / slug
+    d.mkdir(parents=True, exist_ok=True)
+    date = str(sidecar.get("date", "")).strip()
+    if not DATE_RE.match(date):
+        date = today
+
+    (d / f"{date}.html").write_text(body, encoding="utf-8")
+
+    index_path = d / "index.json"
+    meta = {}
+    if index_path.exists():
+        try:
+            for e in json.loads(index_path.read_text(encoding="utf-8")):
+                if "date" in e:
+                    meta[e["date"]] = e
+        except Exception:
+            meta = {}
+    meta[date] = {
+        "date": date, "report": name,
+        "status_label": sidecar["status_label"], "accent": sidecar["accent"],
+        "headline": sidecar["headline"], "metric": sidecar["metric"],
+    }
+    dated = sorted((p.stem for p in d.glob("*.html") if DATE_RE.match(p.stem)),
+                   reverse=True)
+    keep = dated[:KEEP]
+    for old in dated[KEEP:]:
+        (d / f"{old}.html").unlink(missing_ok=True)
+        meta.pop(old, None)
+        print(f"  pruned old report: {old}.html")
+    kept = [meta[x] for x in keep if x in meta]
+    index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
+                          encoding="utf-8")
+    (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"),
+                                  encoding="utf-8")
+
+    print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
+    return _record(name, slug, "ok", usages, attempts)
+
+
+def main_reports(slugs: list):
+    """Entry point for `python build.py --report <slug> [...]`."""
+    if not market_open_today():
+        print("US market closed today — skipping run.")
+        sys.exit(0)
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        print("ERROR: ANTHROPIC_API_KEY is not set.")
+        sys.exit(1)
+
+    by_slug = {r["slug"]: r for r in load_reports()}
+    unknown = [s for s in slugs if s not in by_slug]
+    if unknown:
+        print(f"  !! unknown report slug(s): {unknown}")
+    selected = [by_slug[s] for s in slugs if s in by_slug]
+    if not selected:
+        print("ERROR: no valid report slugs to build.")
+        sys.exit(1)
+
+    if not HOUSE_PROMPT_PATH.exists():
+        print(f"ERROR: {HOUSE_PROMPT_PATH} not found.")
+        sys.exit(1)
+    house_block = HOUSE_PROMPT_PATH.read_text(encoding="utf-8")
+    client = Anthropic(timeout=900)
+
+    print(f"Building {len(selected)} report(s) with model {MODEL}.")
+    records = [build_report(client, r, house_block) for r in selected]
+    cost = summarize_cost(records)
+    ok = sum(1 for r in records if r["status"] == "ok")
+    print(f"\nDone: {ok}/{len(selected)} report(s) refreshed this run.")
+    # Phase 2: the hub is still sector-based, so we don't rebuild it here and we
+    # skip notifications. (Hub-as-report-cards + notify come in a later phase.)
+    if ok == 0:
+        print("ERROR: no reports were produced.")
+        sys.exit(1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -792,4 +1007,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Default (no args) = the scheduled sector build. `--report <slug>` /
+    # `--reports a,b,...` = the opt-in multi-report build (Phase 2).
+    _args = sys.argv[1:]
+    if _args and _args[0] in ("--report", "--reports"):
+        _slugs = []
+        for _a in _args[1:]:
+            _slugs += [x.strip() for x in _a.split(",") if x.strip()]
+        main_reports(_slugs)
+    else:
+        main()

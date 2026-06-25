@@ -1003,8 +1003,13 @@ def main_reports(slugs: list):
     cost = summarize_cost(records)
     ok = sum(1 for r in records if r["status"] == "ok")
     print(f"\nDone: {ok}/{len(selected)} report(s) refreshed this run.")
-    # Phase 2: the hub is still sector-based, so we don't rebuild it here and we
-    # skip notifications. (Hub-as-report-cards + notify come in a later phase.)
+    # Rebuild the report-cards hub so it reflects the latest report data. Until
+    # the final cutover it is written to /hub-preview/ (the live "/" stays the
+    # sector hub, rebuilt by the scheduled sector build). Non-fatal on error.
+    try:
+        build_reports_hub(out_path=str(SITE / "hub-preview" / "index.html"))
+    except Exception as e:
+        print(f"  !! report-hub rebuild failed (non-fatal) — {e}")
     if ok == 0:
         print("ERROR: no reports were produced.")
         sys.exit(1)

@@ -1,0 +1,60 @@
+name: Build a report (manual)
+
+# On-demand builder for a single registry report (reports.json), e.g. gap-risk.
+# This is separate from build.yml (the scheduled sector build) and is the path
+# the multi-report pipeline runs through. Trigger it from the Actions tab or via
+# the workflow_dispatch API. Once a report's schedule is settled, point a
+# cron-job.org job (or add a `schedule:` here) at this same workflow per report.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Report slug from reports.json (e.g. gap-risk)"
+        required: true
+        default: "gap-risk"
+      force:
+        description: "Run even if the US market is closed today (weekend/holiday)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write   # commit the rebuilt site/ back
+
+concurrency:
+  group: build-report-${{ github.event.inputs.slug }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build the report (Anthropic API + live web search)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # FORCE_RUN lets a manual run proceed on a closed market day.
+          FORCE_RUN: ${{ inputs.force }}
+          # Passed through for parity with the sector build (used by notify()).
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: python build.py --report "${{ inputs.slug }}"
+
+      - name: Commit & push the rebuilt site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/
+          git commit -m "Report: ${{ inputs.slug }} $(date -u +%Y-%m-%d)" || echo "Nothing to commit"
+          git push

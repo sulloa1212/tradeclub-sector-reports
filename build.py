@@ -142,6 +142,14 @@ def market_open_today() -> bool:
     return not schedule.empty
 
 
+def force_run() -> bool:
+    """Manual override (FORCE_RUN=1) to run on a closed day. Needed for on-demand
+    test runs and for the weekend/holiday Gap Risk Report (which is authored on a
+    Friday/pre-holiday session but may be re-run over a closed day). Off by
+    default, so scheduled weekday builds are unaffected."""
+    return os.environ.get("FORCE_RUN", "").strip().lower() in ("1", "true", "yes")
+
+
 def slugify(name: str) -> str:
     """'Health Care' -> 'health-care' (lowercase, spaces -> hyphens)."""
     return re.sub(r"\s+", "-", name.strip().lower())
@@ -976,8 +984,8 @@ def build_reports_hub(out_path=None):
 
 def main_reports(slugs: list):
     """Entry point for `python build.py --report <slug> [...]`."""
-    if not market_open_today():
-        print("US market closed today — skipping run.")
+    if not market_open_today() and not force_run():
+        print("US market closed today — skipping run (set FORCE_RUN=1 to override).")
         sys.exit(0)
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("ERROR: ANTHROPIC_API_KEY is not set.")
@@ -1022,8 +1030,8 @@ def main():
     # Market-open guard: do nothing on weekends, holidays, or any non-trading
     # day. This runs BEFORE the API key check and any sector loop / API call,
     # so a closed day costs nothing and exits cleanly.
-    if not market_open_today():
-        print("US market closed today — skipping run.")
+    if not market_open_today() and not force_run():
+        print("US market closed today — skipping run (set FORCE_RUN=1 to override).")
         sys.exit(0)
 
     if not os.environ.get("ANTHROPIC_API_KEY"):

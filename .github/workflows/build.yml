@@ -6,11 +6,13 @@ name: Build sector reports
 #   • schedule           → a backup cron in case the external scheduler misses.
 on:
   workflow_dispatch:
-  schedule:
-    # 06:15 Costa Rica (UTC-6) = 12:15 UTC on weekdays. BACKUP ONLY — cron-job.org
-    # fires the primary at 06:00 CR. The guard step + concurrency below make this
-    # backup a no-op whenever the primary already ran, so it never double-bills.
-    - cron: '15 12 * * 1-5'
+  # schedule:  # ⏸ TEMPORARILY DISABLED (GitHub-native backup cron only).
+  #            # cron-job.org still fires this via workflow_dispatch, and manual
+  #            # runs still work. Re-enable by uncommenting the two lines below.
+  #   # 06:15 Costa Rica (UTC-6) = 12:15 UTC on weekdays. BACKUP ONLY — cron-job.org
+  #   # fires the primary at 06:00 CR. The guard step + concurrency below make this
+  #   # backup a no-op whenever the primary already ran, so it never double-bills.
+  #   - cron: '15 12 * * 1-5'
 
 # Serialize runs: if the primary and the backup both fire, the second one queues
 # and then the guard step skips it — never two paid builds for the same day.

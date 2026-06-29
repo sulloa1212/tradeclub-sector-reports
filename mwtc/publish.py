@@ -64,6 +64,44 @@ def inject_hub_button(html: str) -> str:
     return html[:j + 1] + HUB_BUTTON + html[j + 1:] if j != -1 else HUB_BUTTON + html
 
 
+def _previous_reports_widget(slug: str, dates: list) -> str:
+    """Floating 'Previous reports' dropdown (pure CSS) linking each kept dated
+    copy. Mirrors build.py so MWTC reports match the registry reports."""
+    if not dates:
+        return ""
+    items = "".join(f'<li><a href="/{slug}/{d}.html">{d}</a></li>' for d in dates)
+    return (
+        '<style>.tc-prev{position:fixed;left:16px;bottom:60px;z-index:99999;'
+        'font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
+        '.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;'
+        'padding:9px 15px;border-radius:999px;background:#161b24;border:1px solid #2a3340;color:#e8eef3;'
+        'box-shadow:0 3px 14px rgba(0,0,0,.55)}'
+        '.tc-prev>summary::-webkit-details-marker{display:none}'
+        '.tc-prev[open]>summary{border-color:#29b6f6;color:#fff}'
+        '.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;'
+        'background:#161b24;border:1px solid #2a3340;border-radius:10px;min-width:190px;max-height:50vh;'
+        'overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.55)}'
+        '.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8eef3;text-decoration:none;'
+        'font-variant-numeric:tabular-nums}'
+        '.tc-prev li a:hover{background:#0f1830;color:#fff}'
+        '@media print{.tc-prev{display:none}}</style>'
+        '<details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary>'
+        f'<ul>{items}</ul></details>'
+    )
+
+
+def inject_previous_reports(html: str, slug: str, dates: list) -> str:
+    widget = _previous_reports_widget(slug, dates)
+    if not widget or "tc-prev" in html:
+        return html
+    low = html.lower()
+    i = low.find("<body")
+    if i == -1:
+        return widget + html
+    j = html.find(">", i)
+    return html[:j + 1] + widget + html[j + 1:] if j != -1 else widget + html
+
+
 def derive_sidecar(data: dict, mode: str) -> dict:
     """Build the hub sidecar from the data packet, reusing the report's own
     directional-bias heuristic so the card matches the in-report dials. Works
@@ -134,7 +172,10 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
         meta.pop(old, None)
     kept = [meta[x] for x in keep if x in meta]
     index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False), encoding="utf-8")
-    (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"), encoding="utf-8")
+    # Add the "previous reports" dropdown (other kept dates), then finalize.
+    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
+    (d / f"{date}.html").write_text(final, encoding="utf-8")
+    (d / "index.html").write_text(final, encoding="utf-8")
     return d / f"{date}.html"
 
 

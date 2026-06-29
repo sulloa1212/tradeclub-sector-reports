@@ -1,70 +1,115 @@
-name: Build a report (manual)
+name: Build report(s) (manual / scheduled)
 
-# On-demand builder for a single registry report (reports.json), e.g. gap-risk.
-# This is separate from build.yml (the scheduled sector build) and is the path
-# the multi-report pipeline runs through. Trigger it from the Actions tab or via
-# the workflow_dispatch API. Once a report's schedule is settled, point a
-# cron-job.org job (or add a `schedule:` here) at this same workflow per report.
+# On-demand / scheduled builder for one OR MORE registry reports (reports.json).
+# Pass a comma-separated `reports` input — e.g. "sector-intelligence,mean-reversion"
+# for the morning batch, or "gap-risk". build.py --reports builds them in ONE run
+# and rebuilds the hub + sends ONE notification, so batching avoids any push race.
+# cron-job.org POSTs to this workflow's dispatch API with a body like:
+#   {"ref":"main","inputs":{"reports":"sector-intelligence,mean-reversion","force":false}}
 
 on:
   workflow_dispatch:
     inputs:
-      slug:
-        description: "Report slug from reports.json (e.g. gap-risk)"
-        required: true
+      reports:
+        description: "Comma-separated report slugs (e.g. sector-intelligence,mean-reversion or gap-risk)"
+        required: false
         default: "gap-risk"
+      slug:
+        description: "(legacy) single report slug — used only if 'reports' is empty"
+        required: false
+        default: ""
       force:
-        description: "Run even if the US market is closed today (weekend/holiday)"
+        description: "Run even if the market is closed OR today's report already exists"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write   # commit the rebuilt site/ back
 
 concurrency:
-  group: build-report-${{ github.event.inputs.slug }}
+  # Different report sets (morning batch vs gap-risk) get different groups so they
+  # never cancel each other; a double-fire of the SAME set queues instead of racing.
+  group: build-report-${{ github.event.inputs.reports || github.event.inputs.slug }}
   cancel-in-progress: false
 
 jobs:
   report:
     runs-on: ubuntu-latest
+    env:
+      # Non-secret inputs surfaced as env so the shell never interpolates ${{ }}
+      # directly (avoids script injection + quoting surprises).
+      REPORTS_IN: ${{ inputs.reports }}
+      SLUG_IN: ${{ inputs.slug }}
+      FORCE_IN: ${{ inputs.force }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Skip if today's requested report(s) already exist
+        id: guard
+        run: |
+          TODAY=$(date -u +%F)
+          LIST="${REPORTS_IN:-$SLUG_IN}"
+          if [ "$FORCE_IN" = "true" ]; then
+            echo "force=true — building regardless of today's files."
+            echo "already_built=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -z "$LIST" ]; then echo "already_built=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          missing=0
+          IFS=',' read -ra SLUGS <<< "$LIST"
+          for s in "${SLUGS[@]}"; do
+            s="$(echo "$s" | tr -d '[:space:]')"
+            [ -z "$s" ] && continue
+            if [ ! -f "site/$s/$TODAY.html" ]; then missing=1; fi
+          done
+          if [ "$missing" = "0" ]; then
+            echo "All requested report(s) for $TODAY already built — skipping (avoids a duplicate paid run)."
+            echo "already_built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_built=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Python
+        if: steps.guard.outputs.already_built == 'false'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
+        if: steps.guard.outputs.already_built == 'false'
         run: pip install -r requirements.txt
 
-      - name: Build the report (Anthropic API + live web search)
+      - name: Build the report(s) (Anthropic API + live web search)
+        if: steps.guard.outputs.already_built == 'false'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # FORCE_RUN lets a manual run proceed on a closed market day.
+          # FORCE_RUN lets a run proceed on a closed market day (weekend/holiday).
           FORCE_RUN: ${{ inputs.force }}
-          # Passed through for parity with the sector build (used by notify()).
+          # Passed through for notify() (Telegram preferred, Resend fallback).
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
           SITE_URL: ${{ vars.SITE_URL }}
-        run: python build.py --report "${{ inputs.slug }}"
+        run: |
+          LIST="${REPORTS_IN}"
+          if [ -z "$LIST" ]; then LIST="${SLUG_IN}"; fi
+          if [ -z "$LIST" ]; then echo "ERROR: no reports specified (set 'reports')"; exit 1; fi
+          echo "Building report(s): $LIST"
+          python build.py --reports "$LIST"
 
       - name: Commit & push the rebuilt site (race-safe)
+        if: steps.guard.outputs.already_built == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          LIST="${REPORTS_IN:-$SLUG_IN}"
           git add site/
-          git commit -m "Report: ${{ inputs.slug }} $(date -u +%Y-%m-%d)" || { echo "Nothing to commit"; exit 0; }
-          # Reports scheduled at the same minute build concurrently and each
-          # rewrites the shared hub (site/index.html). Push normally; on a
-          # rejection, merge the other build (per-slug files never overlap),
-          # rebuild the hub from disk (no API call), and retry.
+          git commit -m "Reports: ${LIST} $(date -u +%Y-%m-%d)" || { echo "Nothing to commit"; exit 0; }
+          # If another build pushes at the same time, merge it (per-slug files never
+          # overlap), rebuild the shared hub from disk (no API call), and retry.
           for i in $(seq 1 10); do
             if git push origin HEAD:main; then echo "pushed"; exit 0; fi
             echo "push rejected — syncing & retrying ($i)…"
-            git fetch origin main
+            git fetch origin main || { sleep $((i % 5 + 1)); continue; }
             git merge -X theirs --no-edit FETCH_HEAD || true
             python build.py --rebuild-hub || true
             git add site/index.html

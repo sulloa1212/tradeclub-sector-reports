@@ -85,7 +85,7 @@ jobs:
           for i in $(seq 1 10); do
             if git push origin HEAD:main; then echo "pushed"; exit 0; fi
             echo "push rejected — syncing & retrying ($i)…"
-            git fetch origin main
+            git fetch origin main || { sleep $((i % 5 + 1)); continue; }
             git merge -X theirs --no-edit FETCH_HEAD || true
             python build.py --rebuild-hub || true
             git add site/index.html

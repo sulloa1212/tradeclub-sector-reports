@@ -744,6 +744,59 @@ def notify(records: list, cost: dict, date: str):
           "or RESEND_API_KEY) — skipping notification.")
 
 
+def build_reports_telegram_message(records: list, cost: dict, date: str) -> str:
+    """Report-shaped Telegram message (the registry build's records carry
+    status_label/accent/headline, not the sector label/score fields)."""
+    n_ok = sum(1 for r in records if r["status"] == "ok")
+    dot = {"bull": "🟢", "bear": "🔴", "neutral": "⚪", "warn": "🟠"}
+    e = html.escape
+    lines = ["<b>🧠 Trade Club AI reports are live</b>",
+             f"{date} · {n_ok}/{len(records)} built · est. cost ${cost['cost']:.2f}",
+             ""]
+    for r in records:
+        name = e(str(r.get("sector", "")))  # the record's 'sector' holds the report name
+        if r["status"] == "ok":
+            lines.append(f"{dot.get(r.get('accent'), '⚪')} <b>{name}</b> — "
+                         f"{e(str(r.get('status_label', '')))}")
+            if r.get("headline"):
+                lines.append(f"   <i>{e(str(r['headline']))}</i>")
+        else:
+            lines.append(f"⏭️ <b>{name}</b> — kept yesterday's (build failed)")
+    if SITE_URL:
+        lines += ["", f'<a href="{e(SITE_URL)}/">Open the hub →</a>']
+    per = " · ".join(f"{e(str(r.get('sector', '')))} ${r['cost']:.2f}" for r in records)
+    lines += ["", f"<b>Today's cost: ${cost['cost']:.2f}</b> ({e(MODEL)})", per]
+    return "\n".join(lines)
+
+
+def notify_reports(records: list, cost: dict, date: str):
+    """Notify that the registry reports are live (report-shaped). Telegram
+    preferred, then Resend email; skips cleanly if neither is configured."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if token and chat:
+        text = build_reports_telegram_message(records, cost, date)
+        chat_ids = [c.strip() for c in chat.split(",") if c.strip()]
+        for cid in chat_ids:
+            send_telegram(token, cid, text)
+        print(f"  .. Telegram notification sent to {len(chat_ids)} chat(s).")
+        return
+    api_key = os.environ.get("RESEND_API_KEY")
+    if api_key:
+        n_ok = sum(1 for r in records if r["status"] == "ok")
+        names = ", ".join(str(r.get("sector", "")) for r in records if r["status"] == "ok")
+        subject = (f"Trade Club AI reports live — {date} "
+                   f"({n_ok}/{len(records)}, ${cost['cost']:.2f})")
+        body = ("<p>" + html.escape(names or "no reports") + "</p>"
+                + f"<p>Estimated cost: ${cost['cost']:.2f} ({html.escape(MODEL)})</p>"
+                + (f'<p><a href="{html.escape(SITE_URL)}/">Open the hub</a></p>'
+                   if SITE_URL else ""))
+        send_email_resend(api_key, subject, body)
+        print(f"  .. notification email sent to {', '.join(EMAIL_TO)}.")
+        return
+    print("  .. no notifier configured — skipping report notification.")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Multi-report mode (report registry — Phase 2)
 #
@@ -943,7 +996,14 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
                                   encoding="utf-8")
 
     print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
-    return _record(name, slug, "ok", usages, attempts)
+    rec = _record(name, slug, "ok", usages, attempts)
+    # Attach the report sidecar fields (report-shaped, not sector-shaped) so the
+    # report notifier can summarize the run. _record's own sidecar branch is
+    # sector-specific (label/direction_score/…), so we set these explicitly.
+    rec.update({"date": date, "status_label": sidecar.get("status_label", ""),
+                "accent": sidecar.get("accent", "neutral"),
+                "headline": sidecar.get("headline", "")})
+    return rec
 
 
 def build_reports_hub(out_path=None):
@@ -1017,6 +1077,13 @@ def main_reports(slugs: list):
         build_reports_hub()
     except Exception as e:
         print(f"  !! report-hub rebuild failed (non-fatal) — {e}")
+    # Notify (Telegram/email) that the reports are live + today's cost. Never let
+    # a notification problem fail the build — the reports are already published.
+    if ok > 0:
+        try:
+            notify_reports(records, cost, today_str())
+        except Exception as e:
+            print(f"  !! notification failed (non-fatal) — {e}")
     if ok == 0:
         print("ERROR: no reports were produced.")
         sys.exit(1)

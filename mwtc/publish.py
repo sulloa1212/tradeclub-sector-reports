@@ -12,10 +12,13 @@ The shared hub itself is rebuilt separately by `python build.py --rebuild-hub`.
 """
 from __future__ import annotations
 
+import os
 import sys
 import json
+import html as _html
 import argparse
 import datetime as dt
+import urllib.request
 from pathlib import Path
 
 from . import config, main as mwtc_main
@@ -135,6 +138,68 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
     return d / f"{date}.html"
 
 
+# --- Telegram notification (stdlib only; reuses the repo's TELEGRAM_* / SITE_URL) -
+PRICING = {  # per-million-token list prices ($)
+    "claude-sonnet-4-6": {"in": 3.0, "out": 15.0},
+    "claude-opus-4-8": {"in": 15.0, "out": 75.0},
+    "claude-haiku-4-5": {"in": 1.0, "out": 5.0},
+}
+_DOT = {"bull": "🟢", "bear": "🔴", "neutral": "⚪", "warn": "🟠"}
+
+
+def _est_cost() -> float:
+    """Estimate the Anthropic cost from the usage stashed on generator.generate
+    (0.0 if unavailable, e.g. a stub run)."""
+    u = getattr(generator.generate, "last_usage", None)
+    if u is None:
+        return 0.0
+    rate = PRICING.get(config.ANTHROPIC_MODEL, PRICING["claude-sonnet-4-6"])
+    cin = (getattr(u, "input_tokens", 0) or 0) / 1e6 * rate["in"]
+    cout = (getattr(u, "output_tokens", 0) or 0) / 1e6 * rate["out"]
+    return round(cin + cout, 4)
+
+
+def _telegram_message(sidecar: dict, mode: str, cost: float) -> str:
+    e = _html.escape
+    site = (os.environ.get("SITE_URL") or "").rstrip("/")
+    lines = [
+        f"<b>🧠 {e(NAME[mode])} is live</b>",
+        f"{e(str(sidecar.get('date', '')))} · est. cost ${cost:.2f}",
+        "",
+        f"{_DOT.get(sidecar.get('accent'), '⚪')} <b>{e(str(sidecar.get('status_label', '')))}</b>",
+    ]
+    if sidecar.get("headline"):
+        lines.append(f"   <i>{e(str(sidecar['headline']))}</i>")
+    if site:
+        lines += ["", f'<a href="{e(site)}/{SLUG[mode]}/">Open the report →</a>']
+    return "\n".join(lines)
+
+
+def _send_telegram(token: str, chat_id: str, text: str) -> None:
+    payload = json.dumps({"chat_id": chat_id, "text": text,
+                          "parse_mode": "HTML", "disable_web_page_preview": True}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload, method="POST", headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        r.read()
+
+
+def notify(sidecar: dict, mode: str) -> None:
+    """Send one Telegram message that the report is live (non-fatal). Uses the
+    same TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID secrets as the other reports."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if not (token and chat):
+        print("  .. no Telegram credentials — skipping notification.")
+        return
+    text = _telegram_message(sidecar, mode, _est_cost())
+    ids = [c.strip() for c in chat.split(",") if c.strip()]
+    for cid in ids:
+        _send_telegram(token, cid, text)
+    print(f"  .. Telegram notification sent to {len(ids)} chat(s).")
+
+
 def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
     data = mwtc_main.collect_data()
     data["mode"] = mode
@@ -152,6 +217,11 @@ def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
 
     out = publish_html(html, data, mode)
     print(f"Published {NAME[mode]} -> {out}")
+    if not stub:  # don't notify on a stub/test render
+        try:
+            notify(sidecar, mode)
+        except Exception as e:
+            print(f"  !! notification failed (non-fatal) — {e}")
     return 0
 
 

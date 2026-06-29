@@ -154,6 +154,7 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
         system=system,
         messages=[{"role": "user", "content": user}],
     )
+    generate.last_usage = getattr(resp, "usage", None)  # for the cost line in the notifier
     raw = "".join(block.text for block in resp.content if getattr(block, "type", "") == "text")
     html = _inject_logos(_strip_fences(raw))
     # Inject the deterministic dial dashboard at the marker (never LLM-drawn).

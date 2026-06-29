@@ -35,6 +35,36 @@ FOOTER_DISCLAIMER = (
 )
 
 
+def ensure_disclaimer(html: str) -> str:
+    """Guarantee the verbatim disclaimer is present. The <!--DISCLAIMER--> marker
+    replace is a no-op if the model didn't reproduce the marker, so inject the
+    disclaimer into a footer before </body> as a deterministic fallback."""
+    if "Educational purposes only" in html and "Freedom Management Group" in html:
+        return html
+    block = (
+        '<footer style="margin-top:36px;padding-top:18px;border-top:1px solid #2a3340;'
+        'font-size:11.5px;line-height:1.6;color:#9aa7b6">'
+        '<div style="background:#161b24;border:1px solid #2a3340;border-radius:10px;'
+        f'padding:14px 16px"><p style="margin:0">{FOOTER_DISCLAIMER}</p></div></footer>'
+    )
+    m = re.search(r"</body>", html, re.IGNORECASE)
+    return (html[:m.start()] + block + html[m.start():]) if m else (html + block)
+
+
+def normalize_h1(html: str, mode: str) -> str:
+    """Make sure the main <h1> names the report — the model sometimes drops the
+    label and shows only the date (seen on the post-market edition)."""
+    label = "Post-Market Report" if mode == "postmarket" else "Pre-Market Report"
+    m = re.search(r"<h1[^>]*>(.*?)</h1>", html, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return html
+    inner = m.group(1)
+    if re.search(r"pre-?market|post-?market|market\s*wrap", inner, re.IGNORECASE):
+        return html  # already labeled
+    new_inner = f"{label} &mdash; {inner.strip()}" if inner.strip() else label
+    return html[:m.start(1)] + new_inner + html[m.end(1):]
+
+
 def _load_template() -> str:
     return (config.ASSETS_DIR / "report-template.html").read_text(encoding="utf-8")
 
@@ -168,6 +198,10 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
     html = html.replace("<!--DISCLAIMER-->", FOOTER_DISCLAIMER)
     # Add section ids + the sticky jump-nav (deterministic, post-process).
     html = _inject_section_nav(html)
+    # Deterministic safety nets — the model can drop the disclaimer marker or the
+    # h1 label; Python guarantees both.
+    html = ensure_disclaimer(html)
+    html = normalize_h1(html, mode)
     return html
 
 

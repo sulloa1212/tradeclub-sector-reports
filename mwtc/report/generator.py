@@ -183,11 +183,15 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
     log.info("Calling Anthropic model=%s mode=%s", config.ANTHROPIC_MODEL, mode)
     resp = client.messages.create(
         model=config.ANTHROPIC_MODEL,
-        max_tokens=16000,
+        max_tokens=32000,
         system=system,
         messages=[{"role": "user", "content": user}],
     )
     generate.last_usage = getattr(resp, "usage", None)  # for the cost line in the notifier
+    # A dense report (esp. post-market) can outrun the budget; never publish a
+    # report that was cut off mid-element. Fail loud so the run can be re-fired.
+    if getattr(resp, "stop_reason", None) == "max_tokens":
+        raise RuntimeError("report truncated at max_tokens — raise max_tokens or trim the prompt")
     raw = "".join(block.text for block in resp.content if getattr(block, "type", "") == "text")
     html = _inject_logos(_strip_fences(raw))
     # Inject the deterministic dial dashboard at the marker (never LLM-drawn).

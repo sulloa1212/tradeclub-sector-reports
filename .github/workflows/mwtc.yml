@@ -1,0 +1,96 @@
+name: Build MWTC report (Pre-Market / Market Wrap)
+
+# The MWTC Daily AI Report bot (code under mwtc/). Pulls live market data
+# (Unusual Whales REST + free macro/sentiment), asks Claude to write the report,
+# and publishes it into the reports hub: premarket -> site/pre-market/,
+# postmarket -> site/market-wrap/. Trigger from cron-job.org:
+#   {"ref":"main","inputs":{"mode":"premarket","force":false}}   (9:00 AM ET)
+#   {"ref":"main","inputs":{"mode":"postmarket","force":false}}  (4:30 PM ET)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "premarket (9:00 ET, day ahead) or postmarket (4:30 ET, recap)"
+        type: choice
+        options: [premarket, postmarket]
+        default: premarket
+      force:
+        description: "Run even if the market is closed today or the report already exists"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # commit the published report back
+
+concurrency:
+  group: build-mwtc-${{ github.event.inputs.mode }}
+  cancel-in-progress: false
+
+jobs:
+  mwtc:
+    runs-on: ubuntu-latest
+    env:
+      MODE_IN: ${{ inputs.mode }}
+      FORCE_IN: ${{ inputs.force }}
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r mwtc/requirements.txt
+
+      - name: Guard (skip closed market days / already-built today)
+        id: guard
+        run: |
+          MODE="${MODE_IN:-premarket}"
+          SLUG=pre-market; [ "$MODE" = "postmarket" ] && SLUG=market-wrap
+          if [ "$FORCE_IN" = "true" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if ! python -c "import build,sys; sys.exit(0 if build.market_open_today() else 1)"; then
+            echo "US market closed today — skipping."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -f "site/$SLUG/$(date -u +%F).html" ]; then
+            echo "$SLUG already built for $(date -u +%F) — skipping."
+            echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build & publish the report (live data + Anthropic)
+        if: steps.guard.outputs.go == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          UW_API_KEY: ${{ secrets.UW_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          NASDAQ_DATA_LINK_API_KEY: ${{ secrets.NASDAQ_DATA_LINK_API_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          CME_FEDWATCH_API_ID: ${{ secrets.CME_FEDWATCH_API_ID }}
+          CME_FEDWATCH_API_SECRET: ${{ secrets.CME_FEDWATCH_API_SECRET }}
+        run: |
+          python -m mwtc.publish --mode "${MODE_IN:-premarket}"
+          python build.py --rebuild-hub
+
+      - name: Commit & push the rebuilt site (race-safe)
+        if: steps.guard.outputs.go == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/
+          git commit -m "MWTC: ${MODE_IN} $(date -u +%Y-%m-%d)" || { echo "Nothing to commit"; exit 0; }
+          for i in $(seq 1 10); do
+            if git push origin HEAD:main; then echo "pushed"; exit 0; fi
+            echo "push rejected — syncing & retrying ($i)…"
+            git fetch origin main || { sleep $((i % 5 + 1)); continue; }
+            git merge -X theirs --no-edit FETCH_HEAD || true
+            python build.py --rebuild-hub || true
+            git add site/index.html
+            git commit --no-edit -m "Rebuild hub after concurrent merge" || true
+            sleep $((i % 5 + 1))
+          done
+          echo "ERROR: could not push after retries"; exit 1

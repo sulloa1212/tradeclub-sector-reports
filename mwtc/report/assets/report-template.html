@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ============================================================
+  TRADE CLUB AI — INTELLIGENCE REPORT TEMPLATE
+  A reusable, single-file dark-theme report shell.
+  Fill in every {{PLACEHOLDER}} and the commented sections below.
+  Delete any <section> you don't need; the layout still holds.
+  See STYLE-GUIDE.md for the full component + class reference.
+============================================================ -->
+<title>{{REPORT_TITLE}} · Trade Club AI</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b24; --panel2:#1d242f; --line:#2a3340;
+    --ink:#e8edf3; --muted:#9aa7b6; --faint:#6b7787;
+    --bull:#22c55e; --bull-dim:#16331f; --bear:#ef4444; --bear-dim:#3a1c1c;
+    --neutral:#9aa7b6; --neutral-dim:#22262d; --accent:#29b6f6; --accent2:#2196f3; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;font-size:15px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px;position:relative}
+  h1,h2,h3{line-height:1.2;margin:0}
+  a{color:var(--accent)}
+  .header{border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:22px;
+    display:flex;align-items:center;gap:18px}
+  .brand-tc{flex:0 0 auto;width:168px;height:auto;display:block;margin-right:22px;background:transparent}
+  .brand-mw{position:absolute;top:20px;right:18px;width:62px;height:auto;display:block;z-index:3}
+  .head-text{flex:1 1 auto;min-width:0;padding-right:74px}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:29px;margin:6px 0 6px;font-weight:800}
+  .sub{color:var(--muted);font-size:14px}
+  .stamp{color:var(--faint);font-size:13px;margin-top:8px}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;
+    letter-spacing:.03em;vertical-align:middle}
+  .t-bull{background:var(--bull-dim);color:var(--bull);border:1px solid #1f6b37}
+  .t-bear{background:var(--bear-dim);color:#fca5a5;border:1px solid #7f2a2a}
+  .t-neut{background:var(--neutral-dim);color:var(--muted);border:1px solid var(--line)}
+  .t-warn{background:#3a2e12;color:var(--warn);border:1px solid #7a5a14}
+
+  section{margin:30px 0}
+  .sec-title{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+    font-weight:700;margin-bottom:14px;border-left:3px solid var(--accent);padding-left:10px}
+
+  /* TL;DR */
+  .tldr{background:linear-gradient(180deg,#18202b,#141a23);border:1px solid var(--line);
+    border-radius:14px;padding:20px 22px}
+  .tldr h2{font-size:18px;margin-bottom:12px}
+  .tldr ul{margin:0;padding-left:0;list-style:none}
+  .tldr li{padding:9px 0;border-bottom:1px dashed var(--line);font-size:15.5px}
+  .tldr li:last-child{border-bottom:none}
+  .tldr .lead{font-weight:700}
+
+  /* Macro strip */
+  .macro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .mcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+  .mcard .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+  .mcard .v{font-size:20px;font-weight:800;margin:3px 0}
+  .mcard .d{font-size:12px;color:var(--muted)}
+  .arrow-up{color:var(--bear)} /* rising rates/inflation = caution color where noted */
+  .pos{color:var(--bull)} .neg{color:var(--bear)} .flat{color:var(--muted)}
+
+  /* Ranked bar chart */
+  .rank{display:flex;flex-direction:column;gap:5px}
+  .row{display:grid;grid-template-columns:150px 1fr 44px 78px;align-items:center;gap:10px;font-size:13px}
+  .row .nm{text-align:right;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .nm small{color:var(--faint);font-weight:500}
+  .bar-track{position:relative;height:20px;background:var(--panel2);border-radius:5px;overflow:hidden}
+  .bar-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--faint);opacity:.5}
+  .bar-fill{position:absolute;top:0;bottom:0;border-radius:4px}
+  .row .sc{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+  .row .pick{justify-self:start}
+  .pick-pill{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;
+    letter-spacing:.09em;padding:3px 9px;border-radius:999px;white-space:nowrap;text-transform:uppercase;line-height:1}
+  .pick-pill .cb{font-size:8px;line-height:1}
+  .pick-bull{background:linear-gradient(180deg,#16331f,#102a18);color:var(--bull);box-shadow:0 0 0 1px #1f6b37 inset,0 0 10px -4px var(--bull)}
+  .pick-bear{background:linear-gradient(180deg,#3a1c1c,#2a1414);color:#fca5a5;box-shadow:0 0 0 1px #7f2a2a inset,0 0 10px -4px var(--bear)}
+
+  /* Sector drill gauges */
+  .drill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .gauge-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .gauge-card.bull{border-top:3px solid var(--bull)}
+  .gauge-card.bear{border-top:3px solid var(--bear)}
+  .gauge-card h3{font-size:16px;margin-bottom:2px}
+  .gauge-card .etf{color:var(--faint);font-size:12px;font-weight:600}
+  .gnum{font-size:34px;font-weight:800;margin:6px 0 2px}
+  .gmeta{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  /* Stock cards */
+  .stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .scard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column}
+  .scard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .tk{font-size:19px;font-weight:800}
+  .co{font-size:12px;color:var(--faint);margin-top:1px}
+  .meter{height:8px;background:var(--panel2);border-radius:5px;margin:12px 0 4px;overflow:hidden}
+  .meter > i{display:block;height:100%;border-radius:5px}
+  .meter-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--faint)}
+  .thesis{font-size:13.5px;margin:11px 0;color:var(--ink)}
+  .pts{margin:0;padding-left:16px;font-size:12.5px;color:var(--muted)}
+  .pts li{margin:3px 0}
+  .risk{font-size:12.5px;margin-top:10px;padding:8px 10px;background:var(--bear-dim);
+    border-radius:7px;color:#fcc;border:1px solid #5a2424}
+  .levels{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;font-size:11px}
+  .lv{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+  .lv b{display:block;color:var(--faint);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+  .earn{font-size:11.5px;margin-top:9px;color:var(--muted)}
+  .meter.health{margin-top:10px}
+  .fuel{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:800;
+    padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;
+    vertical-align:middle;line-height:1;white-space:nowrap}
+  .fuel-add{background:linear-gradient(180deg,#16331f,#102a18);color:var(--bull);box-shadow:0 0 0 1px #1f6b37 inset,0 0 9px -4px var(--bull)}
+  .fuel-fight{background:linear-gradient(180deg,#3a2e12,#2a210d);color:var(--warn);box-shadow:0 0 0 1px #7a5a14 inset}
+  .fuel-neutral{background:var(--neutral-dim);color:var(--muted);box-shadow:0 0 0 1px var(--line) inset}
+  .fund{font-size:11px;color:var(--faint);margin-top:5px;line-height:1.45}
+  .fund b{color:var(--muted);font-weight:700}
+
+  /* generic panels */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .panel h3{font-size:15px;margin-bottom:8px}
+  .panel p, .panel li{font-size:13.5px;color:var(--muted)}
+
+  /* event table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--faint);text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+  td.dt{white-space:nowrap;color:var(--ink);font-weight:600;width:130px}
+
+  /* legend */
+  .legend{background:var(--panel2);border:1px dashed var(--line);border-radius:12px;padding:16px}
+  .legend dt{font-weight:700;color:var(--ink);font-size:13px;margin-top:8px}
+  .legend dd{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+  .footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);
+    color:var(--faint);font-size:11.5px;line-height:1.6}
+  .disc{background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .disc-logo{flex:0 0 auto}
+  .disc-logo svg{width:48px;height:auto;display:block}
+  .disc-text p{margin:0;color:var(--muted);font-size:11.5px;line-height:1.6}
+  .disc-text a{color:var(--accent)}
+  @media (max-width:620px){
+    h1{font-size:22px}
+    .header{flex-direction:column;align-items:flex-start;gap:14px}
+    .brand-tc{width:120px;border-right:none;padding-right:0;margin-right:0}
+    .brand-mw{width:46px;top:14px;right:14px}
+    .head-text{padding-right:54px}
+    .row{grid-template-columns:84px 1fr 38px 60px;gap:7px}
+    .pick-pill{padding:2px 6px;font-size:8px;letter-spacing:.04em}
+    .twocol{grid-template-columns:1fr}
+    .gnum{font-size:28px}
+    .disc{flex-direction:column}
+    .row{grid-template-columns:96px 1fr 38px 60px;gap:7px}
+  }
+
+  /* --- ported features: sticky section-nav, index bias dials, color helpers --- */
+  html{scroll-behavior:smooth}
+  section[id], .tldr[id]{scroll-margin-top:70px}
+  .secnav{position:sticky;top:0;z-index:30;display:flex;gap:7px;overflow-x:auto;
+    padding:10px 2px;margin:0 0 6px;background:rgba(14,17,23,.93);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);scrollbar-width:thin}
+  .secnav::-webkit-scrollbar{height:6px}
+  .secnav::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .secnav a{flex:0 0 auto;font-size:11.5px;font-weight:700;letter-spacing:.02em;
+    color:var(--muted);text-decoration:none;background:var(--panel2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+    white-space:nowrap;transition:color .15s,border-color .15s,background .15s}
+  .secnav a:hover{color:var(--accent);border-color:var(--accent);background:#10212c}
+  b.pos{color:var(--bull)} b.neg{color:var(--bear)} b.warnc{color:var(--warn)} b.acc{color:var(--accent)}
+  .warnc{color:var(--warn)}
+  .panel.acc{border-left:3px solid var(--accent)}
+  .panel.warn{border-left:3px solid var(--warn)}
+  .panel.bull{border-left:3px solid var(--bull)}
+  .panel.bear{border-left:3px solid var(--bear)}
+  .dials{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+  .dial-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 10px 12px;text-align:center}
+  .dial-top{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:2px}
+  .dial-top b{color:var(--ink)}
+  .dial-val{font-size:26px;font-weight:800;margin-top:4px;line-height:1}
+  .dial-lean{font-size:11.5px;font-weight:700;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============================================================
+    HEADER
+    Logos: by default these point at the bundled files. For a
+    SINGLE-FILE portable report, replace the two src="assets/..."
+    values with the base64 strings in assets/logo-embed-snippet.html.
+    For white-label, delete both <img> tags + the .brand-* CSS.
+  ============================================================ -->
+  <div class="header">
+    <img class="brand-tc" alt="Trade Club AI" src="assets/logos/trade-club-ai.png">
+    <div class="head-text">
+      <div class="eyebrow">{{EYEBROW — e.g. Trade Club AI · Full Market Scan}}</div>
+      <h1>{{REPORT_TITLE}}</h1>
+      <div class="sub">{{SUBTITLE — coverage • horizon}}</div>
+      <div class="stamp">Generated {{LONG_DATE}} &nbsp;|&nbsp; {{OPTIONAL freshness note}}</div>
+    </div>
+    <img class="brand-mw" alt="Michael Wade Trade Coaching" src="assets/logos/michael-wade.png">
+  </div>
+
+  <!-- Section-nav buttons are injected here automatically — leave this marker. -->
+  <!--SECTION-NAV-->
+
+  <!-- ============================================================
+    TL;DR — "The 60-Second Read"  (3–5 punchy bullets)
+    Span classes: .lead (bold lead-in), .pos / .neg / .t-warn for tint.
+  ============================================================ -->
+  <div class="tldr">
+    <h2>🎯 The 60-Second Read</h2>
+    <ul>
+      <li><span class="lead">{{Lead-in:}}</span> {{the single most important takeaway}}</li>
+      <li><span class="lead pos">{{Strongest sectors (LONG):}}</span> {{names + why}}</li>
+      <li><span class="lead neg">{{Weakest sectors (SHORT/AVOID):}}</span> {{names + why}}</li>
+      <li><span class="lead">{{Macro driver:}}</span> {{what's moving the tape}}</li>
+      <li><span class="lead t-warn" style="padding:2px 8px">⚠ {{Watch item}}</span> {{caveat / event risk}}</li>
+    </ul>
+  </div>
+
+  <!-- ============================================================
+    MACRO STRIP — repeat .mcard as needed (auto-wraps in a grid)
+    .v value color: .pos (green) / .neg (red) / .flat (grey)
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Macro &amp; Geopolitical Backdrop</div>
+    <div class="macro-grid">
+      <div class="mcard"><div class="k">{{METRIC}}</div><div class="v flat">{{VALUE}}</div><div class="d">{{one-line implication}}</div></div>
+      <div class="mcard"><div class="k">{{METRIC}}</div><div class="v pos">{{VALUE}}</div><div class="d">{{one-line implication}}</div></div>
+      <div class="mcard"><div class="k">{{METRIC}}</div><div class="v neg">{{VALUE}}</div><div class="d">{{one-line implication}}</div></div>
+      <!-- …add more .mcard … -->
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px"><b>Macro one-liner that could override everything:</b> {{the wildcard}}</p>
+  </section>
+
+  <!-- ============================================================
+    RANKED BAR CHART — full universe direction scores.
+    Edit the `data`, `topBull`, `topBear` arrays in the <script> at
+    the bottom of the file. Diverging bars: + right (green), − left (red).
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Full Universe — Direction Scores (−100 bearish ⟷ +100 bullish)</div>
+    <div class="rank" id="rank"></div>
+    <p style="font-size:12px;color:var(--faint);margin-top:10px">{{Scoring weights / methodology note}}</p>
+  </section>
+
+  <!-- ============================================================
+    DRILL-DOWN — top bullish picks (gauge cards + stock stacks)
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Top Bullish — Drill-Down</div>
+    <div class="drill-grid">
+      <div class="gauge-card bull">
+        <h3>{{Sector}} <span class="etf">{{ETF}}</span></h3>
+        <div class="gnum pos">{{+score}}</div>
+        <span class="tag t-bull">BULLISH</span> <span class="tag t-neut">Conviction: {{High/Med/Low}}</span>
+        <div class="gmeta">{{2–3 line sector thesis}}</div>
+      </div>
+      <!-- …second gauge-card… -->
+    </div>
+
+    <h3 style="font-size:14px;margin:20px 0 10px;color:var(--bull)">▸ {{Sector}} ({{ETF}}) — Top Longs</h3>
+    <div class="stack">
+      <!-- STOCK CARD (long) — duplicate per name -->
+      <div class="scard">
+        <div class="top"><div><span class="tk">{{TICKER}}</span><div class="co">{{Company}}</div></div><span class="tag t-bull">LONG</span></div>
+        <div class="meter"><i style="width:{{NN}}%;background:var(--bull)"></i></div>
+        <div class="meter-lbl"><span>Swing-Conviction</span><span><b style="color:var(--bull)">{{NN}} / 100</b></span></div>
+        <div class="meter health"><i style="width:{{NN}}%;background:var(--bull)"></i></div>
+        <div class="meter-lbl"><span>Fundamental Health</span><span><b style="color:var(--bull)">{{NN}} / 100</b> <span class="fuel fuel-add">&#9981; Adds Fuel</span></span></div>
+        <div class="fund">{{Rev/EPS/margin/FCF one-liner}}</div>
+        <div class="thesis">{{Why this is the play}}</div>
+        <ul class="pts"><li>{{point}}</li><li>{{point}}</li><li>{{point}}</li></ul>
+        <div class="risk"><b>Biggest risk:</b> {{what breaks it}}</div>
+        <div class="levels"><span class="lv"><b>Price</b>{{px}}</span><span class="lv"><b>Support</b>{{lvl}}</span><span class="lv"><b>Resistance</b>{{lvl}}</span></div>
+        <div class="earn">📅 Next earnings: <b>{{date}}</b> {{in/out of window note}}</div>
+      </div>
+      <!-- …more long cards… -->
+    </div>
+  </section>
+
+  <!-- ============================================================
+    DRILL-DOWN — top bearish picks
+    (use .gauge-card.bear, .tag.t-bear, .fuel-neutral / .fuel-fight,
+     background:var(--bear) on meters, tag "SHORT/AVOID")
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Top Bearish — Drill-Down</div>
+    <div class="drill-grid">
+      <div class="gauge-card bear">
+        <h3>{{Sector}} <span class="etf">{{ETF}}</span></h3>
+        <div class="gnum neg">{{-score}}</div>
+        <span class="tag t-bear">BEARISH</span> <span class="tag t-neut">Conviction: {{High/Med/Low}}</span>
+        <div class="gmeta">{{2–3 line sector thesis}}</div>
+      </div>
+      <!-- …second gauge-card… -->
+    </div>
+
+    <h3 style="font-size:14px;margin:20px 0 10px;color:var(--bear)">▸ {{Sector}} ({{ETF}}) — Top Shorts/Avoids</h3>
+    <div class="stack">
+      <div class="scard">
+        <div class="top"><div><span class="tk">{{TICKER}}</span><div class="co">{{Company}}</div></div><span class="tag t-bear">SHORT/AVOID</span></div>
+        <div class="meter"><i style="width:{{NN}}%;background:var(--bear)"></i></div>
+        <div class="meter-lbl"><span>Swing-Conviction</span><span><b style="color:var(--bear)">{{NN}} / 100</b></span></div>
+        <div class="meter health"><i style="width:{{NN}}%;background:var(--neutral)"></i></div>
+        <div class="meter-lbl"><span>Fundamental Health</span><span><b style="color:var(--muted)">{{NN}} / 100</b> <span class="fuel fuel-neutral">&#9981; Neutral</span></span></div>
+        <div class="fund">{{fundamentals one-liner}}</div>
+        <div class="thesis">{{Why it's vulnerable}}</div>
+        <ul class="pts"><li>{{point}}</li><li>{{point}}</li></ul>
+        <div class="risk"><b>Biggest risk to the short:</b> {{what would squeeze it}}</div>
+        <div class="levels"><span class="lv"><b>Price</b>{{px}}</span><span class="lv"><b>Support</b>{{lvl}}</span><span class="lv"><b>Resistance</b>{{lvl}}</span></div>
+        <div class="earn">📅 Next earnings: <b>{{date}}</b></div>
+      </div>
+      <!-- …more short cards… -->
+    </div>
+  </section>
+
+  <!-- ============================================================
+    CROSS-CURRENTS — "What would make this wrong" (bear vs bull risks)
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Cross-Currents — What Would Make This Wrong</div>
+    <div class="twocol">
+      <div class="panel">
+        <h3 style="color:var(--bear)">{{Risk to the bearish calls}}</h3>
+        <p>{{explanation}}</p>
+      </div>
+      <div class="panel">
+        <h3 style="color:var(--bull)">{{Risk to the bullish calls}}</h3>
+        <p>{{explanation}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+    EVENT CALENDAR — next ~2 weeks. Duplicate <tr> rows.
+  ============================================================ -->
+  <section>
+    <div class="sec-title">Event Calendar — Next ~2 Weeks</div>
+    <div class="panel" style="padding:6px 18px">
+      <table>
+        <tr><th class="dt">Date</th><th>Event</th><th>Why it matters</th></tr>
+        <tr><td class="dt">{{Date}}</td><td>{{Event}}</td><td>{{Why it matters}}</td></tr>
+        <tr><td class="dt">{{Date}}</td><td>{{Event}}</td><td>{{Why it matters}}</td></tr>
+        <!-- …more rows… -->
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================
+    LEGEND — "How to Read This Report" (reusable, rarely changes)
+  ============================================================ -->
+  <section>
+    <div class="sec-title">How to Read This Report</div>
+    <div class="legend">
+      <dl style="margin:0">
+        <dt>Swing horizon</dt><dd>Everything is judged for a <b>3-day to 6-week</b> hold — not day-trading, not long-term investing.</dd>
+        <dt>Direction score (−100 to +100)</dt><dd>A weighted blend of trend, relative strength, macro, news and momentum. Above 0 = net bullish, below 0 = net bearish; the further from zero, the stronger.</dd>
+        <dt>Conviction (High / Med / Low)</dt><dd>How <i>aligned</i> the inputs are. High = trend, macro and momentum all point the same way. Low = mixed signals.</dd>
+        <dt>Stock score (0–100)</dt><dd>"Conviction to move hardest in the sector's direction" — for longs, likely strongest gainers; for shorts, most-vulnerable names.</dd>
+        <dt>Fundamental Health (0–100)</dt><dd>A separate read on the underlying business — revenue &amp; EPS growth, margins, FCF / balance sheet, analyst revisions, guidance.</dd>
+        <dt>⛽ Fuel indicator</dt><dd>Whether the fundamentals <i>reinforce the trade direction</i>. <span class="fuel fuel-add">⛽ Adds Fuel</span> backs the move; <span class="fuel fuel-neutral">⛽ Neutral</span> = a price bet; <span class="fuel fuel-fight">⛽ Fights It</span> = fundamentals cut against the trade.</dd>
+        <dt>Color language</dt><dd><span style="color:var(--bull)">Green = bullish / long</span> · <span style="color:var(--bear)">Red = bearish / short-or-avoid</span> · <span style="color:var(--muted)">Grey = neutral</span>.</dd>
+        <dt>⚠ Earnings flag</dt><dd>If a company reports inside the swing window, that's <b>event risk</b> — a gap, not a clean technical move.</dd>
+        <dt>Technical levels</dt><dd>Approximate observations (entry zone / support / resistance), not guarantees. Re-verify live prices before acting.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================
+    FOOTER — disclaimer + timestamp (edit entity name / date only)
+  ============================================================ -->
+  <div class="footer">
+    <div class="disc">
+      <div class="disc-text">
+        <p><!--DISCLAIMER--></p>
+      </div>
+    </div>
+    <p style="margin-top:12px">All data is <b>time-stamped ({{DATE}}) and goes stale quickly</b> — prices, technicals and especially earnings dates should be re-verified before trading.</p>
+    <p style="margin-top:10px;color:var(--faint)">{{Report name}} · Trade Club AI · Generated {{YYYY-MM-DD}} · mwtradecoach.com</p>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // RANKED BAR CHART DATA  — [Display name, ETF/ticker, score −100..+100]
+  // Order top→bottom as you want them stacked. `topBull` / `topBear`
+  // hold the ETF codes that get the "Pick" pill.
+  // ============================================================
+  var data = [
+    ["{{Sector}}","{{ETF}}", 0],
+    ["{{Sector}}","{{ETF}}", 0],
+    ["{{Sector}}","{{ETF}}", 0]
+    // …add rows…
+  ];
+  var topBull = ["{{ETF}}"], topBear = ["{{ETF}}"];
+
+  var cont = document.getElementById("rank");
+  data.forEach(function(d){
+    var name=d[0], etf=d[1], sc=d[2];
+    var row=document.createElement("div"); row.className="row";
+    var col = sc>0 ? "var(--bull)" : (sc<0 ? "var(--bear)" : "var(--neutral)");
+    var half = Math.min(Math.abs(sc),100)/100*50; // % of half-track
+    var fill = sc>=0
+      ? '<span class="bar-fill" style="left:50%;width:'+half+'%;background:'+col+'"></span>'
+      : '<span class="bar-fill" style="right:50%;width:'+half+'%;background:'+col+'"></span>';
+    var pick="";
+    if(topBull.indexOf(etf)>-1) pick='<span class="pick-pill pick-bull"><span class="cb">&#9650;</span>Pick</span>';
+    if(topBear.indexOf(etf)>-1) pick='<span class="pick-pill pick-bear"><span class="cb">&#9660;</span>Pick</span>';
+    row.innerHTML =
+      '<div class="nm">'+name+' <small>'+etf+'</small></div>'+
+      '<div class="bar-track"><span class="bar-mid"></span>'+fill+'</div>'+
+      '<div class="sc" style="color:'+col+'">'+(sc>0?"+":"")+sc+'</div>'+
+      '<div class="pick">'+pick+'</div>';
+    cont.appendChild(row);
+  });
+</script>
+</body>
+</html>

@@ -961,9 +961,11 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
 
     d = SITE / slug
     d.mkdir(parents=True, exist_ok=True)
-    date = str(sidecar.get("date", "")).strip()
-    if not DATE_RE.match(date):
-        date = today
+    # Always name the dated file by the UTC run date. The workflow's idempotency
+    # guard checks site/<slug>/<UTC-date>.html, so trusting the model's sidecar
+    # date here could let a re-dispatch with a valid-but-different date double-
+    # build (and double-bill). The report body still shows the model's own date.
+    date = today
 
     body = inject_hub_button(body)
     (d / f"{date}.html").write_text(body, encoding="utf-8")

@@ -146,7 +146,10 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
 
     system, user = prompt.build_messages(mode, packet_json, template_html, report_date)
 
-    client = Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    # max_retries: the SDK auto-retries transient errors (429 / 5xx / connection)
+    # with backoff. This is the only LLM call in the bot and a scheduled run has
+    # no second chance until the next slot, so give it extra headroom.
+    client = Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=4)
     log.info("Calling Anthropic model=%s mode=%s", config.ANTHROPIC_MODEL, mode)
     resp = client.messages.create(
         model=config.ANTHROPIC_MODEL,

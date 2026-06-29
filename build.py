@@ -913,6 +913,42 @@ def inject_hub_button(html: str) -> str:
     return (html[:m.end()] + HUB_BUTTON + html[m.end():]) if m else (HUB_BUTTON + html)
 
 
+def previous_reports_widget(slug: str, dates: list) -> str:
+    """A floating 'Previous reports' dropdown (pure CSS, no JS) linking each kept
+    dated copy. Empty when there are no prior reports."""
+    if not dates:
+        return ""
+    items = "".join(f'<li><a href="/{slug}/{d}.html">{d}</a></li>' for d in dates)
+    return (
+        '<style>.tc-prev{position:fixed;left:16px;bottom:60px;z-index:99999;'
+        'font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
+        '.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;'
+        'padding:9px 15px;border-radius:999px;background:#161b24;border:1px solid #2a3340;color:#e8eef3;'
+        'box-shadow:0 3px 14px rgba(0,0,0,.55)}'
+        '.tc-prev>summary::-webkit-details-marker{display:none}'
+        '.tc-prev[open]>summary{border-color:#29b6f6;color:#fff}'
+        '.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;'
+        'background:#161b24;border:1px solid #2a3340;border-radius:10px;min-width:190px;max-height:50vh;'
+        'overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.55)}'
+        '.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8eef3;text-decoration:none;'
+        'font-variant-numeric:tabular-nums}'
+        '.tc-prev li a:hover{background:#0f1830;color:#fff}'
+        '@media print{.tc-prev{display:none}}</style>'
+        '<details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary>'
+        f'<ul>{items}</ul></details>'
+    )
+
+
+def inject_previous_reports(html: str, slug: str, dates: list) -> str:
+    """Insert the previous-reports dropdown right after <body>. No-op if there
+    are no prior dates or it's already present."""
+    widget = previous_reports_widget(slug, dates)
+    if not widget or "tc-prev" in html:
+        return html
+    m = re.search(r"<body[^>]*>", html, re.IGNORECASE)
+    return (html[:m.end()] + widget + html[m.end():]) if m else (widget + html)
+
+
 def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     """Build ONE registry report → site/<slug>/ (dated + index.html + index.json).
     Returns a cost record. On failure, keeps yesterday's files for that report."""
@@ -994,8 +1030,11 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     kept = [meta[x] for x in keep if x in meta]
     index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
                           encoding="utf-8")
-    (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"),
-                                  encoding="utf-8")
+    # Add the "previous reports" dropdown (links to the other kept dates), then
+    # finalize the current dated page + index.html with it.
+    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
+    (d / f"{date}.html").write_text(final, encoding="utf-8")
+    (d / "index.html").write_text(final, encoding="utf-8")
 
     print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
     rec = _record(name, slug, "ok", usages, attempts)

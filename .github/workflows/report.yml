@@ -51,10 +51,24 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
         run: python build.py --report "${{ inputs.slug }}"
 
-      - name: Commit & push the rebuilt site
+      - name: Commit & push the rebuilt site (race-safe)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add site/
-          git commit -m "Report: ${{ inputs.slug }} $(date -u +%Y-%m-%d)" || echo "Nothing to commit"
-          git push
+          git commit -m "Report: ${{ inputs.slug }} $(date -u +%Y-%m-%d)" || { echo "Nothing to commit"; exit 0; }
+          # Reports scheduled at the same minute build concurrently and each
+          # rewrites the shared hub (site/index.html). Push normally; on a
+          # rejection, merge the other build (per-slug files never overlap),
+          # rebuild the hub from disk (no API call), and retry.
+          for i in $(seq 1 10); do
+            if git push origin HEAD:main; then echo "pushed"; exit 0; fi
+            echo "push rejected — syncing & retrying ($i)…"
+            git fetch origin main
+            git merge -X theirs --no-edit FETCH_HEAD || true
+            python build.py --rebuild-hub || true
+            git add site/index.html
+            git commit --no-edit -m "Rebuild hub after concurrent merge" || true
+            sleep $((i % 5 + 1))
+          done
+          echo "ERROR: could not push after retries"; exit 1

@@ -1149,7 +1149,12 @@ if __name__ == "__main__":
     # Default (no args) = the scheduled sector build. `--report <slug>` /
     # `--reports a,b,...` = the opt-in multi-report build (Phase 2).
     _args = sys.argv[1:]
-    if _args and _args[0] in ("--report", "--reports"):
+    if _args and _args[0] == "--rebuild-hub":
+        # Regenerate site/index.html from the current registry + each report's
+        # index.json. Used by the workflows' race-safe push to rebuild the hub
+        # after merging a concurrent build, with no API call. Cheap + offline.
+        build_reports_hub()
+    elif _args and _args[0] in ("--report", "--reports"):
         _slugs = []
         for _a in _args[1:]:
             _slugs += [x.strip() for x in _a.split(",") if x.strip()]

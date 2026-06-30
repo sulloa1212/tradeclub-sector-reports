@@ -41,62 +41,82 @@ shrink coverage: every required section, table, ranking, and row count below sti
 stands in full (e.g. rank all the sectors, keep the full name count), as do the
 sidecar and the verbatim disclaimer. Simplify the wording, not the analysis.
 
+This stylesheet follows the **MWTC Report Format Spec**: a static header that
+scrolls away, a single-row sticky section nav, numbered `h2` sections, and the
+`.panel` / `.stat` / `.grid` / table component grammar. Build to that spec exactly.
+
 ## 1. Link the shared stylesheet — and DO NOT write your own CSS for shared parts
-In `<head>`, link the house stylesheet (it defines the palette, header, sticky
-nav, sections, cards, tables, gauges, pills, badges, colors — everything):
+In `<head>`, link the house stylesheet (it defines the palette, header, nav,
+sections, panels, stat grids, tables, dials, footer — everything):
 ```html
 <link rel="stylesheet" href="/assets/report.css">
 ```
-Build the report with the CLASS VOCABULARY below. **Do NOT redefine these classes,
-do NOT set your own background/palette, do NOT resize the logos.** You MAY add ONE
-small `<style>` block ONLY for genuinely report-specific layout that has no class
-here — keep it minimal and reuse the CSS variables (`--bg, --panel, --panel2,
---line, --ink, --muted, --faint, --bull, --bear, --neutral, --accent, --warn`).
-Wrap the whole report in `<div class="wrap"> … </div>`.
+Build with the CLASS VOCABULARY below. **Do NOT redefine these classes, set your
+own background/palette, or resize the logos.** You MAY add ONE small `<style>`
+block ONLY for genuinely report-specific components with no class here — keep it
+minimal and reuse the variables (`--bg, --panel, --panel2, --chip, --line, --ink,
+--mut/--muted, --faint, --acc/--accent, --bull, --bear, --warn`). Wrap the whole
+report in `<div class="wrap"> … </div>`.
 
-## 2. Header — use this EXACT structure (the stylesheet styles & sizes it)
+## 2. Header — EXACT structure (STATIC; it scrolls away — do NOT make it sticky)
 ```html
-<header class="hdr">
-  <div class="hdr-left">
-    <img src="/assets/tradeclub-ai.png" alt="Trade Club AI">
-    <div class="hdr-meta">
+<header class="top">
+  <div class="header">
+    <img class="brand-tc" src="/assets/tradeclub-ai.png" alt="Trade Club AI">
+    <div class="head-text">
       <div class="eyebrow">TRADE CLUB AI &middot; &lt;REPORT NAME&gt;</div>
-      <h1>&lt;report title&gt;</h1>
-      <div class="subtitle">&lt;one-line subtitle&gt;</div>
+      <h1>&lt;report title&gt; <span class="tag t-bull">BULLISH</span></h1>
+      <div class="sub">&lt;one-line subtitle&gt;</div>
       <div class="stamp">&lt;date &middot; ET time &middot; run-type&gt; <span class="run-badge">PRE-OPEN</span> <span class="warn-badge">&#9888; key catalyst</span></div>
     </div>
+    <img class="brand-mw" src="/assets/mw.png" alt="Michael Wade Trade Coaching">
   </div>
-  <img class="brand-mw" src="/assets/mw.png" alt="Michael Wade Trade Coaching">
 </header>
 ```
-Do not add inline sizes to the logos — the stylesheet sets them (logo ~96px).
+The state `.tag` is optional: `t-bull` (bullish / risk-on), `t-bear` (bearish),
+`t-neut` (mixed). Do NOT size the logos inline — the stylesheet does.
 
-## 3. Sticky "JUMP TO" nav — pills linking to each section id
+## 3. Section nav — a SINGLE-ROW sticky bar, SIBLING right after `</header>`
 ```html
-<nav class="sticky-nav">
-  <a class="pill" href="#read">60-Second Read</a>
-  <a class="pill" href="#macro">Macro</a>
-  … one pill per major section …
+<nav class="jump">
+  <a href="#s1">60-Second Read</a>
+  <a href="#s2">Macro</a>
+  … one button per section, in order …
 </nav>
 ```
-Every section MUST have a stable `id`; every pill MUST point to a real `#id`.
+The rules that bite: the nav is a **SIBLING after the header** (never nested in
+it), a **SINGLE ROW** (it scrolls sideways, never wraps to two rows), and the
+**only** sticky element. EVERY section heading needs an `id` AND a matching
+button; every button points to a real `#id` (including any extra "+" sections).
 
 ## 4. Build all content with these classes (so every report looks identical)
-- **Section:** `<section id="…"><div class="section-eyebrow">SUMMARY</div><h2 class="section-title">…</h2> … </section>` — the small eyebrow label sits above each section heading.
-- **The opening takeaways:** put them in `<div class="read-box"> … </div>` (a bulleted box).
-- **A muted "honesty line"** callout under the read box where relevant.
-- **Cards:** `<div class="card"><div class="card-top"><span class="card-title">…</span><span class="card-sub">…</span></div> … </div>`.
-- **Tables:** always wrap in `<div class="tbl-wrap"><table> … </table></div>`.
-- **Gauge dials / status chips:** `<span class="dial dial-high">HIGH</span>` (`dial-calm` / `dial-elevated` / `dial-high` / `dial-extreme`); `run-badge` and `warn-badge` for the header chips.
-- **Color helpers** on any text/number: `bull-c` (green), `bear-c` (red), `warn-c` (amber), `mut` (muted/secondary).
-- **Two columns:** `<div class="two-col"> … </div>`. **Breadth/ranked bars:** `breadth-bar`.
+- **Section heading:** `<h2 id="s1"><span class="num">1</span>Title</h2>` — the `id`
+  matches its nav button; `.num` is the section number. (A `.section-eyebrow` kicker
+  above it is optional.)
+- **Lead summary / callouts:** `<div class="panel acc"> … </div>` (`.panel.acc` blue,
+  `.panel.bull` green, `.panel.bear` red, `.panel.warn` amber). The 60-Second Read may
+  use `.read-box`.
+- **Stat grid:** `<div class="grid"><div class="stat"><div class="k">Label</div><div class="v">Value</div></div> … </div>` — for index closes, sentiment, key numbers.
+- **Tables:** plain `<table>`; right-align numbers with `class="r"` on the `<td>`/`<th>`; wrap in `<div class="tbl-wrap"> … </div>` if it may overflow.
+- **State tag / date chip:** `.tag` + `.t-bull`/`.t-bear`/`.t-neut` in a title; `.pill` for a date chip; `.run-badge` / `.warn-badge` for header chips.
+- **Inline tints** (make prose scannable): `<b class="pos">` green, `<b class="neg">` red, `<b class="warnc">` amber, `<b class="acc">` blue. Color helpers on any text/number: `bull-c` / `bear-c` / `warn-c` / `mut`.
+- **"Feed not connected":** `<span class="notconn">&mdash; feed not connected &mdash;</span>` for any unverified slot — never invent a number.
+- **Report-specific components** (use where your report defines them): dials (`dial dial-calm/elevated/high/extreme`), drill-down cards (`.card`), direction split bars (`.split-*`/`.bar-*`), level ladder (`.ladder`), cushion box (`.cushion-box`), clock (`.clock-*`), calendar (`.cal-table`), playbook (`.play-grid`), takeaway (`.takeaway-banner`), legend (`.legend-grid`).
 Reuse these everywhere; only invent new markup when the content truly has no class.
 
-## 5. Footer (required, in this order)
-**a) "Sources consulted"** — a concise, muted line listing the key sources you
-actually used. Must be INSIDE the HTML (never after `</html>`).
-**b) Disclaimer, VERBATIM**, with "Terms & Conditions" and "Privacy Policy" as real
-`<a>` links (`target="_blank" rel="noopener"`):
+## 5. Footer — EXACT structure (required, in this order)
+Use this markup, with the disclaimer VERBATIM and "Terms & Conditions"/"Privacy
+Policy" as real `<a>` links (`target="_blank" rel="noopener"`):
+```html
+<div class="footer">
+  <p class="sources">Sources consulted: &lt;the key sources you actually used&gt;</p>
+  <div class="disc"><div class="disc-text"><p>&lt;DISCLAIMER, VERBATIM&gt;</p></div></div>
+  <p>All data is time-stamped (&lt;date&gt;) and goes stale quickly &mdash; re-verify before trading.</p>
+  <p style="color:var(--faint)">&lt;Report Name&gt; &middot; Trade Club AI &middot; Generated &lt;YYYY-MM-DD&gt; &middot; mwtradecoach.com</p>
+</div>
+```
+Disclaimer (VERBATIM — the "Sources consulted" line and this disclaimer must be
+INSIDE the HTML, never after `</html>`):
 > Educational purposes only — not investment advice. The Freedom Management Group, Inc. d/b/a Michael Wade Trade Coaching is not a broker, adviser, or fiduciary. All trades are at your own risk; past performance does not guarantee future results. Options involve substantial risk and you can lose more than your investment — always paper trade first before risking real money. This report is generated with the assistance of artificial intelligence, and AI can make mistakes. The analysis, prices, technical levels, earnings dates, probabilities, and figures herein are produced by automated models that may misinterpret data, rely on sources that are outdated or inaccurate, or generate confident-sounding output that is simply wrong. Probabilities are options-implied estimates, not predictions, and real-world tails are fatter than a normal curve. Nothing here has been independently verified by a licensed professional. Always confirm every data point, price, and date against your own brokerage and primary sources before acting, and treat this report as a starting point for your own research — never as a substitute for your own judgment. By using our services, you agree to our [Terms & Conditions](https://www.mwtradecoach.com/terms-and-conditions) and [Privacy Policy](https://www.mwtradecoach.com/privacy-policy).
 
 ## 6. Output order (STRICT — overrides any "return only the HTML" instruction)

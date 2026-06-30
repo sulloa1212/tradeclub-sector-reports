@@ -165,15 +165,16 @@ direction-specific rules; do not screen them with naive two-sided RSI.
 
 # REQUIRED SECTIONS (in this order) — build with the house classes from `/assets/report.css`
 
-Each section needs a stable `id` for the sticky "JUMP TO" nav (`.sticky-nav` of
-`.pill`). Reuse the house class vocabulary; you MAY add ONE small `<style>` block
+Each section needs a stable `id` AND a matching button in the single-row sticky
+`nav.jump` bar (a sibling right after the header). Reuse the house class
+vocabulary; you MAY add ONE small `<style>` block
 only for genuinely report-specific bits, reusing the palette variables.
 
-1. **Header** (`.hdr`) — eyebrow "TRADE CLUB AI · MEAN-REVERSION SCAN", title
+1. **Header** (`header.top`, static — scrolls away) — eyebrow "TRADE CLUB AI · MEAN-REVERSION SCAN", title
    "Mean-Reversion Watchlist", subtitle "Statistically-stretched assets with
    credible reversion theses", `.stamp` with date · ET time · run-type
    (`.run-badge`) · a `.warn-badge` "⚠ snapshot — verify before acting".
-2. **Sticky jump nav** (`.sticky-nav` of `.pill`) — one pill per section id below.
+2. **Section nav** (single-row sticky `nav.jump` of `<a>`) — one button per section id below.
 3. **Market Context** (`id="context"`) — the one-paragraph "what's driving extremes
    today" in a `.read-box`, then a muted `.honesty` line (RSI/price are
    model-generated snapshots, verify before acting).
@@ -200,7 +201,7 @@ only for genuinely report-specific bits, reusing the palette variables.
 
 # QUALITY GATE — verify silently before returning
 1. Valid HTML using the house classes; every section present with its `id`; every
-   sticky-nav pill resolves to a real section.
+   nav button resolves to a real section.
 2. Each table has 8–12 ranked names (or an honest "few qualify today" note);
    every name shows why it's stretched on **3+ measures**, not RSI alone.
 3. Reversion-vs-ruin filter visibly applied — no falling knives / buyouts / broken

@@ -106,7 +106,7 @@ Then a directional **FUEL TAG**:
    its **top-3 stock cards** (ticker, company, Swing-Conviction meter 0–100, direction badge,
    a second Fundamental Health meter 0–100 color-graded green ≥65 / amber 45–64 / red <45 with
    its ⛽ Fuel tag, a one-line key-metrics summary, the thesis, supporting points, the biggest
-   risk, the next-earnings date — amber ⚠ if inside the window — and approx entry/support/resistance).
+   risk, the next-earnings date — amber ⚠ if inside the window — and approx entry/support/resistance). Open each stock card with ONE plain-English sentence (why we like it, or why it's vulnerable) before any meter or number.
 5. `#calendar` — **Event calendar**: the next ~2 weeks, dated.
 6. `#howto` — **How to read this report**: short legend (Direction Score, conviction,
    Swing-Conviction vs Fundamental Health, the ⛽ Fuel tag, earnings-in-window).

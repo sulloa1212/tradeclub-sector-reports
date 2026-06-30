@@ -177,11 +177,13 @@ only for genuinely report-specific bits, reusing the palette variables.
 3. **Market Context** (`id="context"`) — the one-paragraph "what's driving extremes
    today" in a `.read-box`, then a muted `.honesty` line (RSI/price are
    model-generated snapshots, verify before acting).
-4. **Oversold → upside reversion** (`id="oversold"`) — a `.tbl-wrap` ranked table
+4. **Oversold → upside reversion** (`id="oversold"`) — open with ONE plain-English
+   line on what this list means, then a `.tbl-wrap` ranked table
    (8–12 names): Ticker, Price, RSI, % from 50/200-day, "why it moved", reference
    mean, IV note, earnings date (amber ⚠ if inside ~30 days), and the educational
    defined-risk structure. Use `bull-c`/`bear-c`/`warn-c` to tint.
-5. **Overbought → downside reversion** (`id="overbought"`) — same table shape.
+5. **Overbought → downside reversion** (`id="overbought"`) — same table shape, also
+   opening with one plain-English line on what the list means.
 6. **Macro / event-driven unwinds** (`id="macro"`) — commodities/sector ETFs tied to
    the current catalyst (cards or a table).
 7. **Cross-asset ETFs** (`id="cross-asset"`) — commodity / rates / FX / credit /

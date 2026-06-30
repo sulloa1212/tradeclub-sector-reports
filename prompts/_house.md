@@ -10,6 +10,37 @@ There is **NO file access**. Output ONE HTML document. The look is defined by a
 SHARED stylesheet — your job is to write the CONTENT using its classes, NOT to
 design your own styling.
 
+## 0. WRITE FOR A NOVICE FIRST — SIMPLE & SCANNABLE (read this before anything)
+The reader is often a **brand-new trader**. If a beginner can't follow it in one
+pass, the report is wrong — no matter how rigorous the analysis underneath. This
+applies to EVERY report so they all read the same way:
+- **Lead with the plain-English bottom line.** Open with the `read-box` takeaways,
+  and **start every section with one plain sentence** saying what it means for the
+  reader BEFORE any table, score, or number. Test: a beginner reads only the first
+  sentence of each section and still understands the whole report.
+- **Explain every term the first time, in ≤6 words, in parentheses** — e.g. "RSI
+  (a 0–100 overbought/oversold gauge)". Never use a term before explaining it. No
+  deep jargon (vanna, charm, vol surface, theta, and the like).
+- **Conclusions in the body; generic method in the legend.** The generic *method* —
+  scoring weights, formula definitions, methodology — is how YOU reason; it lives in
+  the "How to read" legend, NOT the body. BUT result-bearing numbers a report lists
+  as table columns or card fields (implied move, 1-SD %, an options-implied
+  probability, a dial, a score) ALWAYS stay in the body, and each item keeps its own
+  one-line plain-English "why this read" in the body. Legend = generic method; body
+  = the results and their plain-English reasons.
+- **Keep the PROSE tight.** Short sentences, no walls of text; a one-line takeaway
+  beats a paragraph; don't pad with tangents. This applies to NARRATIVE sentences
+  only — required summary tables and the cross-references a report mandates (e.g. a
+  figure shown on a board AND again on its card) are intentional and stay.
+- **Label every non-obvious number** with what it means, right next to it. For a
+  *directional* read, say what bullish/bearish looks like; for a *size/risk* read (a
+  risk dial, a big-move probability), say "bigger vs smaller expected move" — never
+  "good/bad" (a big or risky move is not automatically bad).
+This rule governs **how you present** — simpler prose, clearer framing. It does NOT
+shrink coverage: every required section, table, ranking, and row count below still
+stands in full (e.g. rank all the sectors, keep the full name count), as do the
+sidecar and the verbatim disclaimer. Simplify the wording, not the analysis.
+
 ## 1. Link the shared stylesheet — and DO NOT write your own CSS for shared parts
 In `<head>`, link the house stylesheet (it defines the palette, header, sticky
 nav, sections, cards, tables, gauges, pills, badges, colors — everything):

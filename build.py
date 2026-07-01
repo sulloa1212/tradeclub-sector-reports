@@ -809,6 +809,7 @@ def notify_reports(records: list, cost: dict, date: str):
 
 REPORTS_PATH = ROOT / "reports.json"
 HOUSE_PROMPT_PATH = ROOT / "prompts" / "_house.md"
+CONTENT_PROMPT_PATH = ROOT / "prompts" / "_content.md"   # content-fill contract for templated reports
 VALID_ACCENTS = {"bull", "bear", "neutral", "warn"}
 
 
@@ -894,12 +895,12 @@ def call_report_model(client: Anthropic, cached_prompt: str, task_line: str,
 # A small fixed "back to the hub" button injected into every generated report so
 # readers can always jump back to the reports hub (links to "/"). Hidden on print.
 HUB_BUTTON = (
-    '<style>.tc-hub-btn{position:fixed;left:16px;bottom:16px;z-index:99999;'
-    'display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;'
-    'background:#161b24;border:1px solid #2a3340;color:#e8edf3;'
-    'font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
-    'text-decoration:none;box-shadow:0 3px 14px rgba(0,0,0,.55);transition:border-color .12s}'
-    '.tc-hub-btn:hover{border-color:#29b6f6;color:#fff}'
+    '<style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;'
+    'display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;'
+    'background:#4ea1ff;border:1px solid #7abaff;color:#08131f;'
+    'font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+    'text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}'
+    '.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}'
     '@media print{.tc-hub-btn{display:none}}</style>'
     '<a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>'
 )
@@ -920,19 +921,20 @@ def previous_reports_widget(slug: str, dates: list) -> str:
         return ""
     items = "".join(f'<li><a href="/{slug}/{d}.html">{d}</a></li>' for d in dates)
     return (
-        '<style>.tc-prev{position:fixed;left:16px;bottom:60px;z-index:99999;'
-        'font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
-        '.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;'
-        'padding:9px 15px;border-radius:999px;background:#161b24;border:1px solid #2a3340;color:#e8eef3;'
-        'box-shadow:0 3px 14px rgba(0,0,0,.55)}'
+        '<style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;'
+        'font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
+        '.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;'
+        'padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;'
+        'box-shadow:0 6px 20px rgba(78,161,255,.28)}'
         '.tc-prev>summary::-webkit-details-marker{display:none}'
-        '.tc-prev[open]>summary{border-color:#29b6f6;color:#fff}'
+        '.tc-prev>summary:hover{background:#1b2740;color:#fff}'
+        '.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}'
         '.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;'
-        'background:#161b24;border:1px solid #2a3340;border-radius:10px;min-width:190px;max-height:50vh;'
-        'overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.55)}'
-        '.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8eef3;text-decoration:none;'
-        'font-variant-numeric:tabular-nums}'
-        '.tc-prev li a:hover{background:#0f1830;color:#fff}'
+        'background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:190px;max-height:50vh;'
+        'overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}'
+        '.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;'
+        'font-variant-numeric:tabular-nums;font-weight:600}'
+        '.tc-prev li a:hover{background:#1b2740;color:#fff}'
         '@media print{.tc-prev{display:none}}</style>'
         '<details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary>'
         f'<ul>{items}</ul></details>'
@@ -949,9 +951,198 @@ def inject_previous_reports(html: str, slug: str, dates: list) -> str:
     return (html[:m.end()] + widget + html[m.end():]) if m else (widget + html)
 
 
+def _long_date(d: str) -> str:
+    """'2026-06-30' -> 'Monday, June 30, 2026' (no zero-pad on the day)."""
+    try:
+        dt = datetime.datetime.strptime(d, "%Y-%m-%d")
+        return f"{dt.strftime('%A, %B')} {dt.day}, {dt.year}"
+    except Exception:
+        return d
+
+
+def _et_time(report: dict) -> str:
+    """Human ET time for the stamp, from the report's canonical schedule
+    ('8:40am ET' -> '8:40 AM ET'). Deterministic — the runner clock is UTC."""
+    t = str(report.get("run_time_et", "")).strip()
+    return t.replace("am", " AM").replace("pm", " PM").replace("  ", " ")
+
+
+def _clean_content(raw: str) -> str:
+    """Clean the model's CONTENT reply (inner section HTML only, no page shell).
+    Drops a ```html fence and a trailing ```json/``` fence; if the model wrongly
+    emitted a full document, keep only what's inside <body>."""
+    body = raw.strip()
+    m = re.search(r"```html\s*", body)
+    if m:
+        body = body[m.end():]
+    bm = re.search(r"(?is)<body[^>]*>(.*)</body>", body)
+    if bm:
+        body = bm.group(1)
+    else:
+        hm = re.search(r"(?i)</head>", body)
+        if hm:
+            body = body[hm.end():]
+        body = re.sub(r"(?is)</?(?:html|body|head)[^>]*>", "", body)
+    return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
+
+
+def fill_template(template_html: str, content_html: str, sidecar: dict,
+                  report: dict, date: str) -> str:
+    """Assemble a templated report: fill the fixed template's chrome placeholders
+    from the sidecar + run date, then drop the section content at the marker."""
+    run_type = str(sidecar.get("run_type") or "Pre-Open").strip()
+    long_date = _long_date(date)
+    et = _et_time(report)
+    stamp = str(sidecar.get("stamp") or "").strip()
+    repls = {
+        "{{TITLE}}": str(sidecar.get("title") or report["name"]).strip(),
+        "{{DATE}}": long_date,
+        "{{ET_TIME}}": et,
+        "{{RUN_TYPE}}": run_type,
+        "{{RUN_TYPE_UPPER}}": run_type.upper(),
+        "{{STAMP_TAGLINE}}": stamp,
+        "{{STAMP_NOTE}}": stamp,
+        "{{GENERATED_LONG}}": " · ".join(x for x in (long_date, et) if x),
+    }
+    out = template_html
+    for k, v in repls.items():
+        out = out.replace(k, v)
+    return out.replace("<!--REPORT-CONTENT-->", content_html)
+
+
+def _finalize_report(report: dict, body: str, sidecar: dict,
+                     usages: list, attempts: int) -> dict:
+    """Shared tail for both report paths: write the dated page + index.html +
+    index.json, prune to KEEP, add the hub button + previous-reports dropdown."""
+    slug = report["slug"]
+    name = report["name"]
+    d = SITE / slug
+    d.mkdir(parents=True, exist_ok=True)
+    # Always name the dated file by the UTC run date (matches the workflow's
+    # idempotency guard); the report body still shows the model's own date.
+    date = today_str()
+
+    body = inject_hub_button(body)
+    (d / f"{date}.html").write_text(body, encoding="utf-8")
+
+    index_path = d / "index.json"
+    meta = {}
+    if index_path.exists():
+        try:
+            for e in json.loads(index_path.read_text(encoding="utf-8")):
+                if "date" in e:
+                    meta[e["date"]] = e
+        except Exception:
+            meta = {}
+    meta[date] = {
+        "date": date, "report": name,
+        "status_label": sidecar["status_label"], "accent": sidecar["accent"],
+        "headline": sidecar["headline"], "metric": sidecar["metric"],
+    }
+    dated = sorted((p.stem for p in d.glob("*.html") if DATE_RE.match(p.stem)),
+                   reverse=True)
+    keep = dated[:KEEP]
+    for old in dated[KEEP:]:
+        (d / f"{old}.html").unlink(missing_ok=True)
+        meta.pop(old, None)
+        print(f"  pruned old report: {old}.html")
+    kept = [meta[x] for x in keep if x in meta]
+    index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
+                          encoding="utf-8")
+    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
+    (d / f"{date}.html").write_text(final, encoding="utf-8")
+    (d / "index.html").write_text(final, encoding="utf-8")
+
+    print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
+    rec = _record(name, slug, "ok", usages, attempts)
+    rec.update({"date": date, "status_label": sidecar.get("status_label", ""),
+                "accent": sidecar.get("accent", "neutral"),
+                "headline": sidecar.get("headline", "")})
+    return rec
+
+
+def build_report_templated(client: Anthropic, report: dict) -> dict:
+    """Build a report that has its own approved DESIGN as a fixed template: the AI
+    writes ONLY the section content (in the design's exact component markup) and the
+    fixed chrome (CSS/header/logos/nav/footer/disclaimer) comes from the template.
+    Mirrors how the MWTC bot reproduces its design byte-for-byte."""
+    slug = report["slug"]
+    name = report["name"]
+    print(f"\n=== {name}  ({slug})  [templated] ===")
+
+    tpl_path = ROOT / report["template"]
+    bp_path = ROOT / report.get("blueprint", "")
+    prompt_path = ROOT / report["prompt"]
+    for p in (tpl_path, bp_path, prompt_path):
+        if not p.exists():
+            print(f"  !! missing {p} — skipping.")
+            return _record(name, slug, "skipped", [], 1)
+    template_html = tpl_path.read_text(encoding="utf-8")
+    if "<!--REPORT-CONTENT-->" not in template_html:
+        print("  !! template has no <!--REPORT-CONTENT--> marker — skipping.")
+        return _record(name, slug, "skipped", [], 1)
+
+    content_contract = CONTENT_PROMPT_PATH.read_text(encoding="utf-8")
+    cached = (content_contract
+              + "\n\n---\n\n# BLUEPRINT — the EXACT component markup to reproduce\n\n"
+              + bp_path.read_text(encoding="utf-8")
+              + "\n\n---\n\n# REPORT METHODOLOGY — research & analysis "
+                "(DEFER to the blueprint above for the output structure/markup)\n\n"
+              + prompt_path.read_text(encoding="utf-8"))
+    today = today_str()
+    task_line = (f"Generate today's {name} content for {today}. Do live web research for "
+                 "every figure. Output ONLY the inner section HTML (it fills a fixed "
+                 "template — no <html>/<head>/<header>/<nav>/<footer>/<script>), then the "
+                 "JSON sidecar last, per the content-fill contract.")
+
+    usages = []
+
+    def attempt(extra=""):
+        text, usage, stop = call_report_model(client, cached, task_line, extra)
+        if usage is not None:
+            usages.append(usage)
+        if not text.strip():
+            raise ValueError("model returned no text")
+        if stop == "max_tokens":
+            raise ValueError(f"content truncated at MAX_TOKENS={MAX_TOKENS}")
+        sidecar, start = _find_sidecar(text)
+        validate_report_sidecar(sidecar)
+        content = _clean_content(text[:start])
+        if len(content) < 200:
+            raise ValueError("templated content HTML was empty/too short")
+        if re.search(r"(?i)<!doctype|<html[\s>]", content):
+            raise ValueError("model emitted full-document chrome; expected inner content only")
+        return content, sidecar
+
+    attempts = 1
+    try:
+        content, sidecar = attempt()
+    except Exception as e:
+        print(f"  !! attempt 1 failed — {e}")
+        print(f"  !! retrying '{name}' once (inner-content-only reminder)...")
+        attempts = 2
+        try:
+            content, sidecar = attempt(
+                RETRY_REMINDER + " Output ONLY the inner section HTML that fills the "
+                "template (no <html>/<head>/<header>/<nav>/<footer>/<script>), then the "
+                "sidecar JSON last.")
+        except Exception as e2:
+            print(f"  !! SKIPPED — {e2}")
+            return _record(name, slug, "skipped", usages, attempts)
+        print(f"  .. retry succeeded for '{name}'.")
+
+    body = fill_template(template_html, content, sidecar, report, today)
+    return _finalize_report(report, body, sidecar, usages, attempts)
+
+
 def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     """Build ONE registry report → site/<slug>/ (dated + index.html + index.json).
     Returns a cost record. On failure, keeps yesterday's files for that report."""
+    # Reports with an approved DESIGN template fill it via the templated path
+    # (fixed chrome + AI-written content) so they match their design exactly.
+    if report.get("template"):
+        return build_report_templated(client, report)
+
     slug = report["slug"]
     name = report["name"]
     print(f"\n=== {name}  ({slug}) ===")
@@ -995,56 +1186,7 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
             return _record(name, slug, "skipped", usages, attempts)
         print(f"  .. retry succeeded for '{name}'.")
 
-    d = SITE / slug
-    d.mkdir(parents=True, exist_ok=True)
-    # Always name the dated file by the UTC run date. The workflow's idempotency
-    # guard checks site/<slug>/<UTC-date>.html, so trusting the model's sidecar
-    # date here could let a re-dispatch with a valid-but-different date double-
-    # build (and double-bill). The report body still shows the model's own date.
-    date = today
-
-    body = inject_hub_button(body)
-    (d / f"{date}.html").write_text(body, encoding="utf-8")
-
-    index_path = d / "index.json"
-    meta = {}
-    if index_path.exists():
-        try:
-            for e in json.loads(index_path.read_text(encoding="utf-8")):
-                if "date" in e:
-                    meta[e["date"]] = e
-        except Exception:
-            meta = {}
-    meta[date] = {
-        "date": date, "report": name,
-        "status_label": sidecar["status_label"], "accent": sidecar["accent"],
-        "headline": sidecar["headline"], "metric": sidecar["metric"],
-    }
-    dated = sorted((p.stem for p in d.glob("*.html") if DATE_RE.match(p.stem)),
-                   reverse=True)
-    keep = dated[:KEEP]
-    for old in dated[KEEP:]:
-        (d / f"{old}.html").unlink(missing_ok=True)
-        meta.pop(old, None)
-        print(f"  pruned old report: {old}.html")
-    kept = [meta[x] for x in keep if x in meta]
-    index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
-                          encoding="utf-8")
-    # Add the "previous reports" dropdown (links to the other kept dates), then
-    # finalize the current dated page + index.html with it.
-    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
-    (d / f"{date}.html").write_text(final, encoding="utf-8")
-    (d / "index.html").write_text(final, encoding="utf-8")
-
-    print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
-    rec = _record(name, slug, "ok", usages, attempts)
-    # Attach the report sidecar fields (report-shaped, not sector-shaped) so the
-    # report notifier can summarize the run. _record's own sidecar branch is
-    # sector-specific (label/direction_score/…), so we set these explicitly.
-    rec.update({"date": date, "status_label": sidecar.get("status_label", ""),
-                "accent": sidecar.get("accent", "neutral"),
-                "headline": sidecar.get("headline", "")})
-    return rec
+    return _finalize_report(report, body, sidecar, usages, attempts)
 
 
 def build_reports_hub(out_path=None):

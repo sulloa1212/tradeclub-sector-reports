@@ -189,14 +189,16 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
     # max_retries: the SDK auto-retries transient errors (429 / 5xx / connection)
     # with backoff. This is the only LLM call in the bot and a scheduled run has
     # no second chance until the next slot, so give it extra headroom.
-    # timeout=900: a 32000-token report can take a while; without an explicit
-    # long timeout the SDK refuses a non-streaming call ("Streaming is required
-    # for operations that may take longer than 10 minutes"). Matches build.py.
+    # timeout=900: a large report can take a while; without an explicit long
+    # timeout the SDK refuses a non-streaming call ("Streaming is required for
+    # operations that may take longer than 10 minutes"). Matches build.py.
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=4, timeout=900)
     log.info("Calling Anthropic model=%s mode=%s", config.ANTHROPIC_MODEL, mode)
     resp = client.messages.create(
         model=config.ANTHROPIC_MODEL,
-        max_tokens=32000,
+        # 50000: the 21-section MWTC report outgrew 32000 and tripped the truncation
+        # guard (Sonnet supports up to 64000 output tokens). Cost is per token used.
+        max_tokens=50000,
         system=system,
         messages=[{"role": "user", "content": user}],
     )

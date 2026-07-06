@@ -914,6 +914,17 @@ def inject_hub_button(html: str) -> str:
     return (html[:m.end()] + HUB_BUTTON + html[m.end():]) if m else (HUB_BUTTON + html)
 
 
+def prune_dead_nav(html: str) -> str:
+    """Remove any nav anchor whose #fragment target doesn't exist in the report, so
+    a stray/typo jump button never scrolls nowhere. Anchors to real ids are kept
+    untouched. Guards against the model inventing a nav button for a section it
+    didn't actually render."""
+    ids = set(re.findall(r'\bid="([\w-]+)"', html))
+    return re.sub(r'<a\b[^>]*href="#([\w-]+)"[^>]*>.*?</a>',
+                  lambda m: "" if m.group(1) not in ids else m.group(0),
+                  html, flags=re.S)
+
+
 def previous_reports_widget(slug: str, dates: list) -> str:
     """A floating 'Previous reports' dropdown (pure CSS, no JS) linking each kept
     dated copy. Empty when there are no prior reports."""
@@ -1027,6 +1038,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     # idempotency guard); the report body still shows the model's own date.
     date = today_str()
 
+    body = prune_dead_nav(body)
     body = inject_hub_button(body)
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 

@@ -104,7 +104,7 @@ def _inject_logos(html: str) -> str:
     return html
 
 
-_SECTION_RE = re.compile(r'<section>(\s*<div class="sec-title">)(.*?)(</div>)', re.S)
+_SECTION_RE = re.compile(r'<section([^>]*)>(\s*<div class="sec-title">)(.*?)(</div>)', re.S)
 
 
 def _slug(label: str) -> str:
@@ -131,14 +131,24 @@ def _inject_section_nav(html: str) -> str:
     seen: set[str] = set()
 
     def repl(m: re.Match) -> str:
-        gap, label, close = m.group(1), m.group(2), m.group(3)
-        slug = _slug(label)
-        base, n = slug, 2
-        while slug in seen:
-            slug = f"{base}-{n}"; n += 1
+        attrs, gap, label, close = m.group(1), m.group(2), m.group(3), m.group(4)
+        # Reuse the model's own id if it assigned one (it now does); otherwise
+        # derive a slug and add the id ourselves. Either way, every section gets
+        # a matching nav button — the old regex only matched bare <section> and
+        # silently produced a 1-button nav once the model started emitting ids.
+        existing = re.search(r'id="([^"]+)"', attrs or "")
+        if existing:
+            slug = existing.group(1)
+            open_tag = f'<section{attrs}>'
+        else:
+            slug = _slug(label)
+            base, n = slug, 2
+            while slug in seen:
+                slug = f"{base}-{n}"; n += 1
+            open_tag = f'<section id="{slug}"{attrs}>'
         seen.add(slug)
         items.append((slug, _clean_label(label)))
-        return f'<section id="{slug}">{gap}{label}{close}'
+        return f'{open_tag}{gap}{label}{close}'
 
     html = _SECTION_RE.sub(repl, html)
 

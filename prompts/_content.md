@@ -13,6 +13,8 @@ using the EXACT component markup in the BLUEPRINT below.
    field from your live research.
    - Do NOT emit `<!doctype>`, `<html>`, `<head>`, `<style>`, `<header>`, `<nav>`,
      `<footer>`, `<script>`, the logos, or the disclaimer — those are FIXED.
+   - Do NOT write a decorative header comment, and NEVER reproduce or mention the
+     `<!--REPORT-CONTENT-->` marker text — begin directly with the first section.
    - Your section `id`s MUST match the nav buttons already in the template (the
      blueprint lists the exact ids). Do not rename or drop them.
    - For any chart the blueprint says is script-driven, emit ONLY the data it

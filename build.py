@@ -983,6 +983,11 @@ def _clean_content(raw: str) -> str:
         if hm:
             body = body[hm.end():]
         body = re.sub(r"(?is)</?(?:html|body|head)[^>]*>", "", body)
+    # The model sometimes writes a decorative header comment that echoes the
+    # <!--REPORT-CONTENT--> marker. A nested marker inside an HTML comment closes
+    # the comment early (comments don't nest), leaking the rest as visible text.
+    # Strip any echoed marker so the surrounding comment stays well-formed.
+    body = re.sub(r"<!--\s*REPORT-?CONTENT\s*-->", "", body, flags=re.I)
     return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
 
 

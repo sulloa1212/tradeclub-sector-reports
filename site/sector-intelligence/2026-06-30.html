@@ -1,1 +1,990 @@
-<style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:190px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/sector-intelligence/2026-07-07.html">2026-07-07</a></li><li><a href="/sector-intelligence/2026-07-06.html">2026-07-06</a></li><li><a href="/sector-intelligence/2026-07-02.html">2026-07-02</a></li><li><a href="/sector-intelligence/2026-07-01.html">2026-07-01</a></li></ul></details>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily AI Sector Intelligence Report — June 30, 2026 | Trade Club AI</title>
+<link rel="stylesheet" href="/assets/report.css">
+<style>
+  /* Report-specific only: sector board bars */
+  .board-table { width:100%; border-collapse:collapse; }
+  .board-table td, .board-table th { padding:5px 8px; font-size:0.82rem; }
+  .board-table tr:nth-child(even) { background:var(--faint,rgba(255,255,255,.03)); }
+  .bar-wrap { position:relative; height:14px; background:var(--line,rgba(255,255,255,.08)); border-radius:3px; min-width:140px; }
+  .bar-fill-bull { position:absolute; left:50%; top:0; height:100%; background:var(--bull,#22c55e); border-radius:0 3px 3px 0; }
+  .bar-fill-bear { position:absolute; right:50%; top:0; height:100%; background:var(--bear,#ef4444); border-radius:3px 0 0 3px; }
+  .bar-fill-neut { position:absolute; left:50%; top:0; height:100%; width:2px; background:var(--mut,#9ca3af); transform:translateX(-1px); border-radius:3px; }
+  .bar-center { position:absolute; left:50%; top:0; height:100%; width:1px; background:var(--line,rgba(255,255,255,.15)); }
+  .score-lbl { font-weight:700; font-size:0.88rem; min-width:38px; text-align:right; }
+  .conv-chip { font-size:0.7rem; padding:2px 6px; border-radius:10px; background:var(--chip,rgba(255,255,255,.1)); margin-left:4px; }
+  /* Swing meter + health meter */
+  .meter-row { display:flex; align-items:center; gap:10px; margin:4px 0; }
+  .meter-bar { flex:1; height:8px; background:var(--line,rgba(255,255,255,.1)); border-radius:4px; overflow:hidden; }
+  .meter-fill-bull { height:100%; background:var(--bull,#22c55e); border-radius:4px; }
+  .meter-fill-warn { height:100%; background:var(--warn,#f59e0b); border-radius:4px; }
+  .meter-fill-bear { height:100%; background:var(--bear,#ef4444); border-radius:4px; }
+  .meter-lbl { font-size:0.7rem; color:var(--mut,#9ca3af); min-width:80px; }
+  .meter-val { font-size:0.82rem; font-weight:700; min-width:28px; text-align:right; }
+  /* Drill card */
+  .card { background:var(--panel2,rgba(255,255,255,.04)); border:1px solid var(--line,rgba(255,255,255,.09)); border-radius:10px; padding:14px 16px; margin:10px 0; }
+  .card-head { display:flex; align-items:flex-start; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+  .card-ticker { font-size:1.3rem; font-weight:800; line-height:1; }
+  .card-name { font-size:0.8rem; color:var(--mut,#9ca3af); }
+  .card-badges { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .fuel-tag { font-size:0.72rem; padding:2px 7px; border-radius:10px; font-weight:700; }
+  .fuel-adds { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+  .fuel-neut { background:rgba(156,163,175,.12); color:#9ca3af; border:1px solid rgba(156,163,175,.25); }
+  .fuel-fights { background:rgba(239,68,68,.13); color:#f87171; border:1px solid rgba(239,68,68,.3); }
+  .earn-warn { font-size:0.72rem; padding:2px 7px; border-radius:10px; background:rgba(245,158,11,.13); color:#fbbf24; border:1px solid rgba(245,158,11,.3); font-weight:700; }
+  /* Sector dial row */
+  .dial-row { display:flex; align-items:center; gap:18px; margin:8px 0 14px; flex-wrap:wrap; }
+  .dial-block { text-align:center; }
+  .dial-num { font-size:2rem; font-weight:900; line-height:1; }
+  .dial-sub { font-size:0.7rem; color:var(--mut,#9ca3af); }
+  /* Calendar */
+  .cal-table { width:100%; border-collapse:collapse; }
+  .cal-table td, .cal-table th { padding:6px 10px; font-size:0.82rem; border-bottom:1px solid var(--line,rgba(255,255,255,.07)); vertical-align:top; }
+  .cal-table th { color:var(--mut,#9ca3af); font-weight:600; text-align:left; }
+  .cal-date { white-space:nowrap; color:var(--acc,#60a5fa); font-weight:700; }
+  /* Legend grid */
+  .legend-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media(max-width:600px){ .legend-grid{grid-template-columns:1fr;} .board-table{font-size:0.76rem;} }
+  .legend-card { background:var(--panel2,rgba(255,255,255,.04)); border-radius:8px; padding:10px 12px; font-size:0.8rem; }
+  .legend-card h4 { margin:0 0 5px; font-size:0.85rem; color:var(--acc,#60a5fa); }
+  /* Split bar for cross-currents */
+  .cc-item { border-left:3px solid var(--warn,#f59e0b); padding:6px 10px; margin:6px 0; background:rgba(245,158,11,.06); border-radius:0 6px 6px 0; font-size:0.85rem; }
+</style>
+</head>
+<body><style>.tc-prev{position:fixed;left:16px;bottom:60px;z-index:99999;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;background:#161b24;border:1px solid #2a3340;color:#e8eef3;box-shadow:0 3px 14px rgba(0,0,0,.55)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev[open]>summary{border-color:#29b6f6;color:#fff}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#161b24;border:1px solid #2a3340;border-radius:10px;min-width:190px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.55)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8eef3;text-decoration:none;font-variant-numeric:tabular-nums}.tc-prev li a:hover{background:#0f1830;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/sector-intelligence/2026-06-29.html">2026-06-29</a></li><li><a href="/sector-intelligence/2026-06-25.html">2026-06-25</a></li></ul></details><style>.tc-hub-btn{position:fixed;left:16px;bottom:16px;z-index:99999;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;background:#161b24;border:1px solid #2a3340;color:#e8edf3;font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 3px 14px rgba(0,0,0,.55);transition:border-color .12s}.tc-hub-btn:hover{border-color:#29b6f6;color:#fff}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
+<div class="wrap">
+
+<!-- ═══ HEADER ═══ -->
+<header class="top">
+  <div class="header">
+    <img class="brand-tc" src="/assets/tradeclub-ai.png" alt="Trade Club AI">
+    <div class="head-text">
+      <div class="eyebrow">TRADE CLUB AI &middot; DAILY SECTOR INTELLIGENCE REPORT</div>
+      <h1>Sector Intelligence Report <span class="tag t-neut">MIXED / TENSE</span></h1>
+      <div class="sub">Tech & Energy lead; Gold Miners in freefall; a hawkish Fed and fragile Iran ceasefire keep every trade on edge</div>
+      <div class="stamp">June 30, 2026 &middot; Pre-Open &middot; ET <span class="run-badge">PRE-OPEN</span> <span class="warn-badge">&#9888; Iran Peace Talks Resume Today &bull; NFP Thursday</span></div>
+    </div>
+    <img class="brand-mw" src="/assets/mw.png" alt="Michael Wade Trade Coaching">
+  </div>
+</header>
+
+<!-- ═══ NAV ═══ -->
+<nav class="jump">
+  <a href="#read">60-Second Read</a>
+  <a href="#macro">Macro</a>
+  <a href="#ranking">Sector Board</a>
+  <a href="#sectors">Drill-Downs</a>
+  <a href="#calendar">Calendar</a>
+  <a href="#howto">How to Read</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 1 — 60-SECOND READ                 -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="read"><span class="num">1</span>The 60-Second Read</h2>
+
+<div class="read-box panel bull">
+  <ul>
+    <li>🟢 <b>Market regime — cautious bull:</b> The S&amp;P 500 (SPY ~$741) pushed to new records last week, but the tape is bifurcated. AI/Tech is the only sector with clean momentum; everything else is either geopolitics-dependent or rate-sensitive.</li>
+    <li>🟢 <b>Top bullish sector — Semiconductors / AI (SMH):</b> After a savage June 5 flush (−10% in a single day), semis recovered sharply. NVDA's blowout Q1 report (+85% revenue YoY) and TSMC's raised 2026 forecast confirm AI demand is real. The dip was sentiment, not fundamentals — swing setups are forming.</li>
+    <li>🔴 <b>Top bearish sector — Gold Miners (GDX):</b> Gold is down ~12% in June and on pace for its worst quarter since 2013 as hawkish Fed expectations and a strong dollar hammer the metal. GDX has shed >35% from its 52-week high. This is a short/avoid theme, not a dip-buy.</li>
+    <li>🟡 <b>Cushion / key support:</b> The Iran ceasefire (peace talks resume in Doha <b>today</b>) has pulled WTI from >$120 wartime highs down to ~$70. That eases inflation pressure enough to keep a July Fed hike at ~32% odds — a temporary relief valve for equities.</li>
+    <li>⚠ <b>Watch this week:</b> <b>NFP Thursday July 2</b> (consensus 172k) is the last major data point before the July 28–29 FOMC. A hot print pushes July hike odds sharply higher and could reprice the whole market. US markets closed Friday July 3.</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 2 — MACRO                          -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="macro"><span class="num">2</span>Macro &amp; Geopolitical Strip</h2>
+<p>The macro backdrop is the most important thing to understand: the Fed is leaning toward hiking (not cutting), inflation is still elevated, and a Middle East war is slowly winding down — all at the same time. Here is each card.</p>
+
+<div class="grid">
+
+  <div class="stat">
+    <div class="k">Fed Funds Rate</div>
+    <div class="v"><b class="warnc">3.50–3.75%</b></div>
+    <div class="k" style="margin-top:4px">Held Jun 17 (12–0). Dot plot median at 3.8%: hike on the table.</div>
+    <div class="k" style="margin-top:3px">⚠ Hurts: XLRE, XLU, XLF (net). Helps: Cash/short-duration.</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">10-Yr Treasury Yield</div>
+    <div class="v"><b class="warnc">~4.37–4.39%</b></div>
+    <div class="k" style="margin-top:4px">Upward-sloping curve; 30-yr at 4.87%. Elevated term premium.</div>
+    <div class="k" style="margin-top:3px">⚠ Hurts: XLRE, XLU, growth/long-duration. Helps: XLF (banks).</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">PCE Inflation</div>
+    <div class="v"><b class="neg">Headline 4.1% · Core 3.4%</b></div>
+    <div class="k" style="margin-top:4px">Core at highest since 2023 — well above 2% target. Matched forecasts, so slight relief.</div>
+    <div class="k" style="margin-top:3px">⚠ Keeps Fed hawkish. Hurts: rate-sensitives. Helps: Energy (inflation = oil bid).</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">Jobs Market</div>
+    <div class="v"><b class="pos">May NFP +172k · UE 4.3%</b></div>
+    <div class="k" style="margin-top:4px">Resilient labor market removes urgency to cut. June NFP prints Thu July 2.</div>
+    <div class="k" style="margin-top:3px">⚠ Keeps Fed hawkish. Hot print = rate spike risk across all sectors.</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">US Dollar (DXY)</div>
+    <div class="v"><b class="neg">~101.2 (near 14-mo high)</b></div>
+    <div class="k" style="margin-top:4px">Strong dollar driven by Fed hawkishness + safe-haven demand. Easing slightly as Iran talks resume.</div>
+    <div class="k" style="margin-top:3px">⚠ Hurts: Gold, GDX, multinationals, Materials. Helps: Domestic-revenue names.</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">VIX (Fear Gauge)</div>
+    <div class="v"><b class="warnc">~18–19 (elevated)</b></div>
+    <div class="k" style="margin-top:4px">52-wk range 13–35. Not panic, but not complacent. 52-wk high hit during Iran war escalation.</div>
+    <div class="k" style="margin-top:3px">⚠ Watch: NFP + Doha talks could move this sharply in either direction.</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">WTI Crude Oil</div>
+    <div class="v"><b class="warnc">~$70.56 (Mon +1.9%)</b></div>
+    <div class="k" style="margin-top:4px">Down from $120+ wartime peak. WTI settled below $70 Fri for first time since Feb 27 (war start).</div>
+    <div class="k" style="margin-top:3px">⚠ Energy sector at pivot. Peace deal = oil lower = XLE headwind.</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">Gold (XAU/USD)</div>
+    <div class="v"><b class="neg">~$4,031 (−12% in June)</b></div>
+    <div class="k" style="margin-top:4px">On pace for worst quarter since 2013. Strong dollar + Fed hike fears crushing it.</div>
+    <div class="k" style="margin-top:3px">⚠ Kills GDX (gold miners). No tailwind here until Fed pivots.</div>
+  </div>
+
+</div>
+
+<div class="panel warn" style="margin-top:12px;">
+  <b>🌍 Dominant Geopolitical Factor — US–Iran / Strait of Hormuz:</b> The 2026 Iran war (began Feb 26) was the largest supply disruption in oil market history — Brent peaked near $120, WTI at the highs. A 60-day ceasefire MOU was signed. Both sides agreed to halt attacks after renewed clashes last weekend (US struck 10 Iranian military targets Jun 28). Peace talks resume in <b>Doha today (June 30)</b>. WTI has collapsed ~40% from the highs. The key risk: talks collapse → oil spikes → inflation re-accelerates → Fed hikes aggressively → equities reprice lower. The key opportunity: talks succeed → oil normalizes → inflation eases → rate hike odds collapse → risk assets rally broadly.
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 3 — SECTOR BOARD                   -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="ranking"><span class="num">3</span>The Sector Board</h2>
+<p>Every sector and theme scored from −100 (max bearish) to +100 (max bullish). Green bar grows right from the center = bullish; red bar grows left = bearish. The further from center, the stronger the read.</p>
+
+<div class="tbl-wrap">
+<table class="board-table">
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Sector / Theme (ETF)</th>
+      <th>Score</th>
+      <th>Label</th>
+      <th>Conv.</th>
+      <th style="min-width:180px">Bar (−100 ← 0 → +100)</th>
+      <th>Why in one line</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- ═ BULLISH ═ -->
+    <tr>
+      <td>1</td>
+      <td><a href="#drill-semis"><b>Semiconductors / AI (SMH)</b></a></td>
+      <td class="r score-lbl bull-c">+78</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">High</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:39%"></div></div></td>
+      <td>Post-flush recovery; NVDA/TSMC earnings confirm AI capex supercycle intact</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><a href="#drill-tech"><b>Technology (XLK)</b></a></td>
+      <td class="r score-lbl bull-c">+68</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">High</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:34%"></div></div></td>
+      <td>YTD leader (+32–33%); AI software/cloud earnings strong; above 20/50 EMAs</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><b>Defense (ITA)</b></td>
+      <td class="r score-lbl bull-c">+62</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">High</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:31%"></div></div></td>
+      <td>Iran war = record defense budgets globally; secular tailwind regardless of ceasefire outcome</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><b>Financials (XLF)</b></td>
+      <td class="r score-lbl bull-c">+52</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:26%"></div></div></td>
+      <td>Banks benefit from higher-for-longer rates; robust Q1 earnings; rate-hike scenario adds NIM upside</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><b>Comm. Services (XLC)</b></td>
+      <td class="r score-lbl bull-c">+44</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:22%"></div></div></td>
+      <td>Meta/Alphabet AI investment; streaming solid; advertising resilient in firm economy</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><b>Industrials (XLI)</b></td>
+      <td class="r score-lbl bull-c">+38</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:19%"></div></div></td>
+      <td>AI power infrastructure + reshoring; +28.6% past year; capex cycle intact</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><b>Cybersecurity</b></td>
+      <td class="r score-lbl bull-c">+35</td>
+      <td><span class="tag t-bull">BULLISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:17.5%"></div></div></td>
+      <td>Iran war elevated cyberattack risk globally; government + enterprise spend rising</td>
+    </tr>
+    <!-- ═ NEUTRAL ═ -->
+    <tr>
+      <td>8</td>
+      <td><b>Consumer Disc. (XLY)</b></td>
+      <td class="r score-lbl mut">+15</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:7.5%"></div></div></td>
+      <td>Resilient jobs support spending; but inflation squeeze + rate risk limits upside</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td><b>Energy (XLE)</b></td>
+      <td class="r score-lbl mut">+10</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:5%"></div></div></td>
+      <td>Best Q1 sector, but oil at $70 (from $120 peak) — ceasefire removes the spike premium; near-term headwind</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td><b>Biotech (XBI)</b></td>
+      <td class="r score-lbl mut">+8</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:4%"></div></div></td>
+      <td>Highly rate-sensitive; M&amp;A newsflow supportive but hike risk caps valuation</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td><b>Health Care (XLV)</b></td>
+      <td class="r score-lbl mut">+5</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bull" style="width:2.5%"></div></div></td>
+      <td>Defensive but lagging; XLV +3% Mon recovers from prior weakness; no strong catalyst</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td><b>Materials (XLB)</b></td>
+      <td class="r score-lbl mut">−5</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:2.5%"></div></div></td>
+      <td>Mixed: copper/industrial metals supported by AI buildout; gold weight drags the sector</td>
+    </tr>
+    <tr>
+      <td>13</td>
+      <td><b>Crypto/Miners (IBIT/BITQ)</b></td>
+      <td class="r score-lbl mut">−8</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:4%"></div></div></td>
+      <td>No clear swing setup; hawkish Fed = headwind for crypto; choppy range</td>
+    </tr>
+    <tr>
+      <td>14</td>
+      <td><b>China Tech (KWEB)</b></td>
+      <td class="r score-lbl mut">−12</td>
+      <td><span class="tag t-neut">NEUTRAL</span></td>
+      <td><span class="conv-chip">Low</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:6%"></div></div></td>
+      <td>Geopolitical risk elevated; Iran war aligns Iran-China-Russia; US tariff uncertainty lingers</td>
+    </tr>
+    <!-- ═ BEARISH ═ -->
+    <tr>
+      <td>15</td>
+      <td><b>Consumer Staples (XLP)</b></td>
+      <td class="r score-lbl bear-c">−18</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:9%"></div></div></td>
+      <td>Defensive laggard; pricing power eroding; underperforms when risk appetite is on</td>
+    </tr>
+    <tr>
+      <td>16</td>
+      <td><b>Homebuilders (XHB)</b></td>
+      <td class="r score-lbl bear-c">−22</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:11%"></div></div></td>
+      <td>30-yr mortgage at 6.49%; possible rate hike = direct hit to housing affordability</td>
+    </tr>
+    <tr>
+      <td>17</td>
+      <td><b>Real Estate (XLRE)</b></td>
+      <td class="r score-lbl bear-c">−30</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:15%"></div></div></td>
+      <td>Most rate-sensitive sector; 10-yr at 4.37%+ + hike risk = headwind for REITs</td>
+    </tr>
+    <tr>
+      <td>18</td>
+      <td><b>Utilities (XLU)</b></td>
+      <td class="r score-lbl bear-c">−32</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:16%"></div></div></td>
+      <td>Cooled after AI-power-demand pop; still rate-sensitive; under pressure in hike regime</td>
+    </tr>
+    <tr>
+      <td>19</td>
+      <td><b>Uranium (URA/URNM)</b></td>
+      <td class="r score-lbl bear-c">−35</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:17.5%"></div></div></td>
+      <td>No near-term catalyst; energy crisis diverted attention to LNG &amp; oil; trend broken</td>
+    </tr>
+    <tr>
+      <td>20</td>
+      <td><b>Clean/Solar (TAN)</b></td>
+      <td class="r score-lbl bear-c">−38</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:19%"></div></div></td>
+      <td>Rate-sensitive + policy risk; oil below $75 reduces urgency for alternatives</td>
+    </tr>
+    <tr>
+      <td>21</td>
+      <td><b>Regional Banks (KRE)</b></td>
+      <td class="r score-lbl bear-c">−42</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">Medium</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:21%"></div></div></td>
+      <td>Unlike big banks, rate hike = credit risk + deposit pressure for regional banks; structurally weak</td>
+    </tr>
+    <tr>
+      <td>22</td>
+      <td><a href="#drill-gdx"><b>Gold Miners (GDX)</b></a></td>
+      <td class="r score-lbl bear-c">−72</td>
+      <td><span class="tag t-bear">BEARISH</span></td>
+      <td><span class="conv-chip">High</span></td>
+      <td><div class="bar-wrap"><div class="bar-center"></div><div class="bar-fill-bear" style="width:36%"></div></div></td>
+      <td>Gold −12% in June, worst quarter since 2013; GDX off 35%+ from 52-wk high; technical breakdown</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 4 — DRILL-DOWNS                    -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="sectors"><span class="num">4</span>Drill-Downs — Most Actionable Sectors</h2>
+<p>Two bullish deep-dives (Semiconductors / AI &amp; Technology) and one bearish (Gold Miners). Each starts with the plain-English thesis, then three stock cards.</p>
+
+<!-- ──────────────────────────────── -->
+<!-- DRILL 1: SEMIS / AI             -->
+<!-- ──────────────────────────────── -->
+<div id="drill-semis" class="panel bull">
+  <div class="dial-row">
+    <div class="dial-block">
+      <div class="dial-num bull-c">+78</div>
+      <div class="dial-sub">Direction Score</div>
+    </div>
+    <div>
+      <span class="tag t-bull" style="font-size:1rem">BULLISH</span>
+      <span class="conv-chip" style="font-size:0.8rem; margin-left:8px">High Conviction</span>
+    </div>
+  </div>
+  <h3 style="margin:0 0 6px;">Semiconductors / AI (SMH / SOXX)</h3>
+  <p><b>Plain-English thesis:</b> Chips sold off hard in early June (the SOXX dropped 10% on June 5 — worst single day since March 2020) because Broadcom's AI revenue guide came in slightly below the $17B whisper number. The market panicked. But the fundamentals behind AI chip demand haven't changed: NVDA reported 85% YoY revenue growth in Q1 FY27, guided Q2 to $91B, and TSMC raised its 2026 revenue forecast. The hyperscalers are still committing to a combined ~$700B+ in capex for 2026. The flush created a clean technical entry — semis are rebounding from oversold levels with volume, and the SOXX remained up ~70%+ YTD even after the selloff.</p>
+  <b>Why this read:</b> Post-panic recovery + intact AI capex supercycle + bullish technicals after washout = swing long opportunity in the strongest names.
+</div>
+
+<!-- Stock Card 1: NVDA -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">NVDA is the undisputed AI infrastructure king — it just got cheaper after a sentiment-driven flush, not a fundamental breakdown.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">NVDA</div>
+      <div class="card-name">NVIDIA Corporation</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:88%"></div></div>
+    <div class="meter-val bull-c">88</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:92%"></div></div>
+    <div class="meter-val bull-c">92</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Last Price</div><div class="v">~$192</div></div>
+    <div class="stat"><div class="k">52-Wk Range</div><div class="v">—</div></div>
+    <div class="stat"><div class="k">Analyst Target</div><div class="v bull-c">$298.93</div></div>
+    <div class="stat"><div class="k">Q1 FY27 Revenue</div><div class="v">$81.6B (+85% YoY)</div></div>
+    <div class="stat"><div class="k">Q2 FY27 Guide</div><div class="v bull-c">$91B rev, 75% gross margin</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Aug 2026 <span class="notconn">— confirm date</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> NVDA is the pick-and-shovel of the AI gold rush. Q1 FY27 data center revenue hit $75.2B (+92% YoY). Free cash flow was $48.6B. CEO Jensen Huang called it "the largest infrastructure expansion in human history." 62 analysts rate it Strong Buy with a $298 target — 55% upside from current ~$192. The June flush was sentiment, driven by Broadcom's mild guide miss — not NVDA's own results.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) TSMC raised 2026 revenue forecast — NVDA is TSMC's biggest customer. (2) AMD locked a 6-gigawatt Instinct GPU deal with Meta, which validates the whole sector's demand, not just one player. (3) NVDA operating cash flow at $102.7B for FY26; $80B buyback authorized. (4) The SOXX recovered sharply after the June 5 crash, signaling buyers stepped in.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> Hyperscaler capex digestion — AI capex is growing at 70% annually while hyperscaler free cash flow growth is only ~23%. If a major customer (Amazon already has negative FCF from capex) pulls back orders, NVDA demand bends. Also, export controls on China sales remain live. Rate hikes compress growth multiples.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry area ~$190–200 | Support ~$175–180 | Resistance / target ~$236 (52-wk high), $250+</p>
+</div>
+
+<!-- Stock Card 2: AMD -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">AMD is the credible challenger to NVDA — and just landed a landmark 6-gigawatt GPU deal with Meta that validates its multi-year thesis.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">AMD</div>
+      <div class="card-name">Advanced Micro Devices, Inc.</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:76%"></div></div>
+    <div class="meter-val bull-c">76</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:72%"></div></div>
+    <div class="meter-val bull-c">72</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Q1 2026 Revenue</div><div class="v">$10.25B (+38% YoY)</div></div>
+    <div class="stat"><div class="k">Q1 EPS (non-GAAP)</div><div class="v">$1.37 (beat $1.29 est.)</div></div>
+    <div class="stat"><div class="k">Data Center Rev</div><div class="v bull-c">$5.78B (+57% YoY)</div></div>
+    <div class="stat"><div class="k">Q2 2026 Guide</div><div class="v">~$11.2B (~46% YoY)</div></div>
+    <div class="stat"><div class="k">FCF Growth</div><div class="v bull-c">+253% YoY</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> AMD signed the most important deal of its AI era — deploying up to 6 gigawatts of AMD Instinct GPUs with Meta (starting with a custom 1-GW MI450 build). This is a multi-year revenue anchor. Data center was up 57% YoY in Q1 and FCF grew 253%. AMD is the second-best AI chip play with a much lower valuation than NVDA.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) MI450 pipeline strengthening — CEO Lisa Su says customer forecasts are exceeding initial expectations. (2) A clean June flush and recovery sets up a base pattern. (3) Q2 guidance of $11.2B is 46% YoY growth — this is not slowing down. (4) Lower concentration risk than NVDA (more diversified GPU customers).</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> Earnings in late July = EVENT RISK inside the swing window. The P/E near 179 (forward ~99) is expensive; any miss = sharp drop. Export control risk on China AI sales.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry area on pullbacks | Support near recent lows | Resistance = Q1 highs. <span class="earn-warn">⚠ Size smaller into earnings</span></p>
+</div>
+
+<!-- Stock Card 3: MSFT -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">Microsoft is the most conservative way to play AI — cloud + software revenue is growing fast and it has the balance sheet strength to fund the buildout for years.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">MSFT</div>
+      <div class="card-name">Microsoft Corporation</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:70%"></div></div>
+    <div class="meter-val bull-c">70</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:82%"></div></div>
+    <div class="meter-val bull-c">82</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Last Price</div><div class="v">~$373</div></div>
+    <div class="stat"><div class="k">Day Move</div><div class="v bull-c">+5.71%</div></div>
+    <div class="stat"><div class="k">Azure AI Rev Rate</div><div class="v bull-c">$37B annual (+123%)</div></div>
+    <div class="stat"><div class="k">FY26 Op Cash Flow</div><div class="v">$102.7B</div></div>
+    <div class="stat"><div class="k">Buyback</div><div class="v">$80B authorized</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> MSFT's Azure AI business is running at a $37B annual revenue rate — up 123% — and that number is accelerating. Microsoft has the unique advantage of being a customer-facing AI platform (Copilot across Office, Teams, Azure) not just infrastructure. It's less directly exposed to chip-demand concerns than NVDA or AMD, making it a safer swing within the AI theme.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) Operating cash flow of $102.7B provides massive self-funding ability — far better positioned than peers like Amazon which is currently cash-flow negative on capex. (2) $80B buyback puts a floor under the stock. (3) Monday's +5.7% move shows institutional buying support — stock clearing resistance.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> Earnings in late July = event risk in the swing window. Capex is ramping fast ($100B off-balance sheet AI Infrastructure Partnership). Rate hikes compress the multiple. MSFT is not cheap on a pure P/E basis.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry ~$365–375 | Support ~$350 (previous resistance) | Target ~$410–420 (new high attempt). <span class="earn-warn">⚠ Earnings event risk — size accordingly</span></p>
+</div>
+
+<!-- Cross-currents for Semis -->
+<div class="panel warn" style="margin-top:8px;">
+  <b>Cross-Currents — what would make this read wrong:</b>
+  <div class="cc-item">1️⃣ <b>Hyperscaler capex pullback:</b> If Amazon, Alphabet, or Meta sharply reduce AI hardware orders (all three are approaching or past negative FCF from capex), NVDA demand falls faster than the bull case implies. Q2 results in July/August will be the test.</div>
+  <div class="cc-item">2️⃣ <b>Hawkish rate shock:</b> A blowout NFP (Thursday July 2) that pushes July Fed hike odds above 50% would reprice growth stocks hard — the semis are the most multiple-sensitive names in the market.</div>
+</div>
+
+<!-- ──────────────────────────────── -->
+<!-- DRILL 2: XLK TECH               -->
+<!-- ──────────────────────────────── -->
+<div id="drill-tech" class="panel bull" style="margin-top:24px;">
+  <div class="dial-row">
+    <div class="dial-block">
+      <div class="dial-num bull-c">+68</div>
+      <div class="dial-sub">Direction Score</div>
+    </div>
+    <div>
+      <span class="tag t-bull" style="font-size:1rem">BULLISH</span>
+      <span class="conv-chip" style="font-size:0.8rem; margin-left:8px">High Conviction</span>
+    </div>
+  </div>
+  <h3 style="margin:0 0 6px;">Technology (XLK)</h3>
+  <p><b>Plain-English thesis:</b> Technology is the YTD market leader, up approximately 32–33% for 2026. The sector remains above its rising 20 and 50-day EMAs. Earnings for XLK members are expected to be up 43% this year from last, with another 24% in 2027 — rare growth at this scale. The AI software layer (Copilot, cloud AI services) is now converting into real revenue. The June turbulence (driven by chip-related fears) was a healthy shakeout. The trend is intact. XLK is where the strongest companies in the world are compounding, and the fundamentals back it up.</p>
+  <b>Why this read:</b> Dominant YTD trend + earnings acceleration + above rising moving averages + AI software revenue now converting = sector remains the top swing allocation.
+</div>
+
+<!-- Note: We present AAPL, NOW, and ORCL here as XLK broad-tech names distinct from the semi names above -->
+
+<!-- Stock Card: AAPL -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">Apple is the world's largest company by market cap with services revenue compounding — and it just rallied +3% Monday, showing institutional accumulation.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">AAPL</div>
+      <div class="card-name">Apple Inc.</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:66%"></div></div>
+    <div class="meter-val bull-c">66</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:85%"></div></div>
+    <div class="meter-val bull-c">85</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Last Price</div><div class="v">~$283.78</div></div>
+    <div class="stat"><div class="k">Day Move</div><div class="v bull-c">+3.14%</div></div>
+    <div class="stat"><div class="k">Intel Partnership</div><div class="v">Active (foundry)</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> Apple's Q2 2026 earnings were closely watched and the stock is one of the most active names in the market Monday. Apple Intelligence (on-device AI) drives an upgrade cycle across the iPhone installed base of ~2.3 billion devices. Services revenue (App Store, subscriptions) compounds at high margins with low capital intensity. As the world's largest market cap, institutional holders don't leave AAPL — it anchors every large portfolio.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) Intel foundry partnership for chips diversifies AAPL away from sole TSMC reliance — reducing supply chain risk. (2) Services gross margins are ~75%+ and growing. (3) Apple is less export-control-sensitive than chip makers. (4) Monday's +3% move on volume = bullish technical signal.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> China exposure — AAPL generates ~19% of revenue from Greater China, and Iran-China geopolitics could put US-China relations under pressure. Earnings in late July = event risk. Premium valuation leaves little room for misses.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry ~$275–285 | Support ~$265 (key prior support) | Resistance ~$300. <span class="earn-warn">⚠ Earnings risk — confirm date</span></p>
+</div>
+
+<!-- Stock Card: NOW -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">ServiceNow is the AI workflow software leader that enterprises are adopting at scale — pure software, high margins, and recurring revenue with no chip-supply dependency.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">NOW</div>
+      <div class="card-name">ServiceNow, Inc.</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:72%"></div></div>
+    <div class="meter-val bull-c">72</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:78%"></div></div>
+    <div class="meter-val bull-c">78</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Sector</div><div class="v">Software / AI workflows</div></div>
+    <div class="stat"><div class="k">Revenue Growth</div><div class="v bull-c">High-20s% YoY (inferred)</div></div>
+    <div class="stat"><div class="k">Business Model</div><div class="v">SaaS / subscription</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> ServiceNow (NOW) shows up as a top-watched name alongside XLK. As enterprises race to embed AI into workflows — automating IT service desks, HR, finance operations — ServiceNow is the platform they're deploying. It benefits from AI spending without the chip-supply risk or export control exposure of semiconductor names. Its subscription-based SaaS model provides predictable, high-margin recurring revenue.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) AI Agents are NOW's next growth lever — already being deployed across Fortune 500 customers. (2) High customer retention (>99% net retention) provides revenue visibility. (3) Pure software = immune to hardware supply chain issues. (4) Less correlated to the chip-sell-off narrative — can outperform relative to semis during semiconductor drawdowns.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> Earnings in the swing window (late July) — any revenue growth deceleration or margin compression = sharp drawdown. Valuation is elevated (software P/E typically 40–70x). A rate hike compresses multiples on all high-P/E software.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry on pullbacks to key support | Confirm levels against your brokerage. <span class="notconn">— intraday price not independently verified</span> <span class="earn-warn">⚠ Earnings risk</span></p>
+</div>
+
+<!-- Stock Card: AMZN -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="pos">Amazon is an AI infrastructure play disguised as a retailer — AWS is the world's largest cloud platform and its AI services are accelerating.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bull-c">AMZN</div>
+      <div class="card-name">Amazon.com, Inc.</div>
+      <div class="card-badges">
+        <span class="tag t-bull">LONG</span>
+        <span class="fuel-tag fuel-neut">NEUTRAL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:65%"></div></div>
+    <div class="meter-val bull-c">65</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fundamental Health (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-warn" style="width:58%"></div></div>
+    <div class="meter-val warn-c">58</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Last Price</div><div class="v">~$232.69</div></div>
+    <div class="stat"><div class="k">Day Move</div><div class="v bull-c">+2.50%</div></div>
+    <div class="stat"><div class="k">Q1 2026 Capex</div><div class="v warn-c">$44.2B vs $26B OCF</div></div>
+    <div class="stat"><div class="k">Long-Term Debt</div><div class="v warn-c">$119.1B</div></div>
+    <div class="stat"><div class="k">AWS Growth</div><div class="v bull-c">Accelerating (AI services)</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> Amazon's AWS is the cloud backbone for thousands of AI workloads. Monday's +2.5% move reflects institutional positioning into the AI trade. AWS AI revenue is growing rapidly. The Fundamental Health score is NEUTRAL (not ⛽ ADDS FUEL) because Q1 2026 capex of $44.2B exceeded operating cash flow of $26B — the company is cash-flow negative from investment, which is a known risk. For the swing trade, the technical breakout and AI-revenue acceleration matter more than balance sheet tidiness in the short term.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Supporting points:</b> (1) AWS is irreplaceable infrastructure — no customer easily moves 10 years of built workloads. (2) AI services accelerating on top of core cloud. (3) Retail business recovering margins after years of investment. (4) Up +2.5% Monday in high volume — buyers present.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="neg">Biggest risk:</b> The balance sheet strain (negative free cash flow) is real. If bond markets tighten credit conditions amid rate hike fears, Amazon's debt cost rises. Earnings late July = event risk. Retail segment margin compression from inflation a secondary risk.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Entry ~$225–235 | Support ~$210–215 | Resistance = highs. <span class="earn-warn">⚠ Earnings risk in window</span></p>
+</div>
+
+<!-- Cross-currents for Tech -->
+<div class="panel warn" style="margin-top:8px;">
+  <b>Cross-Currents — what would make this read wrong (Tech/XLK):</b>
+  <div class="cc-item">1️⃣ <b>Rate shock:</b> A hot NFP Thursday (July 2) that pushes the July Fed hike to &gt;50% odds triggers a violent rotation OUT of high-multiple tech. This is the single biggest near-term risk to the whole XLK thesis.</div>
+  <div class="cc-item">2️⃣ <b>AI revenue doesn't convert fast enough:</b> UBS warned that AI chip trades were too crowded. If early Q2 checks show enterprise AI adoption slower than the capex build-out suggests, the multiple compression could be severe and fast.</div>
+</div>
+
+<!-- ──────────────────────────────── -->
+<!-- DRILL 3: GOLD MINERS (BEARISH)  -->
+<!-- ──────────────────────────────── -->
+<div id="drill-gdx" class="panel bear" style="margin-top:24px;">
+  <div class="dial-row">
+    <div class="dial-block">
+      <div class="dial-num bear-c">−72</div>
+      <div class="dial-sub">Direction Score</div>
+    </div>
+    <div>
+      <span class="tag t-bear" style="font-size:1rem">BEARISH</span>
+      <span class="conv-chip" style="font-size:0.8rem; margin-left:8px">High Conviction</span>
+    </div>
+  </div>
+  <h3 style="margin:0 0 6px;">Gold Miners (GDX) — Short / Avoid</h3>
+  <p><b>Plain-English thesis:</b> Gold miners are being crushed from two directions at once. First, gold itself is in a severe downtrend: spot gold is at ~$4,031, down ~12% in June alone, on pace for the worst quarter since 2013. Second, a strong US dollar (DXY near 14-month highs) and hawkish Fed (rate hike likely by September–October) are structural headwinds for the yellow metal. GDX has collapsed from a 52-week high of $117.18 to ~$75.71 — a drop of more than 35%. The technical picture is a "strong sell" on multiple timeframes. This is not a dip-buy; it is an active short or a strict avoid until gold stabilizes and the macro backdrop shifts.</p>
+  <b>Why this read:</b> Gold is in freefall driven by the hawkish Fed + strong dollar. Miners have 2–3× operating leverage to the gold price — so when gold falls, miners fall harder. The trend is your friend here on the short side.
+</div>
+
+<!-- Note: For bearish drill-downs, "top 3 stocks" = most vulnerable names — short or avoid -->
+
+<!-- Bearish Card 1: GDX (ETF-level) -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="neg">GDX itself is the cleanest expression of the bearish view — it holds 58 gold mining companies and amplifies gold's move by 1.5–2× due to operational leverage.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bear-c">GDX</div>
+      <div class="card-name">VanEck Gold Miners ETF — <em>short/avoid</em></div>
+      <div class="card-badges">
+        <span class="tag t-bear">SHORT / AVOID</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction SHORT (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bear" style="width:82%"></div></div>
+    <div class="meter-val bear-c">82</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fund. Health (low = fuel for short)</div>
+    <div class="meter-bar"><div class="meter-fill-warn" style="width:38%"></div></div>
+    <div class="meter-val bull-c">38</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">GDX Price (Jun 29)</div><div class="v bear-c">~$75.71</div></div>
+    <div class="stat"><div class="k">52-Wk High</div><div class="v">$117.18</div></div>
+    <div class="stat"><div class="k">52-Wk Low</div><div class="v">$50.35</div></div>
+    <div class="stat"><div class="k">Gold Spot</div><div class="v bear-c">~$4,031 (−12% Jun)</div></div>
+    <div class="stat"><div class="k">Technical Signal</div><div class="v bear-c">Strong Sell (MAs)</div></div>
+    <div class="stat"><div class="k">AUM</div><div class="v">~$24.3B</div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> GDX is a leveraged way to be short gold's macro headwinds. Gold miners have fixed operating costs — when gold falls, their margins compress far more than the gold price decline. GDX's short-term and long-term moving averages are both giving sell signals, with the long-term average above the short-term (death cross pattern). The MACD is also on a 3-month sell. Resistance levels are at $79.72 and $87.53 — both significant hurdles.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Bearish catalysts still ahead:</b> (1) NFP Thursday: a strong print = more Fed hike expectations = more gold selling. (2) Iran peace deal progresses = oil falls further = less inflation fear = less gold safe-haven bid. (3) Strong DXY (near 14-mo highs) = continued gold headwind. (4) Gold peaked near $5,600+ and is still 28% above the 52-wk low — room for further normalization.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="warnc">Biggest risk to the short:</b> If Iran peace talks collapse today in Doha and military strikes resume, oil spikes, inflation fears return, and gold could get a violent safe-haven bid. Always use stop-losses. Also watch for Fed pivot signal — any hint of rate cuts reverses gold's trend fast.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Short entry near $76–80 (resistance) | Downside target ~$60–65 | Stop above $87.53 (key resistance)</p>
+</div>
+
+<!-- Bearish Card 2: NEM -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="neg">Newmont is the world's largest gold miner — which makes it the most liquid way to be short the gold mining complex if you prefer a single stock to an ETF.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bear-c">NEM</div>
+      <div class="card-name">Newmont Corporation — <em>short/avoid</em></div>
+      <div class="card-badges">
+        <span class="tag t-bear">SHORT / AVOID</span>
+        <span class="fuel-tag fuel-fights">⚠ FIGHTS TREND</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction SHORT (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bear" style="width:70%"></div></div>
+    <div class="meter-val bear-c">70</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fund. Health (higher = riskier short)</div>
+    <div class="meter-bar"><div class="meter-fill-bull" style="width:65%"></div></div>
+    <div class="meter-val warn-c">65</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">Market Cap</div><div class="v">~$114B (world's largest)</div></div>
+    <div class="stat"><div class="k">GDX Weight</div><div class="v">Largest holding (~12%)</div></div>
+    <div class="stat"><div class="k">Fuel Tag Note</div><div class="v warn-c">Healthy co. = riskier short</div></div>
+    <div class="stat"><div class="k">Next Earnings</div><div class="v">~Late Jul 2026 <span class="earn-warn">⚠ IN WINDOW</span></div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> NEM is the biggest gold miner on the planet and GDX's largest weight. It moves with gold. <b>Important: NEM gets a ⚠ FIGHTS TREND fuel tag</b> — as a healthy, well-run company with decent earnings, shorting NEM has more risk of a sharp squeeze than shorting a financially weaker miner. That said, when gold falls, NEM falls with it. If you short GDX (the ETF), you're already short NEM.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Bearish catalysts:</b> Gold spot continuing to decline under hawkish Fed pressure. Strong dollar. NEM has high fixed operating costs — when gold declines, margins contract sharply.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="warnc">Key risk on the short:</b> NEM is a financially healthy company (Fundamental Health 65 → ⚠ FIGHTS TREND). Strong balance sheet, potential for cost cuts or hedging to partially offset gold price declines. Better to short through GDX to spread the risk. Earnings in late July = event risk.</p>
+</div>
+
+<!-- Bearish Card 3: GDXJ -->
+<div class="card">
+  <p style="margin:0 0 8px"><b class="neg">The junior gold miners ETF (GDXJ) amplifies GDX's move — smaller companies with less financial cushion fall harder when gold falls, making it the highest-conviction bearish expression.</b></p>
+  <div class="card-head">
+    <div>
+      <div class="card-ticker bear-c">GDXJ</div>
+      <div class="card-name">VanEck Junior Gold Miners ETF — <em>short/avoid</em></div>
+      <div class="card-badges">
+        <span class="tag t-bear">SHORT / AVOID</span>
+        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter-row">
+    <div class="meter-lbl">Swing-Conviction SHORT (0–100)</div>
+    <div class="meter-bar"><div class="meter-fill-bear" style="width:75%"></div></div>
+    <div class="meter-val bear-c">75</div>
+  </div>
+  <div class="meter-row">
+    <div class="meter-lbl">Fund. Health (lower = adds fuel to short)</div>
+    <div class="meter-bar"><div class="meter-fill-bear" style="width:32%"></div></div>
+    <div class="meter-val bull-c">32</div>
+  </div>
+
+  <div class="grid" style="margin:10px 0 6px;">
+    <div class="stat"><div class="k">GDXJ AUM</div><div class="v">~$8.4B</div></div>
+    <div class="stat"><div class="k">Holdings</div><div class="v">121 junior miners</div></div>
+    <div class="stat"><div class="k">Beta vs Gold</div><div class="v bear-c">~2–3× leverage to spot</div></div>
+    <div class="stat"><div class="k">Expense Ratio</div><div class="v">0.52%</div></div>
+  </div>
+
+  <p style="font-size:0.84rem;margin:6px 0"><b>Thesis:</b> Junior miners are exploration-stage or small-production companies with thin margins and high fixed costs. When gold falls 12%, junior miners can fall 20–30% — that operating leverage works viciously to the downside. GDXJ holds 121 such companies. Fundamental Health of 32 (⛽ ADDS FUEL to the short thesis) because smaller miners have weaker balance sheets, higher debt relative to earnings, and no dividend cushion. This is the highest-beta, highest-conviction bearish expression in the gold complex.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Bearish catalysts:</b> Same as GDX — falling gold price, strong dollar, Fed hawkishness — but amplified by the junior miners' own financial fragility and exploration-stage cash burn.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b class="warnc">Key risk on the short:</b> Higher volatility cuts both ways — a gold rally (from Iran escalation or Fed pivot) would squeeze GDXJ sharply higher. Illiquidity in individual holdings can cause erratic price moves. Always use stops. Paper trade first.</p>
+  <p style="font-size:0.84rem;margin:6px 0"><b>Approx levels:</b> Follow GDX as the guide. GDXJ typically moves 1.5–2× GDX's percentage move.</p>
+</div>
+
+<!-- Cross-currents for Gold Miners -->
+<div class="panel warn" style="margin-top:8px;">
+  <b>Cross-Currents — what would make this bearish read wrong (Gold Miners):</b>
+  <div class="cc-item">1️⃣ <b>Iran talks collapse → oil spikes → inflation fears return:</b> If peace talks in Doha break down today and military action resumes, crude could surge back toward $90–100. That reignites inflation fears and gold gets a safe-haven bid. This is the single biggest risk to the GDX short today.</div>
+  <div class="cc-item">2️⃣ <b>Fed pivot signal:</b> Any unexpected softness in NFP Thursday, or hawkish Fed officials walking back hike talk, could spark a gold reversal. Gold's correlation to real rates means any hint of easing is instantly bullish for GDX.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MACRO ONE-LINER                            -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="panel acc" style="margin-top:18px;">
+  <b>⚡ Macro One-Liner — the single biggest override risk this week:</b><br>
+  The <b>NFP report on Thursday July 2</b> can override EVERYTHING. A print above 200k with wages above 4% YoY will push July Fed hike odds above 50%, spike the 10-yr toward 4.6%+, crush rate-sensitive sectors (XLRE, XLU, XLB, growth tech), and potentially trigger the biggest risk-off move of Q3 2026. A weak print below 100k does the opposite — suddenly rate cuts are back on the table, gold bounces, and tech/semis get a tailwind. This single data point is the fulcrum for the next 4–6 weeks of market direction.
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 5 — CALENDAR                       -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="calendar"><span class="num">5</span>Event Calendar — Next 2 Weeks</h2>
+<p>Mark these dates before placing any swing trade — each one can reprice markets instantly.</p>
+
+<div class="tbl-wrap">
+<table class="cal-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Event</th>
+      <th>Why it matters</th>
+      <th>Impact</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="cal-date">Mon Jun 30</td>
+      <td>🌍 <b>Iran–US Peace Talks Resume — Doha, Qatar</b></td>
+      <td>Both sides agreed to halt attacks; talks resume today. Outcome moves oil ±10%+ and inflation expectations</td>
+      <td><b class="warnc">EXTREME</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Mon Jun 30</td>
+      <td>📊 Chicago PMI (Jun)</td>
+      <td>Manufacturing activity indicator; context for NFP</td>
+      <td><b class="mut">Low</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Tue Jul 1</td>
+      <td>📊 ISM Manufacturing PMI (Jun)</td>
+      <td>Key gauge of factory activity; sub-50 = contraction signal</td>
+      <td><b class="warnc">Medium</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Wed Jul 1</td>
+      <td>🗣️ <b>Fed Chair Warsh Speaks — Portugal (9:30 AM ET)</b></td>
+      <td>Warsh's second public appearance; any hike language hardening = rate spike</td>
+      <td><b class="neg">HIGH</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Thu Jul 2</td>
+      <td>📊 <b>NFP June Jobs Report (8:30 AM ET) — consensus +172k</b></td>
+      <td>Last major data before Jul 28–29 FOMC; hot print = July hike risk; weak print = rate cut hope returns</td>
+      <td><b class="neg">EXTREME</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Thu Jul 2</td>
+      <td>📊 Unemployment Rate + Wages (8:30 AM ET)</td>
+      <td>Wages (avg hourly earnings) especially critical — feeds directly into inflation / Fed calculus</td>
+      <td><b class="neg">HIGH</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Fri Jul 3</td>
+      <td>🏖️ <b>US Markets CLOSED — Independence Day Holiday</b></td>
+      <td>No trading; NFP reaction settles over the long weekend</td>
+      <td><b class="mut">N/A</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Mon Jul 7</td>
+      <td>📊 ISM Services PMI (Jun)</td>
+      <td>Services = 70%+ of US economy; strong = keeps Fed hawkish</td>
+      <td><b class="warnc">Medium</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">~Jul 8–11</td>
+      <td>🌍 OPEC+ Monitoring / Oil market update</td>
+      <td>Post-ceasefire Hormuz flows resuming; OPEC supply decisions</td>
+      <td><b class="warnc">Medium-High</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">~Jul 15</td>
+      <td>📊 <b>CPI (June) — exact date TBC</b></td>
+      <td>With PCE at 4.1%, another hot CPI print cements September hike; cool print = relief rally</td>
+      <td><b class="neg">EXTREME</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">~Late Jul</td>
+      <td>💰 Big Tech Earnings — AAPL, MSFT, AMZN, GOOGL, META</td>
+      <td>All inside the swing window; AI revenue conversion is the key watch</td>
+      <td><b class="neg">EXTREME</b></td>
+    </tr>
+    <tr>
+      <td class="cal-date">Jul 28–29</td>
+      <td>🏦 <b>FOMC Meeting — Rate Decision</b></td>
+      <td>32% July hike odds (per swap markets Jun 29); NFP outcome this week is the key input</td>
+      <td><b class="neg">EXTREME</b></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SECTION 6 — HOW TO READ                    -->
+<!-- ═══════════════════════════════════════════ -->
+<h2 id="howto"><span class="num">6</span>How to Read This Report</h2>
+<p>Here is what each number and label means — the generic method lives here, the results are in the sections above.</p>
+
+<div class="legend-grid">
+  <div class="legend-card">
+    <h4>Direction Score (−100 to +100)</h4>
+    A single number summarizing a sector's swing-trade outlook. <b>+100</b> = maximum bullish; <b>−100</b> = maximum bearish; <b>0</b> = neutral / no clean setup. Weighted inputs: Trend &amp; price structure (30%), Relative strength vs SPY (25%), Macro tailwinds/headwinds (20%), News &amp; catalyst flow (15%), Momentum/breadth RSI/MACD (10%).
+  </div>
+  <div class="legend-card">
+    <h4>Conviction (High / Medium / Low)</h4>
+    How confident we are in the direction score. <b>High</b> = multiple inputs align, clear setup. <b>Medium</b> = most inputs agree, but some uncertainty. <b>Low</b> = mixed signals, no clean setup — smaller position sizes, wider stops.
+  </div>
+  <div class="legend-card">
+    <h4>Swing-Conviction Score (0–100) on stock cards</h4>
+    This is a <em>technically-led</em> score for which stock is most likely to move hardest in the sector's direction over the 3-day to 6-week swing horizon. Weighted: Technical setup quality (35%), Relative strength (25%), Catalyst &amp; news (20%), Move-strength potential — beta/range (20%). Higher = stronger expected mover in the sector direction.
+  </div>
+  <div class="legend-card">
+    <h4>Fundamental Health Score (0–100)</h4>
+    A separate, chart-independent score of the underlying business. Revenue growth (20%), EPS growth &amp; beat history (20%), Margins (15%), FCF &amp; balance sheet (15%), Analyst revisions (10%), Guidance/backlog (10%), Dividends/capital returns (10%). For <em>longs</em>: ≥65 = ⛽ ADDS FUEL; 45–64 = NEUTRAL; &lt;45 = ⚠ FIGHTS TREND (chart leading fundamentals). For <em>shorts</em>: ≤40 = ⛽ ADDS FUEL (fundamentals confirm weakness); &gt;60 = ⚠ FIGHTS TREND (healthy company is riskier to short).
+  </div>
+  <div class="legend-card">
+    <h4>⛽ Fuel Tag</h4>
+    <b>⛽ ADDS FUEL</b>: Fundamentals support the swing direction — tailwind. <b>NEUTRAL</b>: Fundamentals are neither helping nor hurting. <b>⚠ FIGHTS TREND</b>: The underlying business quality works against the technical/swing direction — adds risk to the trade (e.g., shorting a healthy company, or going long a fundamentally weak one). Always check the Fuel Tag before sizing.
+  </div>
+  <div class="legend-card">
+    <h4>⚠ Earnings in Window</h4>
+    A swing horizon of 3 days to 6 weeks means many stocks will report earnings during your hold. An <span class="earn-warn">⚠ IN WINDOW</span> badge means earnings fall inside the likely trade duration — earnings can cause dramatic overnight moves (±10–30%) regardless of the chart. Options strategies or reduced position sizing are common responses. <b>Never let a swing trade turn into an unplanned earnings hold without knowing the risk.</b>
+  </div>
+  <div class="legend-card">
+    <h4>Color coding</h4>
+    🟢 <b class="pos">Green</b> = bullish / long / positive. 🔴 <b class="neg">Red</b> = bearish / short / avoid / negative. 🟡 <b class="warnc">Amber</b> = caution / mixed / watch. <b class="acc">Blue</b> = informational / neutral. <b class="mut">Grey</b> = minor / not significant.
+  </div>
+  <div class="legend-card">
+    <h4>Important caveats</h4>
+    All prices, scores, and levels herein are point-in-time estimates generated by automated models. Verify every price and earnings date against your own brokerage before trading. Swing setups can fail. Past sector leadership does not guarantee continuation. This report is decision-support — your own judgment is the final filter.
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  <p class="sources">Sources consulted: TradingEconomics.com (10-yr yield, DXY, gold, oil, Fed rate, PCE data, US economic calendar); Federal Reserve (FOMC statement June 17, 2026; dot plot; H.15 release); CNBC (FOMC June 2026 coverage, oil price June 29 2026); StockTitan (Fed rate decision analysis); Advisor Perspectives / dshort (Treasury yields, Fed rate decision); StreetStats (Treasury yield curve data as of June 26, 2026); Cboe (VIX prev close 18.41 as of June 29, 2026); Investing.com (VIX, GDX prices); StockAnalysis.com (NVDA, XLI); Yahoo Finance (sector ETF data, NVDA, MSFT, AAPL prices as of June 29, 2026); Barchart.com (S&amp;P 500, futures, gold, dollar); Wikipedia (2026 Iran war fuel crisis; Economic impact of the 2026 Iran war); Congress.gov CRS (Iran Strait of Hormuz report); Discovery Alert (US–Iran Strait of Hormuz ceasefire analysis); 247WallSt (NVDA/hyperscaler capex analysis); Finance Yahoo (semiconductor stocks, AMD deal with Meta); Intellectia AI (AI chip volatility June 2026 analysis); AnnaCoulling.com (Sector ETF review June 2026); StockInvest.us (GDX technical analysis); VanEck (GDX ETF data); Motley Fool (GDX/gold ETF overview); HeyGoTrade (XOM, CVX analysis); 247WallSt (XLE 2026 signals); TipRanks (XOM vs CVX comparison); Kiplinger (economic calendar week of June 29 – July 3, 2026); LiveTradingNews (NFP scenarios, Fed rate probabilities June 29–July 3); Seeking Alpha (2026 sector outlook); SSGA (XLK ETF data); BondSavvy (June 2026 dot plot); EIA Short-Term Energy Outlook June 2026; Forbes (Fed meeting tracker 2026); Polymarket (Fed June decision); TradingView (DXY analysis).</p>
+  <div class="disc">
+    <div class="disc-text">
+      <p>Educational purposes only — not investment advice. The Freedom Management Group, Inc. d/b/a Michael Wade Trade Coaching is not a broker, adviser, or fiduciary. All trades are at your own risk; past performance does not guarantee future results. Options involve substantial risk and you can lose more than your investment — always paper trade first before risking real money. This report is generated with the assistance of artificial intelligence, and AI can make mistakes. The analysis, prices, technical levels, earnings dates, probabilities, and figures herein are produced by automated models that may misinterpret data, rely on sources that are outdated or inaccurate, or generate confident-sounding output that is simply wrong. Probabilities are options-implied estimates, not predictions, and real-world tails are fatter than a normal curve. Nothing here has been independently verified by a licensed professional. Always confirm every data point, price, and date against your own brokerage and primary sources before acting, and treat this report as a starting point for your own research — never as a substitute for your own judgment. By using our services, you agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+    </div>
+  </div>
+  <p>All data is time-stamped (June 30, 2026) and goes stale quickly &mdash; re-verify before trading.</p>
+  <p style="color:var(--faint)">Daily AI Sector Intelligence Report &middot; Trade Club AI &middot; Generated 2026-06-30 &middot; mwtradecoach.com</p>
+</div>
+
+</div><!-- /wrap -->
+</body>
+</html>

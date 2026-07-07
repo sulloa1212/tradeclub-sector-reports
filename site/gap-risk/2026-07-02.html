@@ -1,1 +1,1323 @@
-<style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:190px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/gap-risk/2026-07-07.html">2026-07-07</a></li><li><a href="/gap-risk/2026-07-06.html">2026-07-06</a></li><li><a href="/gap-risk/2026-07-01.html">2026-07-01</a></li><li><a href="/gap-risk/2026-06-30.html">2026-06-30</a></li></ul></details>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily AI Holiday Gap Risk Report — Trade Club AI</title>
+  <link rel="stylesheet" href="/assets/report.css">
+  <style>
+    /* Report-specific: probability bar in Big Move ranking */
+    .prob-bar-wrap { display:inline-flex; align-items:center; gap:6px; width:100%; }
+    .prob-bar-bg { flex:1; height:8px; background:var(--faint); border-radius:4px; overflow:hidden; max-width:120px; }
+    .prob-bar-fill { height:100%; border-radius:4px; background:var(--warn); }
+    .prob-val { font-weight:700; font-size:.95em; white-space:nowrap; }
+
+    /* Split direction bar components */
+    .split-container { margin:12px 0; }
+    .split-row { display:grid; grid-template-columns:110px 1fr 60px 60px 1fr 110px; align-items:center; gap:4px; padding:4px 0; border-bottom:1px solid var(--faint); font-size:.88em; }
+    .split-row.header-row { font-size:.78em; color:var(--muted); font-weight:600; border-bottom:2px solid var(--line); }
+    .split-row.lean-row { background:var(--faint); border-radius:6px; font-weight:700; }
+    .split-row.quiet-row { color:var(--muted); }
+    .split-label { font-weight:600; }
+    .split-prob-down { text-align:right; color:var(--bear); font-weight:700; }
+    .split-prob-up { text-align:left; color:var(--bull); font-weight:700; }
+    .split-price-down { text-align:right; font-size:.82em; color:var(--muted); }
+    .split-price-up { text-align:left; font-size:.82em; color:var(--muted); }
+    .bar-wrap { display:flex; height:12px; border-radius:6px; overflow:hidden; width:100%; gap:0; }
+    .bar-down { background:var(--bear); opacity:.75; }
+    .bar-center { background:var(--faint); width:4px; flex-shrink:0; }
+    .bar-up { background:var(--bull); opacity:.75; }
+    .lean-down { color:var(--bear); }
+    .lean-up { color:var(--bull); }
+
+    /* Cushion box */
+    .cushion-box { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:10px 0; font-size:.9em; }
+    .cx-state { font-weight:700; font-size:1em; margin-bottom:4px; }
+    .cx-on .cx-state { color:var(--bull); }
+    .cx-off .cx-state { color:var(--bear); }
+    .cx-neutral .cx-state { color:var(--warn); }
+
+    /* Card back-link */
+    .back-link { font-size:.8em; color:var(--accent); text-decoration:none; display:inline-block; margin-bottom:8px; }
+    .back-link:hover { text-decoration:underline; }
+
+    /* Card meta row */
+    .card-meta-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; font-size:.83em; color:var(--muted); border-top:1px solid var(--faint); padding-top:8px; }
+    .card-meta-row span { background:var(--chip); border-radius:4px; padding:2px 7px; }
+
+    /* Level ladder */
+    .ladder { width:100%; border-collapse:collapse; font-size:.88em; margin:10px 0; }
+    .ladder td { padding:3px 6px; border-bottom:1px solid var(--faint); }
+    .ladder .ltype { color:var(--muted); font-size:.82em; width:90px; }
+    .ladder .lval { font-weight:700; }
+    .lclose-row td { background:var(--chip); font-weight:700; color:var(--ink); }
+
+    /* Index link style */
+    .idx-link { font-weight:700; text-decoration:none; color:var(--accent); }
+    .idx-link:hover { text-decoration:underline; }
+
+    /* Clock items */
+    .clock-timeline { display:flex; flex-direction:column; gap:0; }
+    .clock-item { display:grid; grid-template-columns:140px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid var(--faint); font-size:.9em; align-items:start; }
+    .clock-item:last-child { border-bottom:none; }
+    .clock-time { color:var(--muted); font-size:.82em; font-weight:600; }
+    .clock-evt { font-weight:600; }
+    .clock-note { color:var(--muted); font-size:.85em; }
+
+    /* Calendar */
+    .cal-table { width:100%; border-collapse:collapse; font-size:.88em; }
+    .cal-table th { background:var(--panel2); padding:5px 8px; text-align:left; font-size:.8em; color:var(--muted); }
+    .cal-table td { padding:5px 8px; border-bottom:1px solid var(--faint); vertical-align:top; }
+    .cal-done td { color:var(--muted); }
+    .cal-hot td { background:rgba(255,160,0,.08); }
+    .cal-today td { background:rgba(var(--acc-rgb, 0,120,255),.07); font-weight:600; }
+
+    /* Playbook */
+    .play-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:600px){ .play-grid { grid-template-columns:1fr; } }
+    .play-do, .play-dont { background:var(--panel2); border-radius:8px; padding:12px; }
+    .play-do h4 { color:var(--bull); margin:0 0 8px; }
+    .play-dont h4 { color:var(--bear); margin:0 0 8px; }
+    .play-do li, .play-dont li { margin-bottom:6px; font-size:.9em; list-style:none; padding-left:0; }
+    .play-do li::before { content:"✅ "; }
+    .play-dont li::before { content:"❌ "; }
+
+    /* Takeaway banner */
+    .takeaway-banner { background:var(--panel); border-left:4px solid var(--warn); border-radius:8px; padding:14px 18px; margin:18px 0; }
+    .t-main { font-size:1.1em; font-weight:700; margin-bottom:4px; }
+    .t-sub { font-size:.9em; color:var(--muted); }
+
+    /* Legend grid */
+    .legend-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media(max-width:600px){ .legend-grid { grid-template-columns:1fr; } }
+    .legend-item { background:var(--panel2); border-radius:8px; padding:10px 14px; }
+    .li-term { font-weight:700; font-size:.9em; margin-bottom:3px; }
+    .li-def { font-size:.85em; color:var(--muted); }
+
+    /* Breadth bar note */
+    .breadth-note { font-size:.88em; color:var(--muted); padding:8px 4px; border-top:1px solid var(--faint); margin-top:4px; }
+
+    /* Honesty callout */
+    .honesty { background:var(--panel2); border-left:3px solid var(--warn); border-radius:6px; padding:8px 12px; font-size:.85em; color:var(--muted); margin-top:10px; }
+
+    /* Read box */
+    .read-box { background:var(--panel); border-radius:10px; padding:16px 20px; }
+    .read-box ul { margin:0; padding-left:18px; }
+    .read-box li { margin-bottom:8px; font-size:.95em; line-height:1.5; }
+
+    /* Sub-section header within card */
+    .sub-head { font-size:.95em; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:14px 0 6px; border-bottom:1px solid var(--faint); padding-bottom:4px; }
+
+    /* Dial enhancements */
+    .dial { display:inline-block; padding:3px 10px; border-radius:12px; font-size:.82em; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .dial-calm { background:rgba(0,200,100,.15); color:#00c864; }
+    .dial-elevated { background:rgba(255,160,0,.15); color:#ffa000; }
+    .dial-high { background:rgba(255,80,0,.18); color:#ff5000; }
+    .dial-extreme { background:rgba(220,0,0,.2); color:#dc0000; }
+
+    /* Card styling */
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin-bottom:18px; }
+    .card-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+    .card-title h3 { margin:0; font-size:1.15em; }
+
+    /* Index plain-English lead */
+    .card-lead { font-size:.93em; color:var(--ink); background:var(--faint); border-radius:6px; padding:7px 10px; margin-bottom:10px; }
+  </style>
+</head>
+<body><style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:190px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/gap-risk/2026-07-01.html">2026-07-01</a></li><li><a href="/gap-risk/2026-06-30.html">2026-06-30</a></li><li><a href="/gap-risk/2026-06-29.html">2026-06-29</a></li><li><a href="/gap-risk/2026-06-28.html">2026-06-28</a></li></ul></details><style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#4ea1ff;border:1px solid #7abaff;color:#08131f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════════════
+     HEADER — static, scrolls away
+═══════════════════════════════════════════════ -->
+<header class="top">
+  <div class="header">
+    <img class="brand-tc" src="/assets/tradeclub-ai.png" alt="Trade Club AI">
+    <div class="head-text">
+      <div class="eyebrow">TRADE CLUB AI &middot; HOLIDAY GAP RISK &middot; PRE-OPEN</div>
+      <h1>Daily AI Holiday Gap Risk Report <span class="tag t-neut">MIXED</span></h1>
+      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT &mdash; holiday gap into Monday July 6 + 1-week outlook</div>
+      <div class="stamp">Thursday July 3, 2026 pre-market &middot; ET &middot; Run after Thu July 2 close
+        <span class="run-badge">HOLIDAY GAP</span>
+        <span class="warn-badge">&#9888; Iran funeral window + FOMC minutes July 8</span>
+      </div>
+    </div>
+    <img class="brand-mw" src="/assets/mw.png" alt="Michael Wade Trade Coaching">
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════
+     NAV — single-row sticky
+═══════════════════════════════════════════════ -->
+<nav class="jump">
+  <a href="#read">60-Second Read</a>
+  <a href="#board">Gap Board</a>
+  <a href="#ndx">NDX</a>
+  <a href="#spx">SPX</a>
+  <a href="#rut">RUT</a>
+  <a href="#djx">DJX</a>
+  <a href="#bigmove">Big Move</a>
+  <a href="#clock">Clock</a>
+  <a href="#calendar">Calendar</a>
+  <a href="#playbook">Playbook</a>
+  <a href="#legend">How to Read</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 1 — 60-SECOND READ
+═══════════════════════════════════════════════ -->
+<h2 id="read"><span class="num">1</span>60-Second Read</h2>
+<div class="read-box">
+  <ul>
+    <li>🗓️ <b>Holiday gap regime:</b> US markets close Thursday July 2 and reopen <b>Monday July 6</b> — three closed days. Gap bands are widened ~25% versus a normal overnight gap to reflect the extra time markets cannot react.</li>
+    <li>⚠️ <b>Highest gap risk — NDX:</b> Semiconductors fell for a second straight session; VXN (est. ~19) is elevated relative to VIX (~16.6), signalling tech-specific stress. NDX gap band is <b class="warnc">±0.86% (est.)</b> — Elevated/High, with a modest downside lean.</li>
+    <li>🟢 <b>Calmest index — DJX:</b> The Dow hit a new all-time high Thursday (+0.46%, ~52,805). VXD (est. ~14.5) is the lowest of the four. DJX gap dial is <b class="pos">Calm/Elevated</b> — only one step up from normal.</li>
+    <li>🛡️ <b>Cushion state (SPX/NDX):</b> SPX is estimated to be sitting <b>above</b> its gamma flip (cushion line, est. ~5,550 est.), so dealer positioning provides a mild shock absorber — moves are more likely to fade than snowball. NDX sits closer to its cushion line — less protection there.</li>
+    <li>⚠️ <b>Watch items:</b> (1) Iran: Ayatollah Khamenei's state funeral runs <b>July 4–9</b> — US-Iran talks are on hold; an escalation over the Strait of Hormuz could spike oil and hit risk assets over the weekend. (2) <b>FOMC minutes July 8</b> drop into the reopened tape. Both are right-tail (oil shock) and left-tail (resolution) risks simultaneously.</li>
+  </ul>
+  <div class="honesty">
+    <b>Honesty note:</b> This report was generated after Thursday's July 2 close. Exact closing prices for SPX/NDX/DJX/RUT and VXN/RVX/VXD are marked <b>est.</b> — built from intraday CNBC/Yahoo data and prior-day closes; verify all levels before acting. Probabilities are options-implied statistical estimates, not predictions. Real tails are fatter than a normal curve — treat big-move odds as a floor, not a ceiling.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 2 — THE GAP BOARD
+═══════════════════════════════════════════════ -->
+<h2 id="board"><span class="num">2</span>The Gap Board</h2>
+<p style="font-size:.9em;color:var(--muted);">One row per index. The <b>implied gap move</b> is a ±1-standard-deviation band — roughly 2-in-3 chance the Monday open lands inside it. Wider = more uncertainty, not necessarily more danger.</p>
+<div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Index (ETF)</th>
+        <th class="r">Thu Close <span style="font-weight:400;font-size:.8em">(est.)</span></th>
+        <th class="r">Day %</th>
+        <th class="r">Vol Index</th>
+        <th class="r">Gap 1-SD %</th>
+        <th class="r">Gap 1-SD pts</th>
+        <th>Lean Mon Open</th>
+        <th>Gap Dial</th>
+        <th>Key Whole-# Levels</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="idx-link" href="#ndx">NDX</a> (QQQ)</td>
+        <td class="r">21,050 est.</td>
+        <td class="r"><b class="pos">+0.40%</b></td>
+        <td class="r">VXN ~19.0 est.</td>
+        <td class="r"><b class="warnc">±0.86%</b></td>
+        <td class="r">±181 pts</td>
+        <td><b class="neg">Modest ↓ lean</b></td>
+        <td><span class="dial dial-elevated">Elevated</span></td>
+        <td>21,000 / 20,750 / 21,250</td>
+      </tr>
+      <tr>
+        <td><a class="idx-link" href="#spx">SPX</a> (SPY)</td>
+        <td class="r">5,620 est.</td>
+        <td class="r"><b class="pos">+0.49%</b></td>
+        <td class="r">VIX 16.59</td>
+        <td class="r"><b class="warnc">±0.74%</b></td>
+        <td class="r">±42 pts</td>
+        <td><b class="neg">Modest ↓ lean</b></td>
+        <td><span class="dial dial-elevated">Elevated</span></td>
+        <td>5,600 / 5,550 / 5,650 / 5,700</td>
+      </tr>
+      <tr>
+        <td><a class="idx-link" href="#rut">RUT</a> (IWM)</td>
+        <td class="r">2,068 est.</td>
+        <td class="r"><b class="neg">−0.39%</b></td>
+        <td class="r">RVX ~22.0 est.</td>
+        <td class="r"><b class="warnc">±1.00%</b></td>
+        <td class="r">±21 pts</td>
+        <td><b class="neg">Moderate ↓ lean</b></td>
+        <td><span class="dial dial-high">High</span></td>
+        <td>2,050 / 2,025 / 2,100</td>
+      </tr>
+      <tr>
+        <td><a class="idx-link" href="#djx">DJX</a> (DIA)</td>
+        <td class="r">528.1 est.</td>
+        <td class="r"><b class="pos">+0.46%</b></td>
+        <td class="r">VXD ~14.5 est.</td>
+        <td class="r"><b class="pos">±0.65%</b></td>
+        <td class="r">±3.4 pts</td>
+        <td><b class="neg">Slight ↓ lean</b></td>
+        <td><span class="dial dial-elevated">Elevated</span></td>
+        <td>525 / 520 / 530 / 535</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="breadth-note">
+  <b>Breadth read:</b> Thursday showed a <b>rotation-not-collapse</b> signal — Dow hit an ATH while NDX barely gained and RUT dipped. Tech/semis are under pressure (semi ETF SMH −3%, NDX semiconductors like MU −3.4%, NVDA −1.2%) while old-economy and value names lead. This is <b>positioning unwind in tech, not broad risk-off</b>. Watch whether semis stabilize or extend their slide when Asia opens Monday — that's the tell for the holiday gap direction.
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 3 — NDX CARD (highest gap risk)
+═══════════════════════════════════════════════ -->
+<h2 id="ndx"><span class="num">3</span>NDX — Nasdaq 100</h2>
+<div class="card">
+  <a class="back-link" href="#board">↑ Back to Gap Board</a>
+  <div class="card-title">
+    <h3>NDX &mdash; Nasdaq 100 · QQQ</h3>
+    <span class="dial dial-elevated">Gap: Elevated</span>
+    <span class="dial dial-high">1-Week: High</span>
+  </div>
+
+  <div class="card-lead">
+    If you own QQQ or Nasdaq-heavy tech stocks, a 3-day weekend with a weakening semiconductor sector and unresolved Iran talks means Monday's open could swing ±181 points (±0.86%) from Thursday's close — that's roughly a $6–7 move in QQQ. Nothing requires action, but awareness prevents surprise.
+  </div>
+
+  <!-- GAP ODDS TABLE -->
+  <div class="sub-head">Holiday Gap into Monday — Odds Mon Opens DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">NDX close est. ~21,050 · VXN ~19.0 est. · Gap 1-SD = 0.86% (holiday bump applied) · Skew ratio r=1.32 (semi weakness + NDX near cushion line)</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <!-- QUIET ROW -->
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤0.5%)</div>
+      <div class="split-prob-down">~21%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:42%"></div><div class="bar-center"></div><div class="bar-up" style="width:58%"></div></div>
+      </div>
+      <div class="split-prob-up">~29%</div>
+      <div style="font-size:.82em;color:var(--muted);">20,945–21,155</div>
+    </div>
+
+    <!-- >0.5% -->
+    <div class="split-row">
+      <div class="split-label">Move &gt;0.5%</div>
+      <div class="split-prob-down bear-c">~38%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~29%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,945 / ↑&gt;21,155</div>
+    </div>
+
+    <!-- >1.0% -->
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.0%</div>
+      <div class="split-prob-down bear-c">~22%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:60%"></div><div class="bar-center"></div><div class="bar-up" style="width:40%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~15%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,840 / ↑&gt;21,260</div>
+    </div>
+
+    <!-- >1.5% -->
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.5%</div>
+      <div class="split-prob-down bear-c">~11%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:62%"></div><div class="bar-center"></div><div class="bar-up" style="width:38%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~6%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,734 / ↑&gt;21,366</div>
+    </div>
+
+    <!-- >2.0% -->
+    <div class="split-row">
+      <div class="split-label">Move &gt;2.0%</div>
+      <div class="split-prob-down bear-c">~5%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:63%"></div><div class="bar-center"></div><div class="bar-up" style="width:37%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~3%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,629 / ↑&gt;21,471</div>
+    </div>
+
+    <!-- LEAN -->
+    <div class="split-row lean-row">
+      <div class="split-label">Headline Lean</div>
+      <div class="lean-down" style="text-align:right">57% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">skew r=1.32 + semi pressure</div>
+      <div class="lean-up">43% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Est. anchored to Iran + semi tone</div>
+    </div>
+  </div>
+
+  <!-- CUSHION BOX -->
+  <div class="cushion-box cx-neutral">
+    <div class="cx-state">⚡ Cushion (Gamma Flip) — NDX est. near line ~20,800 est.</div>
+    <p style="margin:4px 0;font-size:.88em;"><b>What it means:</b> When dealers (market-makers) are <em>above</em> the cushion line, they automatically buy dips and sell rips — acting like a shock absorber that keeps moves small. When price is <em>at or below</em> that line, they do the opposite, and moves can snowball.</p>
+    <p style="margin:4px 0;font-size:.88em;"><b>Current state (est.):</b> NDX is ~21,050, roughly <b>250 points above the estimated cushion line at ~20,800</b>. That's a thin margin — enough cushion for now, but a gap down through 20,800 could switch the regime and accelerate any decline. <span class="warnc">Watch 20,800 carefully on Monday's open.</span></p>
+    <p style="margin:0;font-size:.82em;color:var(--muted);"><em>Gamma/cushion data is estimated ("est.") — no live dealer gamma feed available. Verify against your broker's options flow tools.</em></p>
+  </div>
+
+  <!-- 1-WEEK OUTLOOK -->
+  <div class="sub-head">1-Week Outlook (Jul 6–10) — Odds NDX Moves DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">Week 1-SD = 1.93% (VXN ~19 over 5 sessions) · Skew r_week = 1.21 (moderated from gap skew)</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤1%)</div>
+      <div class="split-prob-down">~25%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:45%"></div><div class="bar-center"></div><div class="bar-up" style="width:55%"></div></div>
+      </div>
+      <div class="split-prob-up">~30%</div>
+      <div style="font-size:.82em;color:var(--muted);">20,839–21,261</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1%</div>
+      <div class="split-prob-down bear-c">~28%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:56%"></div><div class="bar-center"></div><div class="bar-up" style="width:44%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~22%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,839 / ↑&gt;21,261</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2%</div>
+      <div class="split-prob-down bear-c">~18%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~14%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,643 / ↑&gt;21,457</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;3%</div>
+      <div class="split-prob-down bear-c">~10%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:58%"></div><div class="bar-center"></div><div class="bar-up" style="width:42%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~7%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,420 / ↑&gt;21,680</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;4%</div>
+      <div class="split-prob-down bear-c">~5%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:59%"></div><div class="bar-center"></div><div class="bar-up" style="width:41%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~3%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;20,208 / ↑&gt;21,892</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Weekly Lean</div>
+      <div class="lean-down" style="text-align:right">55% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r_week=1.21, moderated</div>
+      <div class="lean-up">45% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">FOMC minutes + semi recovery key</div>
+    </div>
+  </div>
+
+  <!-- LEVEL LADDER -->
+  <div class="sub-head">Whole-Number Level Ladder</div>
+  <table class="ladder">
+    <tr><td class="ltype">Resistance 2</td><td class="lval">21,500</td><td style="font-size:.82em;color:var(--muted);">Round 250, 1-week upper 1-SD</td></tr>
+    <tr><td class="ltype">Resistance 1</td><td class="lval">21,250</td><td style="font-size:.82em;color:var(--muted);">Round 250, recent high zone</td></tr>
+    <tr class="lclose-row"><td class="ltype">📍 Thu Close</td><td class="lval">~21,050 est.</td><td style="font-size:.82em;">Reference level for all targets</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↑</td><td class="lval">21,231</td><td style="font-size:.82em;color:var(--muted);">+0.86% from close</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↓</td><td class="lval">20,869</td><td style="font-size:.82em;color:var(--muted);">−0.86% from close</td></tr>
+    <tr><td class="ltype">Cushion Line</td><td class="lval">~20,800 est.</td><td style="font-size:.82em;color:var(--warnc);">Gamma flip — est., verify</td></tr>
+    <tr><td class="ltype">Support 1</td><td class="lval">20,750</td><td style="font-size:.82em;color:var(--muted);">Round 250, week 1-SD ↓</td></tr>
+    <tr><td class="ltype">Support 2</td><td class="lval">20,500</td><td style="font-size:.82em;color:var(--muted);">Round 250, prior consolidation</td></tr>
+  </table>
+
+  <div class="card-meta-row">
+    <span>📅 Catalyst: Iran funeral Jul 4–9 + FOMC minutes Jul 8</span>
+    <span>⛽ Volume: QQQ avg-pace est. on semi selloff</span>
+    <span>↩ Gap-fill: Semi weakness suggests <b>momentum gap</b> — respect it, not fade it, if down &gt;1%</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 4 — SPX CARD
+═══════════════════════════════════════════════ -->
+<h2 id="spx"><span class="num">4</span>SPX — S&amp;P 500</h2>
+<div class="card">
+  <a class="back-link" href="#board">↑ Back to Gap Board</a>
+  <div class="card-title">
+    <h3>SPX &mdash; S&amp;P 500 · SPY</h3>
+    <span class="dial dial-elevated">Gap: Elevated</span>
+    <span class="dial dial-elevated">1-Week: Elevated</span>
+  </div>
+
+  <div class="card-lead">
+    The S&P 500 closed higher Thursday (+0.49%) but the index is being pulled in two directions: Dow/value stocks bullish, tech/semis bearish. VIX at 16.6 is moderate — not screaming fear, but a 3-day holiday with Iran risk means the gap band of ±42 points (±0.74%) is genuinely wide enough to matter for SPY holders.
+  </div>
+
+  <!-- GAP ODDS TABLE -->
+  <div class="sub-head">Holiday Gap into Monday — Odds Mon Opens DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">SPX close est. ~5,620 · VIX 16.59 · Gap 1-SD = 0.74% (holiday bump) · Skew r=1.28 (broad index, moderate Iran + semi risk)</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤0.5%)</div>
+      <div class="split-prob-down">~23%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:44%"></div><div class="bar-center"></div><div class="bar-up" style="width:56%"></div></div>
+      </div>
+      <div class="split-prob-up">~30%</div>
+      <div style="font-size:.82em;color:var(--muted);">5,592–5,648</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;0.5%</div>
+      <div class="split-prob-down bear-c">~36%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:55%"></div><div class="bar-center"></div><div class="bar-up" style="width:45%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~29%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,592 / ↑&gt;5,648</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.0%</div>
+      <div class="split-prob-down bear-c">~21%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~14%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,564 / ↑&gt;5,676</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.5%</div>
+      <div class="split-prob-down bear-c">~10%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:60%"></div><div class="bar-center"></div><div class="bar-up" style="width:40%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~6%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,536 / ↑&gt;5,704</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2.0%</div>
+      <div class="split-prob-down bear-c">~4%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:60%"></div><div class="bar-center"></div><div class="bar-up" style="width:40%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~3%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,508 / ↑&gt;5,732</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Headline Lean</div>
+      <div class="lean-down" style="text-align:right">56% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r=1.28, broad skew</div>
+      <div class="lean-up">44% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Offset by Dow ATH & jobs miss (rate relief)</div>
+    </div>
+  </div>
+
+  <!-- CUSHION BOX SPX -->
+  <div class="cushion-box cx-on">
+    <div class="cx-state">✅ Cushion (Gamma Flip) — SPX is above the cushion line: est. ~5,550</div>
+    <p style="margin:4px 0;font-size:.88em;"><b>What the cushion means:</b> Dealers (big options market-makers) are currently in a "positive gamma" (shock absorber) regime for SPX. When a stock or index falls, they automatically buy futures to stay hedged — which pushes prices back up. When it rises, they sell. Result: moves tend to <em>fade</em> rather than snowball. This is the safest gamma environment.</p>
+    <p style="margin:4px 0;font-size:.88em;"><b>Current state (est.):</b> SPX ~5,620 is roughly <b>70 points above the estimated cushion line at ~5,550</b>. That's a reasonable buffer for a normal weekend, but a 70-point gap-down would put SPX right on the line — at which point the cushion regime could switch off and accelerate any further decline. <span class="pos">As long as we stay above 5,550, the shock absorber is on.</span></p>
+    <p style="margin:0;font-size:.82em;color:var(--muted);"><em>Gamma/cushion line is estimated ("est.") — verify against live dealer gamma data from your broker or SpotGamma/Cboe.</em></p>
+  </div>
+
+  <!-- 1-WEEK OUTLOOK SPX -->
+  <div class="sub-head">1-Week Outlook (Jul 6–10) — Odds SPX Moves DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">Week 1-SD = 1.65% (VIX 16.59 over 5 sessions) · Skew r_week = 1.18</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤1%)</div>
+      <div class="split-prob-down">~28%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:48%"></div><div class="bar-center"></div><div class="bar-up" style="width:52%"></div></div>
+      </div>
+      <div class="split-prob-up">~30%</div>
+      <div style="font-size:.82em;color:var(--muted);">5,564–5,676</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1%</div>
+      <div class="split-prob-down bear-c">~24%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:55%"></div><div class="bar-center"></div><div class="bar-up" style="width:45%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~20%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,564 / ↑&gt;5,676</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2%</div>
+      <div class="split-prob-down bear-c">~14%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:56%"></div><div class="bar-center"></div><div class="bar-up" style="width:44%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~11%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,507 / ↑&gt;5,733</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;3%</div>
+      <div class="split-prob-down bear-c">~7%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~5%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,451 / ↑&gt;5,789</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;4%</div>
+      <div class="split-prob-down bear-c">~3%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:58%"></div><div class="bar-center"></div><div class="bar-up" style="width:42%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~2%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;5,395 / ↑&gt;5,845</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Weekly Lean</div>
+      <div class="lean-down" style="text-align:right">54% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r_week=1.18</div>
+      <div class="lean-up">46% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Near coin-flip — cushion above supports upside</div>
+    </div>
+  </div>
+
+  <!-- LEVEL LADDER SPX -->
+  <div class="sub-head">Whole-Number Level Ladder</div>
+  <table class="ladder">
+    <tr><td class="ltype">Resistance 2</td><td class="lval">5,700</td><td style="font-size:.82em;color:var(--muted);">Round 50, 1-week upper 1-SD zone</td></tr>
+    <tr><td class="ltype">Resistance 1</td><td class="lval">5,650</td><td style="font-size:.82em;color:var(--muted);">Round 50, recent high area</td></tr>
+    <tr class="lclose-row"><td class="ltype">📍 Thu Close</td><td class="lval">~5,620 est.</td><td style="font-size:.82em;">Reference for all targets</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↑</td><td class="lval">5,662</td><td style="font-size:.82em;color:var(--muted);">+0.74% from close</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↓</td><td class="lval">5,578</td><td style="font-size:.82em;color:var(--muted);">−0.74% from close</td></tr>
+    <tr><td class="ltype">Cushion Line</td><td class="lval">~5,550 est.</td><td style="font-size:.82em;color:var(--bull);">Gamma flip — est., cushion ON above here</td></tr>
+    <tr><td class="ltype">Support 1</td><td class="lval">5,550</td><td style="font-size:.82em;color:var(--muted);">Round 50, cushion zone</td></tr>
+    <tr><td class="ltype">Support 2</td><td class="lval">5,500</td><td style="font-size:.82em;color:var(--muted);">Round 100, prior consolidation</td></tr>
+  </table>
+
+  <div class="card-meta-row">
+    <span>📅 Catalyst: Iran funeral Jul 4–9 · FOMC minutes Jul 8 · ISM Services Jul 6</span>
+    <span>⛽ Volume: SPY pace est. average — not conviction-level</span>
+    <span>↩ Gap-fill: Ordinary ±0.5% gaps at the open often fill by noon; a gap &gt;1% with tech still sliding is less likely to fill quickly</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 5 — RUT CARD
+═══════════════════════════════════════════════ -->
+<h2 id="rut"><span class="num">5</span>RUT — Russell 2000</h2>
+<div class="card">
+  <a class="back-link" href="#board">↑ Back to Gap Board</a>
+  <div class="card-title">
+    <h3>RUT &mdash; Russell 2000 · IWM</h3>
+    <span class="dial dial-high">Gap: High</span>
+    <span class="dial dial-high">1-Week: High</span>
+  </div>
+
+  <div class="card-lead">
+    Small-cap stocks (the Russell 2000) closed down −0.39% Thursday even as the Dow hit an ATH. That divergence, plus RVX (small-cap volatility gauge) estimated ~22 — the highest of the four indices — means IWM holders face the widest holiday gap band of ±1.0% (±21 points). Small caps are more sensitive to US economic data and interest-rate fear — and the jobs miss makes that a two-way risk.
+  </div>
+
+  <!-- GAP ODDS TABLE RUT -->
+  <div class="sub-head">Holiday Gap into Monday — Odds Mon Opens DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">RUT close est. ~2,068 · RVX ~22.0 est. · Gap 1-SD = 1.00% (holiday bump) · Skew r=1.30 (small-cap rate sensitivity + Iran risk)</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤0.5%)</div>
+      <div class="split-prob-down">~20%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:41%"></div><div class="bar-center"></div><div class="bar-up" style="width:59%"></div></div>
+      </div>
+      <div class="split-prob-up">~27%</div>
+      <div style="font-size:.82em;color:var(--muted);">2,058–2,078</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;0.5%</div>
+      <div class="split-prob-down bear-c">~40%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:58%"></div><div class="bar-center"></div><div class="bar-up" style="width:42%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~28%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,058 / ↑&gt;2,078</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.0%</div>
+      <div class="split-prob-down bear-c">~24%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:60%"></div><div class="bar-center"></div><div class="bar-up" style="width:40%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~15%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,047 / ↑&gt;2,089</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.5%</div>
+      <div class="split-prob-down bear-c">~12%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:63%"></div><div class="bar-center"></div><div class="bar-up" style="width:37%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~7%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,037 / ↑&gt;2,099</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2.0%</div>
+      <div class="split-prob-down bear-c">~6%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:63%"></div><div class="bar-center"></div><div class="bar-up" style="width:37%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~4%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,027 / ↑&gt;2,109</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Headline Lean</div>
+      <div class="lean-down" style="text-align:right">57% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r=1.30 + day's negative close</div>
+      <div class="lean-up">43% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Jobs miss = rate-hike risk eases = mixed for small-cap</div>
+    </div>
+  </div>
+
+  <!-- THIN GAMMA NOTE RUT -->
+  <div class="cushion-box cx-neutral">
+    <div class="cx-state">⚡ Gamma / Cushion — Thin data for RUT</div>
+    <p style="margin:4px 0;font-size:.88em;">Dealer gamma data is sparse for the Russell 2000. No reliable cushion line available. As a result: <b>assume thin gamma protection</b> — RUT gaps tend to run further before fading than SPX gaps do. A downside gap through <b>2,050</b> (round support) risks extending to 2,025 without natural dealer buying to slow it.</p>
+    <p style="margin:0;font-size:.82em;color:var(--muted);"><em>Use RVX as your volatility reference (~22 est.) and watch IWM volume on the Monday open for confirmation of direction.</em></p>
+  </div>
+
+  <!-- 1-WEEK RUT -->
+  <div class="sub-head">1-Week Outlook (Jul 6–10)</div>
+  <p style="font-size:.85em;color:var(--muted);">Week 1-SD = 2.22% (RVX ~22 over 5 sessions) · Skew r_week = 1.20</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤1%)</div>
+      <div class="split-prob-down">~22%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:43%"></div><div class="bar-center"></div><div class="bar-up" style="width:57%"></div></div>
+      </div>
+      <div class="split-prob-up">~29%</div>
+      <div style="font-size:.82em;color:var(--muted);">2,047–2,089</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1%</div>
+      <div class="split-prob-down bear-c">~30%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~23%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,047 / ↑&gt;2,089</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2%</div>
+      <div class="split-prob-down bear-c">~20%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:57%"></div><div class="bar-center"></div><div class="bar-up" style="width:43%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~15%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,027 / ↑&gt;2,109</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;3%</div>
+      <div class="split-prob-down bear-c">~11%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:58%"></div><div class="bar-center"></div><div class="bar-up" style="width:42%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~8%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;2,006 / ↑&gt;2,130</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;4%</div>
+      <div class="split-prob-down bear-c">~6%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:59%"></div><div class="bar-center"></div><div class="bar-up" style="width:41%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~4%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;1,986 / ↑&gt;2,151</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Weekly Lean</div>
+      <div class="lean-down" style="text-align:right">55% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r_week=1.20</div>
+      <div class="lean-up">45% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Rate easing potential (jobs miss) = upside tail for small-cap</div>
+    </div>
+  </div>
+
+  <!-- LEVEL LADDER RUT -->
+  <div class="sub-head">Whole-Number Level Ladder</div>
+  <table class="ladder">
+    <tr><td class="ltype">Resistance 2</td><td class="lval">2,125</td><td style="font-size:.82em;color:var(--muted);">Round 25, 1-week upper zone</td></tr>
+    <tr><td class="ltype">Resistance 1</td><td class="lval">2,100</td><td style="font-size:.82em;color:var(--muted);">Round 100, near-term ceiling</td></tr>
+    <tr class="lclose-row"><td class="ltype">📍 Thu Close</td><td class="lval">~2,068 est.</td><td style="font-size:.82em;">Reference level</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↑</td><td class="lval">2,089</td><td style="font-size:.82em;color:var(--muted);">+1.00% from close</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↓</td><td class="lval">2,047</td><td style="font-size:.82em;color:var(--muted);">−1.00% from close</td></tr>
+    <tr><td class="ltype">Support 1</td><td class="lval">2,050</td><td style="font-size:.82em;color:var(--muted);">Round 50 — watch for extension if broken</td></tr>
+    <tr><td class="ltype">Support 2</td><td class="lval">2,025</td><td style="font-size:.82em;color:var(--muted);">Round 25, secondary support</td></tr>
+  </table>
+
+  <div class="card-meta-row">
+    <span>📅 Catalyst: ISM Services Jul 6 · FOMC minutes Jul 8</span>
+    <span>⛽ Volume: IWM pace est. — divergent from large-cap Thursday</span>
+    <span>↩ Gap-fill: RUT gaps extend more often than SPX — no dealer cushion. Momentum-follow if down &gt;1%.</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 6 — DJX CARD
+═══════════════════════════════════════════════ -->
+<h2 id="djx"><span class="num">6</span>DJX — Dow Jones / 100</h2>
+<div class="card">
+  <a class="back-link" href="#board">↑ Back to Gap Board</a>
+  <div class="card-title">
+    <h3>DJX &mdash; Dow Jones Industrial Average &divide; 100 · DIA</h3>
+    <span class="dial dial-elevated">Gap: Elevated</span>
+    <span class="dial dial-elevated">1-Week: Elevated</span>
+  </div>
+
+  <div class="card-lead">
+    The Dow hit a new all-time intraday high Thursday (~52,805) and closed up +0.46%. VXD (Dow-specific volatility gauge, est. ~14.5) is the lowest of the four indices — if you hold DIA, this is the calmest corner of the market right now. The holiday gap band is ±0.65% (±3.4 DJX points) — Elevated rather than High because value/old-economy stocks are actually holding up well.
+  </div>
+
+  <!-- GAP ODDS TABLE DJX -->
+  <div class="sub-head">Holiday Gap into Monday — Odds Mon Opens DOWN vs UP</div>
+  <p style="font-size:.85em;color:var(--muted);">DJX close est. ~528.1 · VXD ~14.5 est. · Gap 1-SD = 0.65% (holiday bump) · Skew r=1.22 (value resilient; Iran geopolitical tail applies broadly)</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤0.5%)</div>
+      <div class="split-prob-down">~26%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:48%"></div><div class="bar-center"></div><div class="bar-up" style="width:52%"></div></div>
+      </div>
+      <div class="split-prob-up">~32%</div>
+      <div style="font-size:.82em;color:var(--muted);">525.5–530.7</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;0.5%</div>
+      <div class="split-prob-down bear-c">~32%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:53%"></div><div class="bar-center"></div><div class="bar-up" style="width:47%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~28%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;525.5 / ↑&gt;530.7</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.0%</div>
+      <div class="split-prob-down bear-c">~18%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:54%"></div><div class="bar-center"></div><div class="bar-up" style="width:46%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~14%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;522.8 / ↑&gt;533.4</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1.5%</div>
+      <div class="split-prob-down bear-c">~8%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:55%"></div><div class="bar-center"></div><div class="bar-up" style="width:45%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~6%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;520.2 / ↑&gt;536.0</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2.0%</div>
+      <div class="split-prob-down bear-c">~4%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:56%"></div><div class="bar-center"></div><div class="bar-up" style="width:44%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~3%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;517.5 / ↑&gt;538.7</td>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Headline Lean</div>
+      <div class="lean-down" style="text-align:right">55% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r=1.22, mildest skew</div>
+      <div class="lean-up">45% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">ATH close + oil retreat = offsetting forces</div>
+    </div>
+  </div>
+
+  <!-- THIN GAMMA NOTE DJX -->
+  <div class="cushion-box cx-neutral">
+    <div class="cx-state">ℹ️ Gamma / Cushion — Thin data for DJX/DIA</div>
+    <p style="margin:4px 0;font-size:.88em;">Dealer gamma data is limited for the Dow. Assume moderate cushion — the Dow's 30-stock composition and value tilt historically show less volatile opening gaps than the NDX. Key support: DJX <b>520</b> (round), corresponding to Dow ~52,000. Given the new ATH, a gap down would need to break 520 to shift sentiment meaningfully.</p>
+  </div>
+
+  <!-- 1-WEEK DJX -->
+  <div class="sub-head">1-Week Outlook (Jul 6–10)</div>
+  <p style="font-size:.85em;color:var(--muted);">Week 1-SD = 1.46% (VXD ~14.5 over 5 sessions) · Skew r_week = 1.14</p>
+
+  <div class="split-container">
+    <div class="split-row header-row">
+      <div>Scenario</div>
+      <div style="text-align:right">↓ DOWN odds</div>
+      <div></div>
+      <div></div>
+      <div style="text-align:left">UP ↑ odds</div>
+      <div>Price targets (est.)</div>
+    </div>
+
+    <div class="split-row quiet-row">
+      <div class="split-label">Quiet (≤1%)</div>
+      <div class="split-prob-down">~29%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:48%"></div><div class="bar-center"></div><div class="bar-up" style="width:52%"></div></div>
+      </div>
+      <div class="split-prob-up">~31%</div>
+      <div style="font-size:.82em;color:var(--muted);">522.8–533.4</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;1%</div>
+      <div class="split-prob-down bear-c">~21%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:53%"></div><div class="bar-center"></div><div class="bar-up" style="width:47%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~18%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;522.8 / ↑&gt;533.4</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;2%</div>
+      <div class="split-prob-down bear-c">~11%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:54%"></div><div class="bar-center"></div><div class="bar-up" style="width:46%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~9%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;517.5 / ↑&gt;538.7</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;3%</div>
+      <div class="split-prob-down bear-c">~5%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:55%"></div><div class="bar-center"></div><div class="bar-up" style="width:45%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~4%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;512.2 / ↑&gt;544.0</div>
+    </div>
+
+    <div class="split-row">
+      <div class="split-label">Move &gt;4%</div>
+      <div class="split-prob-down bear-c">~2%</div>
+      <div colspan="2">
+        <div class="bar-wrap"><div class="bar-down" style="width:56%"></div><div class="bar-center"></div><div class="bar-up" style="width:44%"></div></div>
+      </div>
+      <div class="split-prob-up bull-c">~2%</div>
+      <div style="font-size:.82em;color:var(--muted);">↓&lt;506.9 / ↑&gt;549.3</div>
+    </div>
+
+    <div class="split-row lean-row">
+      <div class="split-label">Weekly Lean</div>
+      <div class="lean-down" style="text-align:right">53% ↓</div>
+      <div colspan="2" style="text-align:center;font-size:.8em;color:var(--muted)">r_week=1.14, mildest</div>
+      <div class="lean-up">47% ↑</div>
+      <div style="font-size:.82em;color:var(--muted);">Closest to coin-flip; ATH momentum supportive</div>
+    </div>
+  </div>
+
+  <!-- LEVEL LADDER DJX -->
+  <div class="sub-head">Whole-Number Level Ladder</div>
+  <table class="ladder">
+    <tr><td class="ltype">Resistance 2</td><td class="lval">535</td><td style="font-size:.82em;color:var(--muted);">Round 5, Dow ~53,500</td></tr>
+    <tr><td class="ltype">Resistance 1</td><td class="lval">530</td><td style="font-size:.82em;color:var(--muted);">Round 5 — near ATH high</td></tr>
+    <tr class="lclose-row"><td class="ltype">📍 Thu Close / ATH</td><td class="lval">~528.1 est.</td><td style="font-size:.82em;">New all-time high territory</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↑</td><td class="lval">531.5</td><td style="font-size:.82em;color:var(--muted);">+0.65% from close</td></tr>
+    <tr><td class="ltype">Gap 1-SD ↓</td><td class="lval">524.7</td><td style="font-size:.82em;color:var(--muted);">−0.65% from close</td></tr>
+    <tr><td class="ltype">Support 1</td><td class="lval">525</td><td style="font-size:.82em;color:var(--muted);">Round 5, prior breakout area</td></tr>
+    <tr><td class="ltype">Support 2</td><td class="lval">520</td><td style="font-size:.82em;color:var(--muted);">Round 5, prior consolidation</td></tr>
+  </table>
+
+  <div class="card-meta-row">
+    <span>📅 Catalyst: FOMC minutes Jul 8 · ISM Services Jul 6</span>
+    <span>⛽ Volume: DIA pace est. — solid on ATH close</span>
+    <span>↩ Gap-fill: ATH gaps often partially fill on Mondays — value names lead and momentum fades intraday; small-down gaps (≤0.5%) historically do fill.</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 7 — BIG MOVE RANKING
+═══════════════════════════════════════════════ -->
+<h2 id="bigmove"><span class="num">7</span>Big Move Ranking</h2>
+<p style="font-size:.9em;color:var(--muted);">This table ranks which index is <b>most likely to make a large move</b> over the next 5 sessions. This is a <b>size measure, not a direction call</b> — a top-ranked index has the widest expected range, which means both bigger upside AND bigger downside potential. Use it to size positions and set stops, not to predict which way things go.</p>
+<div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th class="r">Rank</th>
+        <th>Index (ETF)</th>
+        <th class="r">1-Wk 1-SD %</th>
+        <th>P(&gt;3% weekly move)</th>
+        <th>Lean (directional, modest)</th>
+        <th>1-Wk Dial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="r"><b>1</b></td>
+        <td><a class="idx-link" href="#rut">RUT</a> (IWM)</td>
+        <td class="r"><b class="warnc">2.22%</b></td>
+        <td>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:76%"></div></div>
+            <span class="prob-val warnc">~19%</span>
+          </div>
+        </td>
+        <td><b class="neg">Modest ↓</b> — rate sensitivity + thin gamma</td>
+        <td><span class="dial dial-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="r"><b>2</b></td>
+        <td><a class="idx-link" href="#ndx">NDX</a> (QQQ)</td>
+        <td class="r"><b class="warnc">1.93%</b></td>
+        <td>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:58%"></div></div>
+            <span class="prob-val warnc">~14%</span>
+          </div>
+        </td>
+        <td><b class="neg">Modest ↓</b> — semi weakness + thin cushion</td>
+        <td><span class="dial dial-high">High</span></td>
+      </tr>
+      <tr>
+        <td class="r"><b>3</b></td>
+        <td><a class="idx-link" href="#spx">SPX</a> (SPY)</td>
+        <td class="r">1.65%</td>
+        <td>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:42%"></div></div>
+            <span class="prob-val">~10%</span>
+          </div>
+        </td>
+        <td><b class="neg">Slight ↓</b> — cushion ON; mixed rotation</td>
+        <td><span class="dial dial-elevated">Elevated</span></td>
+      </tr>
+      <tr>
+        <td class="r"><b>4</b></td>
+        <td><a class="idx-link" href="#djx">DJX</a> (DIA)</td>
+        <td class="r"><b class="pos">1.46%</b></td>
+        <td>
+          <div class="prob-bar-wrap">
+            <div class="prob-bar-bg"><div class="prob-bar-fill" style="width:28%"></div></div>
+            <span class="prob-val pos">~7%</span>
+          </div>
+        </td>
+        <td><b class="neg">Slight ↓</b> — closest to coin-flip; ATH momentum</td>
+        <td><span class="dial dial-elevated">Elevated</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="mut" style="font-size:.82em;margin-top:6px;">P(&gt;3%) = 2 × (1 − Φ(3 / week_sigma)) using each index's own volatility index. Real tails are fatter than normal — treat these probabilities as a floor, not the true upper bound. "High" dial is a flag to be aware of wide potential range; it is NOT a bearish signal by itself.</p>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 8 — THE CLOCK
+═══════════════════════════════════════════════ -->
+<h2 id="clock"><span class="num">8</span>The Clock — Where the Holiday Gap Gets Made</h2>
+<p style="font-size:.9em;color:var(--muted);">US markets close Thursday July 2 at 4:00 PM ET and reopen Monday July 6 at 9:30 AM ET — <b>three closed days</b>. Every event below can contribute to Monday's opening gap. The biggest single risk is an Iran/Hormuz escalation over the 4-day window — it would hit oil first, then flow into equity futures Sunday night.</p>
+
+<div class="clock-timeline">
+  <div class="clock-item">
+    <div><div class="clock-time">Thu Jul 2 · 4:00 PM ET</div></div>
+    <div><div class="clock-evt">🔒 US Markets Close</div><div class="clock-note">Thursday close is the gap reference. SPX est. ~5,620 · NDX ~21,050 · DJX ~528 · RUT ~2,068. No more US price discovery until Monday open.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Thu Jul 2 · After-close</div></div>
+    <div><div class="clock-evt">🌙 No major earnings tonight</div><div class="clock-note">Earnings season is between quarters. No mega-cap prints scheduled that would directly reprice NDX/SPX weight overnight.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Fri Jul 3 · ALL DAY</div></div>
+    <div><div class="clock-evt">🇺🇸 US Independence Day — NYSE + Nasdaq CLOSED</div><div class="clock-note">Full market holiday. US bond markets also closed. No US price discovery. International markets and FX/oil trade normally.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Fri–Sun · Jul 3–5</div></div>
+    <div><div class="clock-evt">⚠️ Iran Funeral Window — HIGHEST GEOPOLITICAL RISK</div><div class="clock-note">Ayatollah Khamenei's state funeral runs July 4–9. US-Iran talks are on hold per Qatari/Pakistani mediators. Any military escalation, drone strike, or Strait of Hormuz closure event over this window hits equity futures Sunday night before US can respond. Watch crude oil and gold as the early warning signals.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Fri Jul 3 · Asia session</div></div>
+    <div><div class="clock-evt">🌏 Asia Opens (Tokyo 9:00 AM JST = Thu 8:00 PM ET)</div><div class="clock-note">Nikkei 225 was +0.59% (70,475) Thursday. KOSPI has been volatile (chip exposure). Hang Seng ~22,881 (−0.63%). Any further KOSPI/TSMC chip news will be the first signal of whether NDX gap opens down Monday. Japan open Friday = first major market to react to jobs data + Iran.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Fri Jul 3 · Europe session</div></div>
+    <div><div class="clock-evt">🌍 Europe Opens (Frankfurt 9:00 AM CET = 3:00 AM ET)</div><div class="clock-note">DAX ~25,008 (flat Thu), CAC ~8,327 (−0.92%). Europe will react to the US June jobs miss and any Iran weekend news. ASML (chip equipment, Amsterdam) is the key NDX-correlated name in Europe. DAX direction sets the tone for US futures Sunday night.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Sat–Sun · Jul 4–5</div></div>
+    <div><div class="clock-evt">🌐 Mideast weekend — watch crude oil futures</div><div class="clock-note">Oil was ~$68-69/bbl Thu (retreating). Crude trades on Globex Sunday 6:00 PM ET. An oil spike +$5 or more on Sunday open is the clearest early warning of a risk-off Monday gap. Conversely, an oil drop on positive Iran-talks news = risk-on signal.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Sun Jul 5 · 6:00 PM ET</div></div>
+    <div><div class="clock-evt">🌙 ES/NQ/YM/RTY Futures Reopen</div><div class="clock-note">This is THE moment. US index futures reopen for Sunday night trading. The gap is set here — ES above or below 5,620 est. tells you the direction immediately. NQ below 19,050 (equivalent) = semis extended and cushion line threatened.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Mon Jul 6 · 9:30 AM ET</div></div>
+    <div><div class="clock-evt">🔔 US Markets Reopen — Gap is realized</div><div class="clock-note">ISM Services PMI at 10:00 AM ET same day. A hot ISM (>55) combined with a gap-up could extend the move. A cold ISM (&lt;50) with a gap-down could add a second leg lower. Watch the first 15-minute candle for volume confirmation.</div></div>
+  </div>
+  <div class="clock-item">
+    <div><div class="clock-time">Tue Jul 8</div></div>
+    <div><div class="clock-evt">📋 FOMC Minutes Released</div><div class="clock-note">From the June meeting where the Fed held at 3.50–3.75%. The minutes could confirm or refute hawkish/dovish tilt. Any hint of a September hike discussion would hit NDX/RUT harder than DJX.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 9 — EVENT CALENDAR
+═══════════════════════════════════════════════ -->
+<h2 id="calendar"><span class="num">9</span>Event Calendar — Next 5 Sessions</h2>
+<p style="font-size:.9em;color:var(--muted);">All times ET. Green = already done (priced in). Amber = hot catalyst. Blue = today's open session. Blank = no major scheduled event.</p>
+<table class="cal-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Session</th>
+      <th>Event</th>
+      <th>Market Impact</th>
+      <th>Indices Most Affected</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="cal-done">
+      <td>Thu Jul 2</td>
+      <td>8:30 AM</td>
+      <td>✅ June Nonfarm Payrolls — 57K (miss vs 115K est.)</td>
+      <td>Jobs miss → rate-hike odds drop → relief rally for Dow; semis still under pressure</td>
+      <td>All indices — DJX bullish, NDX/RUT mixed</td>
+    </tr>
+    <tr class="cal-done">
+      <td>Thu Jul 2</td>
+      <td>4:00 PM</td>
+      <td>✅ US Markets Close · DJX new ATH</td>
+      <td>Gap reference set: SPX ~5,620, NDX ~21,050, DJX ~528, RUT ~2,068</td>
+      <td>All — reference levels</td>
+    </tr>
+    <tr class="cal-hot">
+      <td>Fri Jul 3</td>
+      <td>All day</td>
+      <td>⚠️ US Markets Closed — Independence Day</td>
+      <td>No US price discovery · Iran funeral begins · Crude oil / gold as early signals</td>
+      <td>All — geopolitical risk window opens</td>
+    </tr>
+    <tr class="cal-hot">
+      <td>Fri–Sun Jul 3–5</td>
+      <td>Ongoing</td>
+      <td>⚠️ Iran Funeral Window (Jul 4–9) / Strait of Hormuz</td>
+      <td>Talks stalled per Qatari/Pakistani mediators; escalation risk elevated; oil price is the tell</td>
+      <td>All — energy names, DJX defense sector; NDX most vulnerable</td>
+    </tr>
+    <tr class="cal-hot">
+      <td>Mon Jul 6</td>
+      <td>9:30 AM</td>
+      <td>⚠️ US Markets Reopen — Holiday Gap Realized</td>
+      <td>First price discovery after 3-day closure. Futures direction from Sun 6 PM ET is the lead</td>
+      <td>All indices</td>
+    </tr>
+    <tr class="cal-hot">
+      <td>Mon Jul 6</td>
+      <td>10:00 AM</td>
+      <td>⚠️ ISM Services PMI (June)</td>
+      <td>Services data lands INTO the reopened tape — a hot or cold read can extend the Monday gap move</td>
+      <td>SPX, DJX (service-heavy), RUT</td>
+    </tr>
+    <tr>
+      <td>Tue Jul 7</td>
+      <td>—</td>
+      <td>No major scheduled events</td>
+      <td>Digestion session; watch for any Iran developments</td>
+      <td>All</td>
+    </tr>
+    <tr class="cal-hot">
+      <td>Wed Jul 8</td>
+      <td>2:00 PM</td>
+      <td>⚠️ FOMC Minutes (June meeting)</td>
+      <td>Fed held at 3.50–3.75%. Minutes may reveal hawkish vs. patient debate. Hike language = NDX/RUT pressure</td>
+      <td>NDX, RUT most rate-sensitive</td>
+    </tr>
+    <tr>
+      <td>Wed–Thu Jul 8–9</td>
+      <td>After-close</td>
+      <td>Early Q2 earnings (PEP Jul 9 est.) + Iran funeral concludes Jul 9</td>
+      <td>End of funeral window; any de-escalation signal = risk-on; PEP = DJX component</td>
+      <td>DJX (PEP), broader sentiment</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 10 — GAP PLAYBOOK
+═══════════════════════════════════════════════ -->
+<h2 id="playbook"><span class="num">10</span>Gap Playbook</h2>
+<p style="font-size:.9em;color:var(--muted);">Holiday-specific, plain-English rules for this gap. These are general tendencies — not guaranteed outcomes. Every situation is different; use your own judgment.</p>
+<div class="play-grid">
+  <div class="play-do">
+    <h4>✅ DO</h4>
+    <ul>
+      <li>Check crude oil futures (Globex) Sunday at 6 PM ET <em>before</em> looking at ES/NQ — oil is the first tell for an Iran-related gap.</li>
+      <li>Look at ES futures direction <em>before</em> the 9:30 open Monday and wait for the first 5–15 minutes of price action to confirm before entering new positions.</li>
+      <li>Use <b>wider stops than normal</b> on Monday morning — 3 closed days means the gap itself can be sizeable and intraday volatility is typically higher after long weekends.</li>
+      <li>Watch the <b>VIX and VXN at 9:31 AM</b> Monday — if they spike &gt;10% from Thursday's close, treat it as elevated regime; if they fall, the gap may fade.</li>
+      <li>If you hold long NDX/QQQ through the weekend, <b>know your cushion line (~20,800 est.)</b> — a Monday open below that level changes the game and you should have a plan ready.</li>
+      <li>Keep position sizes <b>smaller than normal</b> going into the Monday open. Scale in after direction is confirmed.</li>
+    </ul>
+  </div>
+  <div class="play-dont">
+    <h4>❌ DON'T</h4>
+    <ul>
+      <li>Don't chase a large Monday gap (&gt;1%) at the open without waiting for the 10:00 AM ISM data — that print can reverse or extend the move sharply.</li>
+      <li>Don't assume a Monday gap-down is a buying opportunity just because "gaps fill." Semiconductor-driven momentum gaps often <em>don't</em> fill quickly — verify the cause first.</li>
+      <li>Don't ignore the Iran/oil headline risk over the holiday. A Strait of Hormuz escalation is a left-tail event that wouldn't be visible in Thursday's closing prices.</li>
+      <li>Don't treat the NDX/DJX divergence as permanent. If semiconductors stabilize or bounce Monday, NDX can recover quickly and catch up to the Dow's strength.</li>
+      <li>Don't add size to NDX/QQQ longs ahead of the FOMC minutes (July 8) — any hawkish language on rate hikes hits tech first.</li>
+      <li>Don't confuse a "modest ↓ lean" (55–57%) with a sure thing. These are probability bands, not predictions. The range of outcomes is wide; plan for both sides.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 11 — ONE-LINE TAKEAWAY
+═══════════════════════════════════════════════ -->
+<div class="takeaway-banner">
+  <div class="t-main">⚠️ A 3-day holiday window with Iran in a funeral-period freeze and semis still sliding puts a modest downside lean on all four indices — but the Dow's all-time high and the jobs miss (easing rate-hike pressure) keep this from being a clear bearish call.</div>
+  <div class="t-sub">Watch crude oil Sunday evening at 6 PM ET: a spike means the Iran risk is pricing in and Monday's gap will be down; a drop or stable print means the lean fades and the Dow's ATH momentum can dominate.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SECTION 12 — HOW TO READ THIS REPORT
+═══════════════════════════════════════════════ -->
+<h2 id="legend"><span class="num">11</span>How To Read This Report</h2>
+<div class="legend-grid">
+  <div class="legend-item">
+    <div class="li-term">Implied Move (Gap / 1-Week)</div>
+    <div class="li-def">The ±1-standard-deviation range derived from each index's own volatility index (VIX/VXN/RVX/VXD). About 2-in-3 moves land <em>inside</em> the band; roughly 1-in-3 exceed it. Wider band = more uncertainty, not necessarily more danger.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Two Horizons</div>
+    <div class="li-def">The <b>gap horizon</b> covers only the next opening (Thu close → Mon open for this holiday report). The <b>1-week horizon</b> covers the next ~5 trading sessions. They use different math: the gap uses an overnight variance factor (0.57) × holiday bump (1.25); the 1-week does not.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Quiet Row (≤0.5% gap / ≤1% week)</div>
+    <div class="li-def">The first row in every odds table = the chance the index barely moves (within the smallest threshold). These tiny moves are common; they're listed first so every row in the table sums to ~100% across down + up + quiet.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Risk Dial (Calm / Elevated / High / Extreme)</div>
+    <div class="li-def">Blends implied move size with fragility (is the cushion on? is a catalyst inside the window?). For the gap: Calm &lt;0.4%, Elevated 0.4–0.7%, High 0.7–1.05%, Extreme &gt;1.05%. For the week: Calm &lt;1.5%, Elevated 1.5–2.5%, High 2.5–3.5%, Extreme &gt;3.5%. A "High" dial means wider expected range — it is not automatically bearish.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Direction Split (Down vs Up odds)</div>
+    <div class="li-def">We take the symmetric probability band and split it using a two-piece skew based on put-skew and gamma regime. The two legs always add up to the symmetric band at each threshold — we're redistributing the probability, not inventing new risk. The lean (e.g. "57% ↓") is the headline skew; it is a tendency, not a prediction.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Big Move Ranking</div>
+    <div class="li-def">Ranks indices by probability of a &gt;3% weekly move, descending. This is a <em>size</em> ranking — where the widest swings are most likely, in either direction. A top-ranked index has both the largest upside potential and the largest downside risk.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">The Cushion (Gamma Flip)</div>
+    <div class="li-def">When big options dealers are "above" their gamma flip level (the cushion line), they automatically buy dips and sell rips to stay hedged — a shock absorber that makes moves fade. Below the line, they do the opposite and moves can snowball. The cushion line is an estimate ("est.") — always verify. This concept applies mainly to SPX and NDX; dealer gamma data for RUT and DJX is thin.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Whole-Number Levels</div>
+    <div class="li-def">Round-number options open interest magnets that often act as intraday support/resistance. SPX uses 50s, NDX uses 250s, RUT uses 25/50s, DJX uses 5s. The close, 1-SD gap range, and 1-week range are also included for reference.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Gap-Fill Tendency</div>
+    <div class="li-def">Most small (≤0.5%) gaps partially fill intraday as institutional orders execute on both sides. Large (&gt;1%) momentum gaps — driven by earnings or sector-specific news like semiconductor selloffs — often do NOT fill quickly. The card for each index notes which regime appears to apply.</div>
+  </div>
+  <div class="legend-item">
+    <div class="li-term">Breadth Read</div>
+    <div class="li-def">When NDX moves much more than SPX/DJX/RUT, it's usually a positioning unwind in tech, not broad risk-off. When all four move together, it's genuine macro. Thursday's session showed divergence (DJX ATH, RUT down, NDX barely positive) = rotation signal, not panic. A broad move on Monday — all four indices in the same direction — would be a more serious signal.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<div class="footer">
+  <p class="sources">Sources consulted: CBOE (VIX prev. close 16.59, July 2 2026); TheStreet / CNBC market live blogs (July 2 2026 session closes, NFP reaction, Dow ATH ~52,805, NDX/RUT divergence, SMH −3%, semiconductor weakness); Kiplinger (June NFP = 57K, miss vs 115K consensus, revisions −74K); Schwab Market Update Jul 1 2026 (event calendar, ADP 98K, FOMC minutes Jul 8, ISM Services Jul 6); TradingKey / Epoch Times (NFP preview, unemployment 4.2%, Fed held 3.50-3.75%); Congress.gov CRS / JPMorgan / Morgan Stanley (2026 Iran war / Strait of Hormuz status); Al Jazeera / Reuters (Khamenei funeral July 4–9, talks stalled); Yahoo Finance (Nikkei 70,475 +0.59%, Hang Seng 22,881 −0.63%, DAX ~25,008, VIX ~16.67 intraday, crude oil ~$68-69/bbl); Investing.com (CNBC live session data Jul 2); Stocktwits / Schwab (semiconductor names, MU −3.4%, SMH −5.4% Wed, NVDA −1.2%); MacroTrends (QQQ Jun 30 close 736.40). Index levels (SPX, NDX, RUT, DJX), VXN, RVX, VXD and gamma/cushion lines are estimated ("est.") — verify all prices and dates before acting.</p>
+  <div class="disc">
+    <div class="disc-text">
+      <p><b>Educational purposes only — not investment advice.</b> The Freedom Management Group, Inc. d/b/a Michael Wade Trade Coaching is not a broker, adviser, or fiduciary. All trades are at your own risk; past performance does not guarantee future results. Options involve substantial risk and you can lose more than your investment — always paper trade first before risking real money. <b>This report is generated with the assistance of artificial intelligence, and AI can make mistakes.</b> The analysis, prices, technical levels, earnings dates, probabilities, and figures herein are produced by automated models that may misinterpret data, rely on sources that are outdated or inaccurate, or generate confident-sounding output that is simply wrong. Probabilities are options-implied estimates, not predictions, and real-world tails are fatter than a normal curve. Nothing here has been independently verified by a licensed professional. Always confirm every data point, price, and date against your own brokerage and primary sources before acting, and treat this report as a starting point for your own research — never as a substitute for your own judgment. By using our services, you agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+    </div>
+  </div>
+  <p>All data is time-stamped (2026-07-02) and goes stale quickly &mdash; re-verify before trading. Index closes (SPX/NDX/RUT/DJX), VXN, RVX, VXD, and all gamma/cushion levels are marked "est." — they were derived from intraday data and prior-day closes. Live VIX closing print = 16.59 (CBOE). All probability figures are model estimates using the gap/week sigma math described in the legend.</p>
+  <p style="color:var(--faint)">Gap Risk Report &middot; Trade Club AI &middot; Generated 2026-07-02 &middot; mwtradecoach.com</p>
+</div>
+
+</div><!-- end .wrap -->
+</body>
+</html>

@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "premarket (9:00 ET, day ahead) or postmarket (4:30 ET, recap)"
+        description: "premarket / postmarket — or check-keys to test the API keys (no report, no cost)"
         type: choice
-        options: [premarket, postmarket]
+        options: [premarket, postmarket, check-keys]
         default: premarket
       force:
         description: "Run even if the market is closed today or the report already exists"
@@ -51,6 +51,7 @@ jobs:
         id: guard
         run: |
           MODE="${MODE_IN:-premarket}"
+          if [ "$MODE" = "check-keys" ]; then echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           SLUG=pre-market; [ "$MODE" = "postmarket" ] && SLUG=market-wrap
           if [ "$FORCE_IN" = "true" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           if ! python -c "import build,sys; sys.exit(0 if build.market_open_today() else 1)"; then
@@ -61,6 +62,18 @@ jobs:
             echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check API keys (no report, no token cost)
+        if: inputs.mode == 'check-keys'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          UW_API_KEY: ${{ secrets.UW_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          NASDAQ_DATA_LINK_API_KEY: ${{ secrets.NASDAQ_DATA_LINK_API_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          CME_FEDWATCH_API_ID: ${{ secrets.CME_FEDWATCH_API_ID }}
+          CME_FEDWATCH_API_SECRET: ${{ secrets.CME_FEDWATCH_API_SECRET }}
+        run: python -m mwtc.main --check-keys
 
       - name: Build & publish the report (live data + Anthropic)
         if: steps.guard.outputs.go == 'true'

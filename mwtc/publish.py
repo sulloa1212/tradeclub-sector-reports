@@ -103,6 +103,15 @@ def inject_previous_reports(html: str, slug: str, dates: list) -> str:
     return html[:j + 1] + widget + html[j + 1:] if j != -1 else widget + html
 
 
+def refresh_previous_reports(html: str, slug: str, dates: list) -> str:
+    """Replace (or add) the 'Previous reports' dropdown so it lists the CURRENT set
+    of kept reports — an older report never shows a stale list or a link to a
+    pruned report."""
+    import re
+    html = re.sub(r"<style>\.tc-prev\{.*?</details>", "", html, count=1, flags=re.S)
+    return inject_previous_reports(html, slug, dates)
+
+
 def derive_sidecar(data: dict, mode: str) -> dict:
     """Build the hub sidecar from the data packet, reusing the report's own
     directional-bias heuristic so the card matches the in-report dials. Works
@@ -173,10 +182,18 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
         meta.pop(old, None)
     kept = [meta[x] for x in keep if x in meta]
     index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False), encoding="utf-8")
-    # Add the "previous reports" dropdown (other kept dates), then finalize.
-    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
-    (d / f"{date}.html").write_text(final, encoding="utf-8")
-    (d / "index.html").write_text(final, encoding="utf-8")
+    # Refresh the 'Previous reports' dropdown in EVERY kept page so they all show
+    # the same current list (each excluding itself) — never a stale snapshot or a
+    # link to a pruned report.
+    for kd in keep:
+        fp = d / f"{kd}.html"
+        if not fp.exists():
+            continue
+        h = refresh_previous_reports(fp.read_text(encoding="utf-8"), slug,
+                                     [x for x in keep if x != kd])
+        fp.write_text(h, encoding="utf-8")
+    (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"),
+                                  encoding="utf-8")
     return d / f"{date}.html"
 
 

@@ -962,6 +962,14 @@ def inject_previous_reports(html: str, slug: str, dates: list) -> str:
     return (html[:m.end()] + widget + html[m.end():]) if m else (widget + html)
 
 
+def refresh_previous_reports(html: str, slug: str, dates: list) -> str:
+    """Replace (or add) the 'Previous reports' dropdown so it lists the CURRENT set
+    of kept reports. Every kept page is refreshed on each build, so opening an older
+    report never shows a stale snapshot or a link to a pruned (deleted) report."""
+    html = re.sub(r"<style>\.tc-prev\{.*?</details>", "", html, count=1, flags=re.S)
+    return inject_previous_reports(html, slug, dates)
+
+
 def _long_date(d: str) -> str:
     """'2026-06-30' -> 'Monday, June 30, 2026' (no zero-pad on the day)."""
     try:
@@ -1066,9 +1074,19 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     kept = [meta[x] for x in keep if x in meta]
     index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
                           encoding="utf-8")
-    final = inject_previous_reports(body, slug, [x for x in keep if x != date])
-    (d / f"{date}.html").write_text(final, encoding="utf-8")
-    (d / "index.html").write_text(final, encoding="utf-8")
+    # Refresh the 'Previous reports' dropdown in EVERY kept page so they all show
+    # the same current list (each excluding itself) — never a stale snapshot, and
+    # never a link to a pruned report.
+    for kd in keep:
+        fp = d / f"{kd}.html"
+        if not fp.exists():
+            continue
+        h = refresh_previous_reports(fp.read_text(encoding="utf-8"), slug,
+                                     [x for x in keep if x != kd])
+        fp.write_text(h, encoding="utf-8")
+    # index.html mirrors the newest report.
+    (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"),
+                                  encoding="utf-8")
 
     print(f"  OK — {sidecar['status_label']} ({sidecar['accent']}), {len(keep)} kept")
     rec = _record(name, slug, "ok", usages, attempts)

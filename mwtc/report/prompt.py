@@ -36,7 +36,7 @@ don't pad sentences. This trims WORDING ONLY; it never shrinks coverage.
 a required field. Still rank ALL 11 sectors (Sector Rotation/Scorecard — this also \
 feeds the injected ranked chart), still list the full 10–15 Stocks to Watch, still \
 cover every whale sub-item (a)–(e) with its strikes/volume/OI, still print all three \
-earnings groups, and still emit the full legend, disclaimer, and sidecar. Those \
+earnings groups, and still emit the full legend and keep every injection marker. Those \
 counts are hard minimums. A novice is helped by a leading plain-English sentence + \
 labeled numbers, NOT by showing fewer rows.
 - No data for a section? Print "— feed not connected —" and move on — per missing \
@@ -88,7 +88,7 @@ SECTIONS_PREMARKET = f"""\
 3. {_GEO}
 4. Macro Dashboard [macro.rates_vol + commodities + fx + crypto] — CANONICAL home for 10Y, DXY, Gold, Silver, WTI, Nat Gas, Bitcoin, VIX (one table, one-line implication each).
 5. Economic Calendar (today) [macro.economic_calendar; ACTUALS fallback: macro.economic_news] — Time|Event|Consensus|Actual|read. If the structured calendar lacks actual values (gated or lagging the 8:30 release), READ the printed numbers out of macro.economic_news headlines/summaries and show them as Actual, citing the source. NEVER invent a figure — if neither source has it, mark "awaiting".
-6. Federal Reserve Watch [fed] — stance, recent commentary, rate path; probabilities only if fed.fedwatch present.
+6. Federal Reserve Watch [fed] — stance, recent commentary, rate path. For market-implied odds on the next meeting, cross-reference the two sources when present: CME futures-implied probabilities [fed.fedwatch] and Kalshi prediction-market odds [fed.kalshi]. From fed.kalshi read the buckets in fed.kalshi.markets (e.g. "Fed maintains rate" / "Cut 25bps" / "Hike 25bps") for fed.kalshi.meeting_date; show each bucket's yes_pct as the headline percentage — it is ALREADY a percent (e.g. 82 → "82%"), do NOT multiply it. (yes_mid is the underlying 0–1 value used for ordering only — never show it as a percent.) Show the two sources side by side and LEAD with the shared takeaway (e.g. "both point to a hold"). A few points of gap between a futures-implied number and a prediction-market number is normal — different crowds, different mechanics — so only call it a real signal if the two disagree on DIRECTION (hold vs cut), not on a few percentage points. Show each source only if its key is non-null; if only one is present, use it and say the other feed isn't connected; if neither is present, print "— feed not connected —" and rely on the qualitative stance from fed.news.
 7. Earnings Calendar [earnings.calendar] — three groups by display_status: Already Reported (verified; beat/miss + surprise %), Upcoming (verified; Before Open/After Close via `when`), and Unconfirmed (verified=false; name only + the `verify_note`, NO date/figures). If earnings.second_source is null, say earnings are single-source/unconfirmed this run.
 8. Market News [institutional.news_headlines] — top overnight headlines + impact.
 9. Sector Rotation [macro.sector_rotation] — rank 11 sectors; strength, trend, bull/bear, driver (drives the ranked chart).
@@ -115,6 +115,7 @@ SECTIONS_POSTMARKET = f"""\
 4. {_GEO}
 5. Macro Dashboard (close) [macro.rates_vol + commodities + fx + crypto] — closing 10Y, DXY, Gold, Silver, WTI, Nat Gas, Bitcoin, VIX + one-line implication.
 6. What Moved & Why [institutional.news_headlines] — the day's key drivers.
+6b. Federal Reserve Watch [fed] — one tight section, and ONLY if fed.fedwatch, fed.kalshi, or a Fed-related item in fed.news is present (otherwise omit it entirely — do not print an empty Fed section on a normal day). If the FOMC announced a decision today (visible in fed.news), LEAD with what they decided and the plain-English readthrough for traders. Then show the market-implied odds for the NEXT meeting, cross-referencing CME futures-implied [fed.fedwatch] and Kalshi prediction-market [fed.kalshi] odds: read the fed.kalshi.markets buckets for fed.kalshi.meeting_date and show each bucket's yes_pct as the headline percentage — it is ALREADY a percent, do NOT multiply (yes_mid is the 0–1 underlying, never shown as a percent). Lead with the shared takeaway; a few points of gap between the two is normal, so only flag a real signal if they split on DIRECTION (hold vs cut). Show each source only if its key is non-null.
 7. Sector Scorecard [macro.sector_rotation] — how the 11 sectors finished today; leaders & laggards.
 8. Post-Market Movers [movers.gainers/losers] — section heading must read "Post-Market Movers". OPTIONABLE stocks only (pre-filtered). Each on its OWN line as "TICKER — Company  +X%"; group day-session vs after-hours. Add a brief directional read per name where determinable; omit if not.
 9. Analyst Actions [analyst_actions] — today's rating changes.

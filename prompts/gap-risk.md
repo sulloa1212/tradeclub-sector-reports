@@ -19,7 +19,7 @@ First establish the current date/time in **ET** and the run-type, then frame the
 - Next open is the **next calendar day** (a normal weeknight) → title **"Daily AI Overnight Gap Risk Report"**, gap phrase "overnight gap into <Weekday>".
 - Next open is **Monday across a weekend** → title **"Daily AI Weekend Gap Risk Report"**, gap phrase "weekend gap into Monday", and **widen the gap band ~25%** for the extra closed-market days (see math).
 - Next open is across a **multi-day holiday** (not Monday) → title **"Daily AI Holiday Gap Risk Report"**, gap phrase "holiday gap into <Weekday>", same ~25% widening.
-Use the chosen word consistently in the `<h1>`, the eyebrow, the per-card table headers ("<Gap word> gap — odds <Weekday> opens DOWN vs UP"), and the footer.
+Use the chosen word consistently in the sidecar `title` and `stamp` (they fill the template's fixed header) and in the per-card odds-table headers ("<Gap word> gap — odds <Weekday> opens DOWN vs UP").
 
 # INPUTS TO GATHER FIRST (search the web; if unavailable, mark "est.")
 
@@ -64,41 +64,42 @@ Use the chosen word consistently in the `<h1>`, the eyebrow, the per-card table 
 - **Probabilities are options-implied estimates, not predictions.** Always say the split shows *which tail is fatter*, not what will happen. Direction is a modest, conditional lean — strongest on a pre-open run.
 - Every action item must be doable in a normal brokerage account (ETFs, shares, simple puts/calls). No spreads/diagonals jargon. Never give guaranteed outcomes or specific buy/sell prices — every call is a tendency with a risk.
 
-# REQUIRED SECTIONS (in this order) — build with the house classes from `/assets/report.css`
+# SECTION CONTENT (the structure is NOT yours — the blueprint owns it)
 
-The OUTPUT & HOUSE-STYLE block above is authoritative: link `/assets/report.css`, use the `header.top` header (static), the single-row sticky `nav.jump` bar, and numbered `<h2 id="sN"><span class="num">N</span>…</h2>` sections. Reuse the existing class vocabulary below — it was built for this report. You MAY add ONE small `<style>` block only for genuinely report-specific bits the CSS lacks (e.g. a probability bar in the ranking, an SVG dial gauge), reusing the palette variables.
+This report is TEMPLATED. The page shell, CSS, header, section nav, footer, and disclaimer are FIXED, and the section order, ids, and component markup are defined by the BLUEPRINT supplied with this prompt (`gap-risk.components.md`) — **DEFER to it entirely**: reproduce its markup exactly and write ONLY the inner content. Never emit `<!doctype>`, `<html>`, `<head>`, `<style>`, `<header>`, `<nav>`, `<footer>`, `<script>`, or the disclaimer. What follows is the **analysis each blueprint section must carry**:
 
-1. **Header** (`header.top`, static — scrolls away) — eyebrow "TRADE CLUB AI · <Gap word> Gap Risk · <run-type>", title "Daily AI <Gap word> Gap Risk Report", subtitle "SPX · NDX · DJX · RUT — gap into the next open + 1-week outlook", `.stamp` with date · ET time · run-type (`.run-badge`) · cushion state (`.warn-badge` for the key catalyst).
-2. **Section nav** (single-row sticky `nav.jump` of `<a>`, sibling right after the header) — Gap Board · NDX · SPX · RUT · DJX · Big Move · Clock · Calendar · Playbook. Every button points to a real section `id`.
-3. **60-Second Read** (`id="read"`, content in `.read-box`) — 4–5 bullets: the regime in one line, highest-gap-risk index, calmest index, the cushion state, and a `⚠` watch item (the catalysts). Add a `.honesty` callout (estimates, not predictions).
-4. **The Gap Board** (`id="board"`) — one `.tbl-wrap` table, all four rows, **each index name an `.idx-link` jump** to its card: Index (ETF), Live level, Day %, Implied Gap Move (% + pts), Lean, Gap Dial (`.dial`), Key Whole-# Levels. Follow with the one-line **breadth read** (`.breadth-bar` or muted note).
-5. **Four drill-down cards** (`id="ndx" "spx" "rut" "djx"`, ordered by gap risk). Each `.card`: a "↑ Gap Board" `.back-link`; title + the **gap dial**; **then one plain-English sentence — what this index's gap means for a regular trader — before any table**; the **gap odds/direction split** (`.split-container` of `.split-row`s — quiet row first, then the threshold rows; `.split-prob-down`/`.split-prob-up` with the diverging `.bar-wrap`/`.bar-down`/`.bar-up`/`.bar-center`; headline `.lean-row`/`.lean-down`/`.lean-up`); the **cushion explainer** (`.cushion-box` with `.cx-state`/`.cx-on`/`.cx-off`/`.cx-neutral`) on SPX & NDX, or a thin-gamma note on RUT & DJX; then a **1-Week Outlook** sub-block — a second `.split-container` (1/2/3/4% bands, quiet ≤1% row) + its own 1-week dial; the **whole-number level ladder** (`.ladder` with `.ltype`/`.lval`, the close row `.lclose-row`); and a `.card-meta-row` (📅 catalyst · ⛽ volume · ↩ gap-fill). Each card carries **both** dials.
-6. **Big Move Ranking** (`id="bigmove"`) — a `.tbl-wrap` ranking board of the four indices by `P(>3% weekly move)` descending: Rank, Index (`.idx-link`), 1-Week 1SD %, the probability (with a small bar), Lean, 1-Week Dial. Lead with a "size, not direction" note.
-7. **The Clock** (`id="clock"`, `.clock-timeline` of `.clock-item`s) — after-close earnings → Asia → Europe → US futures settle → next pre-open data. On a weekend/holiday run, span the closed days. Note where the gap gets made.
-8. **Event Calendar** (`id="calendar"`, `.cal-table`) — next ~5 sessions; mark completed rows `.cal-done`, hot/today rows `.cal-hot`/`.cal-today`; include after-close earnings, macro prints, Fed, and any active oil/geopolitical item.
-9. **Gap Playbook** (`id="playbook"`, `.play-grid`) — ✅ DO (6) / ❌ DON'T (6) (`.play-do`/`.play-dont`), gap-specific, plain English.
-10. **One-Line Takeaway** (`.takeaway-banner` with `.t-main` + `.t-sub`) — the call in one bold sentence + one supporting sentence.
-11. **How To Read This Report** (`id="legend"`, `.legend-grid` of `.legend-item` `.li-term`/`.li-def`) — define: Implied Move, the two horizons, Quiet row, Risk Dial, Direction Split, Big Move Ranking, The Cushion (gamma), Whole-number levels, Gap-fill, Breadth read.
-12. **Footer** — the "Sources consulted" line (`.sources-line`), then the VERBATIM disclaimer (`.disclaimer`) per the house rules, then a `.fresh-line` freshness/timestamp line spelling out what was estimated ("est.").
+- **`.heads` hook banner** — the one-line "what happened + why" of the day; 2–3 sentences of context with the key drivers bolded.
+- **`.tldr` 60-Second Read** — 5 bullets: the regime in one line, highest-gap-risk index, calmest index, the cushion state, and a ⚠ watch item (the catalysts). Close with the honesty note (estimates, not predictions).
+- **Gap Board (`id="board"`)** — all four indices: live level, day %, implied gap move (% + pts), lean, gap dial, key whole-number levels; each index name jumps to its drill card. End with the one-line **breadth read** (math §9).
+- **Four drill cards (`id="ndx" "rut" "spx" "djx"` — keep this fixed nav order)** — per card: **one plain-English sentence on what this index's gap means for a regular trader BEFORE any table**; the gap odds/direction split (quiet row first, every row's down+up legs per the math); the **cushion read** (full plain-English explainer on SPX & NDX; a short thin-gamma note on RUT & DJX); the **1-Week Outlook** table (1/2/3/4% bands, quiet ≤1% row) with its own 1-week dial; the whole-number level ladder; the catalyst · volume · gap-fill meta line. **Both dials on every card.**
+- **Big Move Ranking (`id="bigmove"`)** — the four indices ranked by `P(>3% weekly)` descending with probability bars; lead with the "size, not direction" note.
+- **The Clock (`id="clock"`)** — after-close earnings → Asia → Europe → US futures settle → next pre-open data; span the closed days on a weekend/holiday run; note where the gap gets made.
+- **Event Calendar (`id="calendar"`)** — next ~5 sessions: after-close earnings, macro prints, Fed, any active oil/geopolitical item; mark completed rows done per the blueprint.
+- **Playbook (`id="playbook"`)** — ✅ DO (6) / ❌ DON'T (6), gap-specific, plain English.
+- **Closing `.banner`** — the call in one bold sentence + one supporting sentence.
+- **Legend ("How To Read This Report")** — define: Implied Move, the two horizons, Quiet row, Risk Dial, Direction Split, Big Move Ranking, The Cushion (gamma), Whole-number levels, Gap-fill, Breadth read.
 
 # QUALITY GATE — verify silently before returning
 
-1. Valid HTML using the house classes; every section present, in order; every nav button and Gap-Board `.idx-link` resolves to a real `id`; the four cards are anchored.
-2. **Run-type stated** and the **dynamic title/gap word** are consistent everywhere (live overnight futures on a pre-open run; close/mid-session estimate otherwise). No stale number passed as the current print.
+1. Blueprint markup reproduced exactly: every blueprint section present, in the blueprint's order, with the blueprint's ids (`board`, `ndx`, `rut`, `spx`, `djx`, `bigmove`, `clock`, `calendar`, `playbook`); NO chrome emitted (no doctype/html/head/style/header/nav/footer/script/disclaimer).
+2. **Run-type stated** and the **dynamic title/gap word** consistent everywhere in the content AND in the sidecar `title`/`stamp` (live overnight futures on a pre-open run; close/mid-session estimate otherwise). No stale number passed as the current print.
 3. Every odds table (gap **and** 1-week) opens with the **quiet ≤x_min row**, and **every row's down + up legs sum to ~100%**.
 4. Each index's down + up legs **sum back to its symmetric band** at every threshold; every **price target** = level × (1 ± x%); the gap range = level × (1 ± gap_sigma) and the week range = level × (1 ± week_sigma). Spot-check the arithmetic.
 5. Each index has **both** a gap dial and a **1-week dial + 1-week odds table**; the **four dials differ for the right reasons** (each index's own vol index + fragility); the lean gradient matches the skew/gamma read.
 6. The **Big Move Ranking** is present, ranks by `P(>3% weekly)` descending, and is labeled size-not-direction.
 7. **No jargon before it's explained.** "Gamma"/"cushion line" appears only alongside the plain-English cushion box; no deep-greek vocabulary anywhere.
 8. **Honesty line present:** probabilities are options-implied estimates, not predictions; tails fatter than normal; direction is a modest lean. Volume/skew/gamma/any estimated level clearly marked "est." where not live-fetched.
-9. Real ticker symbols; whole-number levels are actually round. The "Sources consulted" line and the **verbatim disclaimer** are inside the HTML; no placeholder brackets remain.
+9. Real ticker symbols; whole-number levels are actually round; no placeholder brackets or template tokens remain in your content.
 
-# SIDECAR (the LAST thing in your reply, per the house contract)
+# SIDECAR (the LAST thing in your reply — the fenced ```json block per the content contract)
 
-After the closing `</html>`, end with the single JSON sidecar. For this report:
+After the section HTML, end with the single JSON sidecar. For this report:
 - `"report"`: `"Gap Risk Report"`
 - `"date"`: today's date, `YYYY-MM-DD` (ET).
 - `"status_label"`: the headline risk — the highest dial and its index, e.g. `"NDX · HIGH"` or `"ALL CALM"`. Keep it short.
 - `"accent"`: `"warn"` if any gap dial is High/Extreme (risk-forward); `"bear"` if the cross-index lean is clearly to the downside; `"bull"` if clearly to the upside; else `"neutral"`.
-- `"headline"`: today's one-line takeaway (the same sentence as the takeaway banner, trimmed).
+- `"headline"`: today's one-line takeaway (the same sentence as the closing banner, trimmed).
 - `"metric"`: `{"type":"text","value":"<top index · its gap dial>"}` — gap risk is about size, not a single −100..+100 direction, so use a text metric (e.g. `"NDX · HIGH"`).
+- `"title"`: the dynamic title from the run-type rule (e.g. `"Daily AI Weekend Gap Risk Report"`) — fills the template's fixed `{{TITLE}}` header placeholder.
+- `"run_type"`: the short run label (e.g. `"Pre-Open"`, `"Post-Market"`, `"Mid-Session"`) — fills `{{RUN_TYPE}}`.
+- `"stamp"`: the short stamp tagline (e.g. `"weekend gap into Monday · cushion thin"`) — fills `{{STAMP_TAGLINE}}`.

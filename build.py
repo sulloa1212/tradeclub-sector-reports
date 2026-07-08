@@ -131,6 +131,18 @@ def now_stamp() -> str:
     return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
 
+def now_et_line() -> str:
+    """The real current date/weekday/time in ET, for anchoring the model's
+    run-type and 'today' references. The model must not re-derive the weekday
+    itself — a live run mislabeled Wednesday July 8 as 'Tuesday, post-market'."""
+    from zoneinfo import ZoneInfo
+    now = datetime.datetime.now(ZoneInfo("America/New_York"))
+    day = str(now.day)
+    hour = str((now.hour % 12) or 12)
+    return (f"{now.strftime('%A')}, {now.strftime('%B')} {day}, {now.year}, "
+            f"{hour}:{now.strftime('%M')} {now.strftime('%p')} ET")
+
+
 def market_open_today() -> bool:
     """True if the NYSE holds a regular session today.
 
@@ -1007,6 +1019,13 @@ def _clean_content(raw: str) -> str:
     # the comment early (comments don't nest), leaking the rest as visible text.
     # Strip any echoed marker so the surrounding comment stays well-formed.
     body = re.sub(r"<!--\s*REPORT-?CONTENT\s*-->", "", body, flags=re.I)
+    # With web search on, the reply concatenates the model's narration BETWEEN
+    # searches ("I'll gather the data... Now I'll build the report:") ahead of
+    # the actual sections — it leaked visibly into a published gap-risk page.
+    # Content must start at the first real content tag; drop any leading prose.
+    m = re.search(r"(?i)<(?:div|section|h[1-6]|table|p|ul|ol|figure|article|aside|style)\b", body)
+    if m and m.start() > 0:
+        body = body[m.start():]
     return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
 
 
@@ -1018,8 +1037,13 @@ def fill_template(template_html: str, content_html: str, sidecar: dict,
     long_date = _long_date(date)
     et = _et_time(report)
     stamp = str(sidecar.get("stamp") or "").strip()
+    title = str(sidecar.get("title") or report["name"]).strip()
+    # The gap word (Overnight/Weekend/Holiday) in the fixed eyebrow follows the
+    # dynamic title — e.g. "Daily AI Overnight Gap Risk Report" -> "Overnight".
+    gw = re.search(r"Daily AI (\w+) Gap", title)
     repls = {
-        "{{TITLE}}": str(sidecar.get("title") or report["name"]).strip(),
+        "{{GAP_WORD}}": gw.group(1) if gw else "Overnight",
+        "{{TITLE}}": title,
         "{{DATE}}": long_date,
         "{{ET_TIME}}": et,
         "{{RUN_TYPE}}": run_type,
@@ -1125,10 +1149,15 @@ def build_report_templated(client: Anthropic, report: dict) -> dict:
                 "(DEFER to the blueprint above for the output structure/markup)\n\n"
               + prompt_path.read_text(encoding="utf-8"))
     today = today_str()
-    task_line = (f"Generate today's {name} content for {today}. Do live web research for "
+    task_line = (f"Generate today's {name} content for {today}. Right now it is "
+                 f"{now_et_line()} — anchor the run-type, the dynamic title, and every "
+                 "today/next-open/weekday reference to this exact date and time; do NOT "
+                 "re-derive the date or weekday yourself. Do live web research for "
                  "every figure. Output ONLY the inner section HTML (it fills a fixed "
                  "template — no <html>/<head>/<header>/<nav>/<footer>/<script>), then the "
-                 "JSON sidecar last, per the content-fill contract.")
+                 "JSON sidecar last, per the content-fill contract. Begin your reply "
+                 "directly with the first section's opening tag — no notes, no preamble, "
+                 "no progress narration anywhere in the reply.")
 
     usages = []
 
@@ -1190,7 +1219,9 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     cached = (house_block + "\n\n---\n\n# REPORT-SPECIFIC PROMPT\n\n"
               + prompt_path.read_text(encoding="utf-8"))
     today = today_str()
-    task_line = (f"Generate today's {name} for {today} (pre-market run). Output the "
+    task_line = (f"Generate today's {name} for {today} (pre-market run). Right now it is "
+                 f"{now_et_line()} — anchor every today/weekday reference to this exact "
+                 "date and time; do NOT re-derive the weekday yourself. Output the "
                  "full HTML document first, then the JSON sidecar, per the house rules.")
 
     usages = []

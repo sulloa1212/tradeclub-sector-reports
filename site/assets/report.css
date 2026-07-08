@@ -238,7 +238,17 @@ b.pos{color:var(--bull);} b.neg{color:var(--bear);} b.warnc{color:var(--warn);} 
 section{scroll-margin-top:70px;}
 .section-title{font-size:1.05rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:8px;margin:32px 0 16px;}
 .section-eyebrow{color:var(--acc);font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
-.tbl-wrap{overflow-x:auto;}
+/* Wide tables: macOS hides overlay scrollbars, so a 12-column table clipped at
+   the wrapper edge LOOKS broken (mean-reversion, 2026-07-08). Style the
+   scrollbar so it is always visible when the table overflows, and on wide
+   screens let the wrapper bleed past the 980px column so the table fits. */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:#3f77b3 var(--panel2);}
+.tbl-wrap::-webkit-scrollbar{height:10px;}
+.tbl-wrap::-webkit-scrollbar-track{background:var(--panel2);border-radius:6px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:#3f77b3;border-radius:6px;
+  border:2px solid var(--panel2);}
+@media (min-width:1140px){.wrap .tbl-wrap{margin-left:-70px;margin-right:-70px;}}
 .disclaimer{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;}
 .disclaimer p{color:var(--faint);font-size:.73rem;line-height:1.6;margin:0 0 8px;}
 .disclaimer p:last-child{margin:0;}

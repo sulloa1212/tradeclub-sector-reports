@@ -28,6 +28,13 @@ FMP_API_KEY = os.environ.get("FMP_API_KEY", "").strip()
 # Optional (CME FedWatch OAuth — entitlement required)
 CME_FEDWATCH_API_ID = os.environ.get("CME_FEDWATCH_API_ID", "").strip()
 CME_FEDWATCH_API_SECRET = os.environ.get("CME_FEDWATCH_API_SECRET", "").strip()
+# Optional (Kalshi). NOTE: reading Fed-decision odds needs NO key — Kalshi's
+# market-data endpoints are public. These are only for future authenticated /
+# portfolio calls; the read-only fed_odds() fetcher never uses them.
+# KALSHI_PRIVATE_KEY holds the multiline RSA PEM verbatim (GitHub passes multiline
+# secrets through unchanged, so no base64 wrapping is needed).
+KALSHI_API_KEY_ID = os.environ.get("KALSHI_API_KEY_ID", "").strip()
+KALSHI_PRIVATE_KEY = os.environ.get("KALSHI_PRIVATE_KEY", "").strip()
 
 # --- Settings ---
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6").strip()

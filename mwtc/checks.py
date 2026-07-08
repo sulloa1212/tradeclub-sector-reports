@@ -83,6 +83,22 @@ def _cme():
         return False, type(e).__name__
 
 
+def _kalshi():
+    # Kalshi Fed-odds market data is PUBLIC — no key required; this pings it live.
+    # The optional KALSHI_* key is only for future authenticated calls, so just
+    # note whether it's set (never a pass/fail basis).
+    auth = ("auth key set" if (config.KALSHI_API_KEY_ID and config.KALSHI_PRIVATE_KEY)
+            else "public — no key needed")
+    try:
+        r = requests.get("https://external-api.kalshi.com/trade-api/v2/events",
+                         params={"series_ticker": "KXFEDDECISION", "status": "open", "limit": 1},
+                         headers={"Accept": "application/json"}, timeout=TIMEOUT)
+        ok = r.status_code == 200 and isinstance(r.json().get("events"), list)
+        return bool(ok), f"HTTP {r.status_code} · {auth}"
+    except Exception as e:  # noqa: BLE001
+        return False, type(e).__name__
+
+
 CHECKS = [
     ("Unusual Whales (required)", _uw),
     ("Anthropic (required)", _anthropic),
@@ -91,6 +107,7 @@ CHECKS = [
     ("FMP — economic calendar", _fmp_econ),
     ("Nasdaq Data Link — AAII", _nasdaq),
     ("CME FedWatch (optional)", _cme),
+    ("Kalshi Fed odds (optional)", _kalshi),
 ]
 
 

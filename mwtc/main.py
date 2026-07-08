@@ -15,7 +15,7 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 
 from . import config, checks
-from .sources import macro, unusual_whales, fmp, sentiment, fedwatch, earnings
+from .sources import macro, unusual_whales, fmp, sentiment, fedwatch, kalshi, earnings
 from .report import generator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -25,8 +25,10 @@ ET = ZoneInfo("America/New_York")
 
 
 def _fed_view(uw_packet: dict) -> dict:
-    """Fed-relevant headlines (qualitative stance) + CME FedWatch probabilities
-    when entitled (else null, falls back to qualitative)."""
+    """Fed-relevant headlines (qualitative stance) + two market-implied odds
+    sources to cross-reference: CME FedWatch probabilities (fedwatch, when
+    entitled) and Kalshi prediction-market odds (kalshi, free/public). Either
+    may be null; the report falls back to whatever is present."""
     news = uw_packet.get("news_headlines") or []
     fed_news = []
     if isinstance(news, list):
@@ -34,7 +36,11 @@ def _fed_view(uw_packet: dict) -> dict:
             text = json.dumps(item).lower() if not isinstance(item, str) else item.lower()
             if any(k in text for k in config.FED_KEYWORDS):
                 fed_news.append(item)
-    return {"news": fed_news[:12] or None, "fedwatch": fedwatch.probabilities()}
+    return {
+        "news": fed_news[:12] or None,
+        "fedwatch": fedwatch.probabilities(),
+        "kalshi": kalshi.fed_odds(),
+    }
 
 
 def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dict:

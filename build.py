@@ -127,8 +127,12 @@ def today_str() -> str:
 
 
 def now_stamp() -> str:
-    """Human-readable generation timestamp for the hub footer."""
-    return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    """Human-readable generation timestamp for the hub header (US Eastern —
+    the audience's market clock; filenames/idempotency stay on UTC dates)."""
+    from zoneinfo import ZoneInfo
+    now = datetime.datetime.now(ZoneInfo("America/New_York"))
+    hour = str((now.hour % 12) or 12)
+    return f"{now.strftime('%Y-%m-%d')} {hour}:{now.strftime('%M')} {now.strftime('%p')} ET"
 
 
 def now_et_line() -> str:

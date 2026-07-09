@@ -32,6 +32,14 @@ applies to EVERY report so they all read the same way:
   beats a paragraph; don't pad with tangents. This applies to NARRATIVE sentences
   only — required summary tables and the cross-references a report mandates (e.g. a
   figure shown on a board AND again on its card) are intentional and stay.
+- **Bold discipline — bold is an anchor, not a highlighter.** `<b>`/`<strong>` may
+  wrap only SHORT anchors: a ticker, a price/level/figure, or a 2–5 word lead-in
+  label ending in a colon ("Key risk:", "Market regime:"). NEVER bold a whole
+  sentence, a card tagline or description, or any run longer than ~40 characters,
+  and never pair a color class with bold on anything longer than a few words —
+  long bold/colored runs make the page read as if everything is highlighted. For
+  sentence-level emphasis use a color class WITHOUT bold, sparingly. The only bold
+  sentences allowed on the page are the two inside the verbatim disclaimer.
 - **Label every non-obvious number** with what it means, right next to it. For a
   *directional* read, say what bullish/bearish looks like; for a *size/risk* read (a
   risk dial, a big-move probability), say "bigger vs smaller expected move" — never

@@ -51,5 +51,10 @@ using the EXACT component markup in the BLUEPRINT below.
   what it means before any table/number; explain a term in ≤6 words the first time;
   keep prose tight. Simplify the wording — never drop a required row, section, or
   number the design/methodology calls for.
+- **Bold discipline:** `<b>`/`<strong>` only on SHORT anchors — a ticker, a
+  price/level, or a 2–5 word lead-in label ending in a colon. Never bold a whole
+  sentence or any run longer than ~40 characters (the verbatim disclaimer's own
+  bold spans are the only exception); for sentence-level emphasis use the design's
+  color classes without bold, sparingly.
 - Never fabricate a price, level, ratio, or date. If something can't be verified,
   say so plainly rather than inventing it.

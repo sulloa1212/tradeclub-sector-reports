@@ -39,7 +39,7 @@ KALSHI_PRIVATE_KEY = os.environ.get("KALSHI_PRIVATE_KEY", "").strip()
 # --- Settings ---
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6").strip()
 REPORT_VERSION = os.environ.get("REPORT_VERSION", "institutional").strip().lower()
-# premarket (9 AM ET, day ahead) | postmarket (4:30 PM ET, closing recap)
+# premarket (8:40 AM ET, day ahead) | postmarket (4:30 PM ET, closing recap)
 REPORT_MODE = os.environ.get("REPORT_MODE", "premarket").strip().lower()
 
 # --- Paths ---

@@ -162,6 +162,11 @@ direction-specific rules; do not screen them with naive two-sided RSI.
 - Educational only; not advice. No position sizing or "buy/sell" commands.
 - Never present screener data as confirmed truth — label it as needing verification.
 - Surface counter-evidence (why a setup might be a trap), don't just cheerlead.
+- **DATES ARE THE #1 HALLUCINATION RISK.** Every date you print — catalyst-list
+  entries, earnings dates on the tables, macro events — must come from a LIVE
+  web-search result in THIS run, never from memory. If a date can't be confirmed
+  by search, OMIT the event or write "date unconfirmed — verify" instead of
+  guessing. Derive weekdays only from the anchored run date you were given.
 
 # REQUIRED SECTIONS (in this order) — build with the house classes from `/assets/report.css`
 

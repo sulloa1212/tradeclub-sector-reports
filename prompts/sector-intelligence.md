@@ -107,8 +107,24 @@ Then a directional **FUEL TAG**:
    a second Fundamental Health meter 0–100 color-graded green ≥65 / amber 45–64 / red <45 with
    its ⛽ Fuel tag, a one-line key-metrics summary, the thesis, supporting points, the biggest
    risk, the next-earnings date — amber ⚠ if inside the window — and approx entry/support/resistance). Open each stock card with ONE plain-English sentence (why we like it, or why it's vulnerable) before any meter or number.
-5. `#calendar` — **Event calendar**: the next ~2 weeks, dated.
-6. `#howto` — **How to read this report**: short legend (Direction Score, conviction,
+   Each drilled sector's wrapper uses the DETERMINISTIC id `drill-<etf>` (the sector's ETF
+   ticker, lowercase — e.g. `drill-smh`, `drill-xle`) — never invent a different id scheme,
+   so the page structure stays identical run to run.
+5. `#picks` — **Today's Picks**: a ranked list of the 3–5 SINGLE BEST stock setups across
+   ALL the drill-downs (both long and short/avoid), each one row: rank, ticker + company,
+   direction badge, Swing-Conviction score, the entry zone / key level, the one-line
+   catalyst, and the earnings-window flag. This is the "just tell me the picks" summary a
+   member reads first — every pick must also appear in a drill-down above (no new names
+   here), and keep the educational framing (setups to study, not directives to trade).
+6. `#calendar` — **Event calendar**: the next ~2 weeks, dated. DATES ARE THE #1
+   HALLUCINATION RISK IN THIS REPORT: every date on the calendar (and every
+   earnings date on a stock card) must come from a LIVE web-search result in
+   THIS run — never from memory. If you cannot confirm a date by search, OMIT
+   the event or write "date unconfirmed — verify" instead of guessing. Derive
+   each event's weekday from the anchored run date you were given (count the
+   days); never state a weekday from memory. It is far better to list 6
+   verified events than 10 where 2 are invented.
+7. `#howto` — **How to read this report**: short legend (Direction Score, conviction,
    Swing-Conviction vs Fundamental Health, the ⛽ Fuel tag, earnings-in-window).
 
 Use green = bullish/long, red = bearish/short-or-avoid, grey = neutral, amber = warn,

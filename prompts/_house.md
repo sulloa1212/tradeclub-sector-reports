@@ -40,6 +40,12 @@ applies to EVERY report so they all read the same way:
   long bold/colored runs make the page read as if everything is highlighted. For
   sentence-level emphasis use a color class WITHOUT bold, sparingly. The only bold
   sentences allowed on the page are the two inside the verbatim disclaimer.
+- **Never restyle the base prose in your report-specific CSS.** The house
+  stylesheet owns the prose tone (muted-gray body copy; `<b>`/`<strong>` as a
+  bright weight-600 anchor — the approved gap-risk look). Your one small
+  `<style>` block must NOT set `color`, `font-weight`, or `font-size` on bare
+  `body`, `p`, `li`, `b`, or `strong` — style only your own report-specific
+  classes.
 - **Label every non-obvious number** with what it means, right next to it. For a
   *directional* read, say what bullish/bearish looks like; for a *size/risk* read (a
   risk dial, a big-move probability), say "bigger vs smaller expected move" — never

@@ -1037,6 +1037,20 @@ def _clean_content(raw: str) -> str:
     return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
 
 
+# Authoritative prose tone (matches the approved gap-risk design): muted body
+# copy; bold = a bright weight-600 anchor. Injected LAST in <head> on house-path
+# pages so the model's own per-report CSS can never re-brighten the prose
+# (2026-07-13: the model restyled `p{color:var(--ink)}` and the page shouted).
+_PROSE_TONE_CSS = (
+    '<style id="prose-tone">'
+    '.wrap p,.wrap li{color:var(--mut,#9fb0c3)}'
+    '.wrap p b,.wrap li b,.wrap p strong,.wrap li strong{font-weight:600}'
+    '.wrap p b:not([class]),.wrap li b:not([class]),'
+    '.wrap p strong:not([class]),.wrap li strong:not([class])'
+    '{color:var(--ink,#e8edf4)}'
+    '</style>')
+
+
 _LONG_BOLD = re.compile(
     r"<(b|strong)(\s[^>]*)?>((?:(?!</?(?:b|strong)[\s>]).)*?)</\1>",
     re.DOTALL | re.IGNORECASE)
@@ -1105,6 +1119,10 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     date = today_str()
 
     body = _unbold_long_runs(body)
+    # Templated reports own their design; only house-path pages get the
+    # authoritative prose-tone override (last in <head> wins the cascade).
+    if not report.get("template") and "</head>" in body:
+        body = body.replace("</head>", _PROSE_TONE_CSS + "\n</head>", 1)
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
     (d / f"{date}.html").write_text(body, encoding="utf-8")

@@ -32,6 +32,10 @@ the first time you use a term, give the 4–6 word parenthetical (per the voice 
 above). No deep jargon (vanna, charm, vol surface).
 - Keep the PROSE tight and scannable — a one-line takeaway beats a wall of text; \
 don't pad sentences. This trims WORDING ONLY; it never shrinks coverage.
+- BOLD IS AN ANCHOR, NOT A HIGHLIGHTER: <b> may wrap only a ticker, a price/\
+figure, or a 2-5 word lead-in label ending in a colon. Never bold a whole \
+sentence or any run longer than ~40 characters (the disclaimer's own bold \
+spans are the only exception).
 - COVERAGE IS FIXED BY CONTRACT — the novice rule never drops a row, a ranking, or \
 a required field. Still rank ALL 11 sectors (Sector Rotation/Scorecard — this also \
 feeds the injected ranked chart), still list the full 10–15 Stocks to Watch, still \

@@ -52,11 +52,15 @@ MODEL = "claude-sonnet-4-6"   # the model that writes the reports.
 KEEP = 5                      # how many dated reports to keep per sector.
 MAX_SEARCHES = 15             # max web searches the model may run per sector
                               # (caps cost). Raise/lower as needed.
-MAX_TOKENS = 32000            # max length of the report the model may write.
+MAX_TOKENS = 60000            # max length of the report the model may write.
                               # Reports are large (full HTML + SVG). Too low and
                               # the model gets cut off before the JSON sidecar,
-                              # which makes the sector skip. Sonnet 4.6 allows up
-                              # to 64000 — raise this if sectors still truncate.
+                              # which makes the sector skip (2026-07-13: gap-risk
+                              # hit the old 32000 cap twice on a catalyst-heavy
+                              # Monday and published nothing). Sonnet 4.6 allows
+                              # up to 64000; billing is per token actually
+                              # produced, so a high cap costs nothing extra on
+                              # normal runs.
 
 # Sectors are loaded from sectors.json so you can edit that ONE file to change
 # what gets reported. (Edit sectors.json, not this list.)
@@ -1189,11 +1193,16 @@ def build_report_templated(client: Anthropic, report: dict) -> dict:
         print(f"  !! attempt 1 failed — {e}")
         print(f"  !! retrying '{name}' once (inner-content-only reminder)...")
         attempts = 2
+        brevity = ("" if "truncated" not in str(e) else
+                   " Your previous reply overran the output-token limit and was cut "
+                   "off. Write a TIGHTER report this time: keep every required "
+                   "section, table, and row, but trim the prose — shorter sentences, "
+                   "no repetition, no tangents.")
         try:
             content, sidecar = attempt(
                 RETRY_REMINDER + " Output ONLY the inner section HTML that fills the "
                 "template (no <html>/<head>/<header>/<nav>/<footer>/<script>), then the "
-                "sidecar JSON last.")
+                "sidecar JSON last." + brevity)
         except Exception as e2:
             print(f"  !! SKIPPED — {e2}")
             return _record(name, slug, "skipped", usages, attempts)
@@ -1249,8 +1258,13 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
         print(f"  !! attempt 1 failed — {e}")
         print(f"  !! retrying '{name}' once with a stricter format reminder...")
         attempts = 2
+        brevity = ("" if "truncated" not in str(e) else
+                   " Your previous reply overran the output-token limit and was cut "
+                   "off. Write a TIGHTER report this time: keep every required "
+                   "section, table, and row, but trim the prose — shorter sentences, "
+                   "no repetition, no tangents.")
         try:
-            body, sidecar = attempt(RETRY_REMINDER)
+            body, sidecar = attempt(RETRY_REMINDER + brevity)
         except Exception as e2:
             print(f"  !! SKIPPED — {e2}")
             return _record(name, slug, "skipped", usages, attempts)

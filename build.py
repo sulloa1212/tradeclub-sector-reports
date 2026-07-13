@@ -52,15 +52,15 @@ MODEL = "claude-sonnet-4-6"   # the model that writes the reports.
 KEEP = 5                      # how many dated reports to keep per sector.
 MAX_SEARCHES = 15             # max web searches the model may run per sector
                               # (caps cost). Raise/lower as needed.
-MAX_TOKENS = 60000            # max length of the report the model may write.
+MAX_TOKENS = 64000            # max length of the report the model may write.
                               # Reports are large (full HTML + SVG). Too low and
                               # the model gets cut off before the JSON sidecar,
                               # which makes the sector skip (2026-07-13: gap-risk
                               # hit the old 32000 cap twice on a catalyst-heavy
-                              # Monday and published nothing). Sonnet 4.6 allows
-                              # up to 64000; billing is per token actually
-                              # produced, so a high cap costs nothing extra on
-                              # normal runs.
+                              # Monday and published nothing). 64000 is Sonnet
+                              # 4.6's output ceiling; billing is per token
+                              # actually produced, so the max cap costs nothing
+                              # extra on normal runs.
 
 # Sectors are loaded from sectors.json so you can edit that ONE file to change
 # what gets reported. (Edit sectors.json, not this list.)

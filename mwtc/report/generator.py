@@ -196,9 +196,10 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
     log.info("Calling Anthropic model=%s mode=%s", config.ANTHROPIC_MODEL, mode)
     resp = client.messages.create(
         model=config.ANTHROPIC_MODEL,
-        # 50000: the 21-section MWTC report outgrew 32000 and tripped the truncation
-        # guard (Sonnet supports up to 64000 output tokens). Cost is per token used.
-        max_tokens=50000,
+        # 64000: Sonnet's output ceiling. The 21-section MWTC report outgrew 32000
+        # and tripped the truncation guard; running at the max leaves no headroom
+        # to lose a report to length. Cost is per token used.
+        max_tokens=64000,
         system=system,
         messages=[{"role": "user", "content": user}],
     )

@@ -1037,6 +1037,32 @@ def _clean_content(raw: str) -> str:
     return re.sub(r"\n?```(?:json|html)?\s*$", "", body).strip()
 
 
+_LONG_BOLD = re.compile(
+    r"<(b|strong)(\s[^>]*)?>((?:(?!</?(?:b|strong)[\s>]).)*?)</\1>",
+    re.DOTALL | re.IGNORECASE)
+
+
+def _unbold_long_runs(html: str, limit: int = 60) -> str:
+    """Bold is an anchor (a ticker, a price, a short lead-in label), not a
+    highlighter. The prompts say so, but the model still occasionally bolds a
+    whole sentence — this pass enforces it: unwrap any <b>/<strong> whose
+    visible text exceeds `limit` chars, keeping a color class as a non-bold
+    <span>. Everything from the verbatim disclaimer down is left untouched
+    (its two long bold spans are required)."""
+    m = re.search(r'class="disclaimer"|Educational purposes only', html)
+    head, tail = (html[:m.start()], html[m.start():]) if m else (html, "")
+
+    def repl(mo):
+        attrs, inner = mo.group(2) or "", mo.group(3)
+        if len(re.sub(r"<[^>]+>", "", inner).strip()) <= limit:
+            return mo.group(0)
+        if re.search(r'class="[^"]+"', attrs):
+            return f"<span{attrs}>{inner}</span>"
+        return inner
+
+    return _LONG_BOLD.sub(repl, head) + tail
+
+
 def fill_template(template_html: str, content_html: str, sidecar: dict,
                   report: dict, date: str) -> str:
     """Assemble a templated report: fill the fixed template's chrome placeholders
@@ -1078,6 +1104,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     # idempotency guard); the report body still shows the model's own date.
     date = today_str()
 
+    body = _unbold_long_runs(body)
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
     (d / f"{date}.html").write_text(body, encoding="utf-8")

@@ -10,7 +10,25 @@ Confirm today's actual date before you start and use it everywhere.
 
 This is the **Daily AI Sector Intelligence Report** — ONE consolidated page that
 scans the whole market, ranks every sector against each other, and drills into the
-most actionable ones. (Not a single-sector report.)
+most actionable ones.
+
+# MODE
+
+Default = **Full Scan**: everything below as written. If the task message carries a
+`SECTOR: <name-or-ETF>` modifier (e.g. `SECTOR: XLE`), run **Mode A — Single-Sector
+Deep Dive** instead: the same scoring, gauge, drill-down, stock-card, picks and
+calendar machinery, but ALL of it focused on that one sector — score it, drill its
+**top-5 stocks** (instead of 3), rank its sub-industries where meaningful, and skip
+the whole-market Sector Board. Title the page **"Sector Deep Dive — <Sector>
+(<ETF>)"** and say in the header which sector this edition covers. If the named
+sector is ambiguous, state your one-line assumption and proceed — never stop to ask.
+
+Other task-message modifiers (apply when present, in either mode):
+- `RISK: aggressive | conservative` — tilt stock selection toward higher-beta
+  movers vs steadier leaders.
+- `EXCLUDE: <tickers>` — never surface these names.
+- `WATCHLIST: <tickers>` — score and include these wherever relevant.
+- `HORIZON: <window>` — override the default 3-day–6-week swing window everywhere.
 
 # STEP 1 — MANDATORY LIVE RESEARCH (before any conclusion)
 
@@ -101,6 +119,10 @@ Then a directional **FUEL TAG**:
 3. `#ranking` — **The Sector Board**: a ranked, diverging −100..+100 bar chart of EVERY
    sector/theme you scored (green grows right = bullish, red grows left = bearish, from a
    center line), so leaders and laggards are obvious at a glance. Each row links to its drill-down.
+   Put the **numeric score and the Pick badge in SEPARATE, aligned columns** — the badge
+   must never wrap to a second line under the score. Mark the **top-2 bullish rows with a
+   compact green `▲ PICK` pill** and the **top-2 bearish rows with a red `▼ PICK` pill**
+   (these are the rows that get drill-downs); all other rows leave that column empty.
 4. `#sectors` — **Drill-downs** for the most actionable sectors (the top bullish + bearish):
    each with the sector gauge (−100..+100 + label + conviction), a plain-English thesis, and
    its **top-3 stock cards** (ticker, company, Swing-Conviction meter 0–100, direction badge,

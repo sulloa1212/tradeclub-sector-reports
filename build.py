@@ -1119,9 +1119,9 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     date = today_str()
 
     body = _unbold_long_runs(body)
-    # Templated reports own their design; only house-path pages get the
+    # Templated/engine reports own their design; only house-path pages get the
     # authoritative prose-tone override (last in <head> wins the cascade).
-    if not report.get("template") and "</head>" in body:
+    if not report.get("template") and not report.get("engine") and "</head>" in body:
         body = body.replace("</head>", _PROSE_TONE_CSS + "\n</head>", 1)
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
@@ -1257,9 +1257,144 @@ def build_report_templated(client: Anthropic, report: dict) -> dict:
     return _finalize_report(report, body, sidecar, usages, attempts)
 
 
+def _parse_json_reply(text: str) -> dict:
+    """Extract the single JSON object from a model reply (fences/preamble tolerated)."""
+    t = text.strip()
+    t = re.sub(r"^```(?:json)?\s*", "", t)
+    t = re.sub(r"\s*```$", "", t)
+    i, j = t.find("{"), t.rfind("}")
+    if i < 0 or j <= i:
+        raise ValueError("no JSON object in reply")
+    return json.loads(t[i:j + 1])
+
+
+def _validate_gap_content(c: dict, missing: list):
+    """Fail loudly (-> retry) if the engine content contract is incomplete."""
+    for k in ("heads", "tldr", "breadth", "indices", "clock", "calendar",
+              "playbook", "banner", "sidecar_headline"):
+        if not c.get(k):
+            raise ValueError(f"gap content missing '{k}'")
+    if len(c["tldr"]) < 4:
+        raise ValueError("gap content: need >=4 tldr bullets")
+    for key in ("ndx", "rut", "spx", "djx"):
+        ic = c["indices"].get(key)
+        if not ic:
+            raise ValueError(f"gap content missing indices.{key}")
+        for f in ("levels", "character", "vol_note", "cushion_text", "driver", "gapfill"):
+            if not ic.get(f):
+                raise ValueError(f"gap content missing indices.{key}.{f}")
+        lv = ic["levels"]
+        if len(lv.get("res") or []) < 2 or len(lv.get("sup") or []) < 2:
+            raise ValueError(f"gap content indices.{key}: need 2 res + 2 sup levels")
+        if key in missing and ic.get("lvl_est") is None:
+            raise ValueError(f"gap content indices.{key}: feed had no level — lvl_est required")
+    if len(c.get("clock") or []) < 3 or len(c.get("calendar") or []) < 3:
+        raise ValueError("gap content: need >=3 clock rows and >=3 calendar rows")
+    pb = c.get("playbook") or {}
+    if len(pb.get("do") or []) < 4 or len(pb.get("dont") or []) < 4:
+        raise ValueError("gap content: need >=4 playbook items per column")
+
+
+_DIAL_SEV = {"Calm": 0, "Elevated": 1, "High": 2, "Extreme": 3}
+
+
+def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
+    """Deterministic-engine path (gap-risk): gap_feed pulls live market inputs,
+    gap_engine computes ALL math, the model supplies only judgment + narrative
+    via a JSON contract, and the engine renders the final page. The model can
+    never miscompute a probability — it never computes one."""
+    import gap_engine
+    import gap_feed
+    slug, name = report["slug"], report["name"]
+    print(f"\n=== {name}  ({slug})  [deterministic engine] ===")
+
+    prompt_path = ROOT / report["prompt"]
+    style_path = ROOT / report["style"]
+    for p in (prompt_path, style_path):
+        if not p.exists():
+            print(f"  !! missing {p} — skipping.")
+            return _record(name, slug, "skipped", [], 1)
+
+    ctx = gap_engine.run_context()
+    print(f"  [run] {ctx['long_date']} {ctx['time_str']} -> {ctx['label']} | "
+          f"{ctx['phrase']} | bump {ctx['weekend']}")
+    try:
+        feed = gap_feed.fetch_all(premarket=ctx["premarket"])
+    except Exception as e:
+        print(f"  !! feed failed entirely ({e}) — model estimates will carry the run")
+        feed = {k: dict(key=k, nm=gap_engine.NAMES[k][0], vn=gap_feed.INDEXES[k]["vn"],
+                        lvl=None, day=None, est=True, vol=None, vol_live=False,
+                        fut_pct=None, above_sma20=None, above_sma50=None,
+                        ma_rising=None, mom5_pct=None)
+                for k in gap_engine.BOARD_ORDER}
+
+    prelim = gap_engine.compute(feed, ctx, tolerant=True)
+    missing = [k for k in gap_engine.BOARD_ORDER if k not in prelim]
+    packet = gap_engine.data_packet(prelim, ctx)
+    cached = prompt_path.read_text(encoding="utf-8")
+    task_line = (f"Generate today's {name} content. Right now it is {now_et_line()} — "
+                 "anchor every today/next-open/weekday reference to this exact date and "
+                 "time; do NOT re-derive the weekday yourself. Do live web research per "
+                 "the contract, then reply with ONLY the JSON object — no preamble, no "
+                 "fences, no narration.\n\nDATA PACKET (computed by the engine):\n"
+                 + packet)
+
+    usages, attempts = [], 1
+
+    def attempt(extra=""):
+        text, usage, stop = call_report_model(client, cached, task_line, extra)
+        if usage is not None:
+            usages.append(usage)
+        if not text.strip():
+            raise ValueError("model returned no text")
+        if stop == "max_tokens":
+            raise ValueError(f"content truncated at MAX_TOKENS={MAX_TOKENS}")
+        c = _parse_json_reply(text)
+        _validate_gap_content(c, missing)
+        return c
+
+    try:
+        content = attempt()
+    except Exception as e:
+        print(f"  !! attempt 1 failed — {e}")
+        print(f"  !! retrying '{name}' once (JSON-contract reminder)...")
+        attempts = 2
+        try:
+            content = attempt(
+                "REMINDER: reply with ONLY one JSON object exactly matching the contract "
+                "(all four indices, every required field, >=4 tldr bullets, >=3 clock and "
+                "calendar rows, >=4 playbook items per column). No fences, no preamble.")
+        except Exception as e2:
+            print(f"  !! SKIPPED — {e2}")
+            return _record(name, slug, "skipped", usages, attempts)
+        print(f"  .. retry succeeded for '{name}'.")
+
+    IX = gap_engine.compute(feed, ctx, judgment=content["indices"])
+    ln = gap_engine.leans(IX)
+    print(f"  [engine] leans {ln['lo']}-{ln['hi']}% down | "
+          + " ".join(f"{k}:{IX[k]['on_dial']}" for k in gap_engine.BOARD_ORDER))
+    body = gap_engine.render(IX, content, ctx, style_path.read_text(encoding="utf-8"))
+
+    # Sidecar derived from the computed stats (not model-authored numbers).
+    top = max(IX.values(), key=lambda x: (_DIAL_SEV[x["on_dial"]], x["on_sig"]))
+    sidecar = {
+        "report": name,
+        "date": today_str(),
+        "status_label": f"{top['nm']} · {top['on_dial'].upper()}",
+        "accent": "warn" if _DIAL_SEV[top["on_dial"]] >= 2 else "neutral",
+        "metric": {"type": "text", "value": f"{top['nm']} · {top['on_dial'].upper()}"},
+        "headline": str(content.get("sidecar_headline", "")).strip(),
+    }
+    validate_report_sidecar(sidecar)
+    return _finalize_report(report, body, sidecar, usages, attempts)
+
+
 def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
     """Build ONE registry report → site/<slug>/ (dated + index.html + index.json).
     Returns a cost record. On failure, keeps yesterday's files for that report."""
+    # Deterministic-engine reports: code computes the math, the model only writes.
+    if report.get("engine") == "gap":
+        return build_report_gap_engine(client, report)
     # Reports with an approved DESIGN template fill it via the templated path
     # (fixed chrome + AI-written content) so they match their design exactly.
     if report.get("template"):
@@ -1281,6 +1416,12 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
                  f"{now_et_line()} — anchor every today/weekday reference to this exact "
                  "date and time; do NOT re-derive the weekday yourself. Output the "
                  "full HTML document first, then the JSON sidecar, per the house rules.")
+    # Manual runs may carry mode modifiers (SECTOR:/RISK:/EXCLUDE:/WATCHLIST:/HORIZON:)
+    # via the workflow's focus_line input — e.g. the on-demand sector deep dive.
+    focus = os.environ.get("FOCUS_LINE", "").strip()
+    if focus:
+        task_line += f"\n\nRUN MODIFIERS (apply per the prompt's MODE rules): {focus}"
+        print(f"  [mode] run modifiers: {focus}")
 
     usages = []
 

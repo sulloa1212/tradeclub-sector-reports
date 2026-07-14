@@ -16,13 +16,13 @@
       "slug": "gap-risk",
       "name": "Gap Risk Report",
       "prompt": "prompts/gap-risk.md",
-      "template": "templates/reports/gap-risk.template.html",
-      "blueprint": "templates/reports/gap-risk.components.md",
+      "engine": "gap",
+      "style": "templates/reports/gap-risk-engine.style.html",
       "run_time_et": "11:30am ET",
       "run_time_cr": "9:30am CR",
       "description": "This report tells you how big a jump — up or down — the four major US stock indexes (the S&P 500, Nasdaq 100, Dow, and Russell 2000) might make overnight, before the market opens tomorrow. For each one it gives you a simple risk dial (Calm to Extreme), the likely size of the move, which way it's leaning, and the key price levels to watch. Think of it as a weather forecast for tomorrow morning's open: it shows you which storms are brewing and where, in plain English — without claiming to know exactly what will happen.",
       "enabled": true,
-      "status": "ACTIVE — scheduled via report.yml ({\"reports\":\"gap-risk\"}) at 11:30am ET. Live and tested end-to-end."
+      "status": "ACTIVE — deterministic-engine path (gap_engine.py computes all math from gap_feed.py yfinance inputs; model writes narrative only via the JSON contract in prompts/gap-risk.md; drift+skew lean + disjoint bands + breakeven calculator). Scheduled via report.yml ({\"reports\":\"gap-risk\"}) at 11:30am ET. Legacy templated files retained at templates/reports/gap-risk.template.html."
     },
     {
       "slug": "mean-reversion",
@@ -33,6 +33,16 @@
       "description": "The Mean-Reversion Scan hunts the market's most stretched optionable assets — stocks, ETFs, commodities, rates, currencies, volatility, and crypto — and flags the ones that have run too far, too fast and are likely to snap back toward their average. It screens for overbought and oversold extremes, filters out the \"falling knives\" that look cheap but keep falling, factors in the prevailing macro backdrop, and surfaces a ranked watchlist of candidates worth a closer look — all for educational purposes, not investment advice.",
       "enabled": true,
       "status": "ACTIVE — scheduled via report.yml in the 8:50am ET morning batch ({\"reports\":\"sector-intelligence,mean-reversion\"}). Live and tested end-to-end."
+    },
+    {
+      "slug": "sector-deep-dive",
+      "name": "Sector Deep Dive",
+      "prompt": "prompts/sector-intelligence.md",
+      "run_time_et": "on demand",
+      "run_time_cr": "on demand",
+      "description": "An on-demand, single-sector edition of the Sector Intelligence Report. Fire it manually for any sector or theme (Energy, XLE, Semiconductors, …) and it produces a full deep dive: the sector's direction score and conviction gauge, a drill-down with its top-5 stocks (each with Swing-Conviction and Fundamental Health meters, thesis, risk, levels and earnings dates), ranked sub-industries, picks, and the sector's own event calendar. Educational only — not investment advice.",
+      "enabled": true,
+      "status": "ON DEMAND — Mode A of prompts/sector-intelligence.md. Fire via report.yml workflow_dispatch with reports=sector-deep-dive and focus_line e.g. \"SECTOR: XLE RISK: aggressive\". Same-day second run needs force=true (idempotency guard). Hub card fills in on first run."
     },
     {
       "slug": "pre-market",

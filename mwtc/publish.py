@@ -151,6 +151,44 @@ def derive_sidecar(data: dict, mode: str) -> dict:
     }
 
 
+def _run_time_et(slug: str) -> str:
+    """This report's scheduled release time, from the registry (reports.json)."""
+    try:
+        reg = json.loads((REPO_ROOT / "reports.json").read_text(encoding="utf-8"))
+        for r in reg.get("reports", []):
+            if r.get("slug") == slug:
+                return r.get("run_time_et", "")
+    except Exception:
+        pass
+    return ""
+
+
+def _release_badge(run_time_et: str) -> str:
+    """Small fixed schedule pill in the bottom-left stack (above the
+    previous-reports dropdown) — same chrome the build.py reports carry."""
+    if not run_time_et:
+        return ""
+    return (
+        '<style>.tc-sched{position:fixed;left:18px;bottom:130px;z-index:99999;'
+        'display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;'
+        'background:#10151f;border:1px solid #26303f;color:#9fb0c3;'
+        'font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+        'pointer-events:none}'
+        '@media print{.tc-sched{display:none}}</style>'
+        f'<div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; {run_time_et}</div>'
+    )
+
+
+def inject_release_badge(html: str, slug: str) -> str:
+    """Insert the schedule pill right after <body>. No-op if already present."""
+    badge = _release_badge(_run_time_et(slug))
+    if not badge or "tc-sched" in html:
+        return html
+    j = html.lower().find("<body")
+    j = html.find(">", j) if j != -1 else -1
+    return html[:j + 1] + badge + html[j + 1:] if j != -1 else badge + html
+
+
 def publish_html(html: str, data: dict, mode: str) -> Path:
     """Write the report + sidecar into site/<slug>/, prune to KEEP, refresh
     index.html. Returns the dated file path."""
@@ -160,6 +198,7 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
     date = utc_date()
 
     body = inject_hub_button(html)
+    body = inject_release_badge(body, slug)
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 
     index_path = d / "index.json"

@@ -934,6 +934,32 @@ def inject_hub_button(html: str) -> str:
     return (html[:m.end()] + HUB_BUTTON + html[m.end():]) if m else (HUB_BUTTON + html)
 
 
+def release_badge(run_time_et: str) -> str:
+    """Small fixed schedule pill in the bottom-left stack (above the
+    previous-reports dropdown): when a fresh edition of this report comes out.
+    Pure chrome — non-interactive, hidden on print."""
+    if not run_time_et:
+        return ""
+    return (
+        '<style>.tc-sched{position:fixed;left:18px;bottom:130px;z-index:99999;'
+        'display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;'
+        'background:#10151f;border:1px solid #26303f;color:#9fb0c3;'
+        'font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+        'pointer-events:none}'
+        '@media print{.tc-sched{display:none}}</style>'
+        f'<div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; {run_time_et}</div>'
+    )
+
+
+def inject_release_badge(html: str, run_time_et: str) -> str:
+    """Insert the schedule pill right after <body>. No-op if already present."""
+    badge = release_badge(run_time_et)
+    if not badge or "tc-sched" in html:
+        return html
+    m = re.search(r"<body[^>]*>", html, re.IGNORECASE)
+    return (html[:m.end()] + badge + html[m.end():]) if m else (badge + html)
+
+
 def prune_dead_nav(html: str) -> str:
     """Remove any nav anchor whose #fragment target doesn't exist in the report, so
     a stray/typo jump button never scrolls nowhere. Anchors to real ids are kept
@@ -1125,6 +1151,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
         body = body.replace("</head>", _PROSE_TONE_CSS + "\n</head>", 1)
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
+    body = inject_release_badge(body, report.get("run_time_et", ""))
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 
     index_path = d / "index.json"

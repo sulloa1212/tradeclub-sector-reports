@@ -934,6 +934,33 @@ def inject_hub_button(html: str) -> str:
     return (html[:m.end()] + HUB_BUTTON + html[m.end():]) if m else (HUB_BUTTON + html)
 
 
+# Fixed bottom-RIGHT button back to the Trade Club AI dashboard on the main
+# MWTC site — carried by the hub and every report page (left corner holds the
+# All Reports / Previous / schedule stack). Outline style so the blue "All
+# Reports" button stays the primary action.
+DASHBOARD_URL = "https://www.mwtradecoach.com/products/mwtc-trade-club-ai"
+DASH_BUTTON = (
+    '<style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;'
+    'display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;'
+    'background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;'
+    'font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+    'text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}'
+    '.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);'
+    'box-shadow:0 10px 28px rgba(78,161,255,.5)}'
+    '@media print{.tc-dash-btn{display:none}}</style>'
+    f'<a class="tc-dash-btn" href="{DASHBOARD_URL}" aria-label="Trade Club AI dashboard">'
+    '&#8617;&nbsp;TC Dashboard</a>'
+)
+
+
+def inject_dash_button(html: str) -> str:
+    """Insert the fixed 'TC Dashboard' button right after the opening <body>."""
+    if "tc-dash-btn" in html:
+        return html
+    m = re.search(r"<body[^>]*>", html, re.IGNORECASE)
+    return (html[:m.end()] + DASH_BUTTON + html[m.end():]) if m else (DASH_BUTTON + html)
+
+
 def release_badge(run_time_et: str) -> str:
     """Small fixed schedule pill in the bottom-left stack (above the
     previous-reports dropdown): when a fresh edition of this report comes out.
@@ -1151,6 +1178,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
         body = body.replace("</head>", _PROSE_TONE_CSS + "\n</head>", 1)
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
+    body = inject_dash_button(body)
     body = inject_release_badge(body, report.get("run_time_et", ""))
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 

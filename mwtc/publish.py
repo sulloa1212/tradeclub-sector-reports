@@ -151,6 +151,31 @@ def derive_sidecar(data: dict, mode: str) -> dict:
     }
 
 
+# Fixed bottom-RIGHT button back to the Trade Club AI dashboard on the main
+# MWTC site (same chrome the build.py reports carry).
+DASH_BUTTON = (
+    '<style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;'
+    'display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;'
+    'background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;'
+    'font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+    'text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}'
+    '.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);'
+    'box-shadow:0 10px 28px rgba(78,161,255,.5)}'
+    '@media print{.tc-dash-btn{display:none}}</style>'
+    '<a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" '
+    'aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a>'
+)
+
+
+def inject_dash_button(html: str) -> str:
+    """Insert the fixed 'TC Dashboard' button right after the opening <body>."""
+    if "tc-dash-btn" in html:
+        return html
+    j = html.lower().find("<body")
+    j = html.find(">", j) if j != -1 else -1
+    return html[:j + 1] + DASH_BUTTON + html[j + 1:] if j != -1 else DASH_BUTTON + html
+
+
 def _run_time_et(slug: str) -> str:
     """This report's scheduled release time, from the registry (reports.json)."""
     try:
@@ -198,6 +223,7 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
     date = utc_date()
 
     body = inject_hub_button(html)
+    body = inject_dash_button(body)
     body = inject_release_badge(body, slug)
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 

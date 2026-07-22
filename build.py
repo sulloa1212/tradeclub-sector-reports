@@ -1324,30 +1324,37 @@ def _parse_json_reply(text: str) -> dict:
 
 
 def _validate_gap_content(c: dict, missing: list):
-    """Fail loudly (-> retry) if the engine content contract is incomplete."""
-    for k in ("heads", "tldr", "breadth", "indices", "clock", "calendar",
-              "playbook", "banner", "sidecar_headline"):
+    """Fail loudly (-> retry) if the v2 STORY contract is incomplete."""
+    for k in ("story", "levels", "clock", "playbook", "sidecar_headline"):
         if not c.get(k):
             raise ValueError(f"gap content missing '{k}'")
-    if len(c["tldr"]) < 4:
-        raise ValueError("gap content: need >=4 tldr bullets")
+    st = c["story"]
+    for k in ("headline", "watch"):
+        if not st.get(k):
+            raise ValueError(f"gap content missing story.{k}")
     for key in ("ndx", "rut", "spx", "djx"):
-        ic = c["indices"].get(key)
-        if not ic:
-            raise ValueError(f"gap content missing indices.{key}")
-        for f in ("levels", "character", "vol_note", "cushion_text", "driver", "gapfill"):
-            if not ic.get(f):
-                raise ValueError(f"gap content missing indices.{key}.{f}")
-        lv = ic["levels"]
+        si = st.get(key)
+        if not si:
+            raise ValueError(f"gap content missing story.{key}")
+        for f in ("tail", "driver", "gapfill"):
+            if not si.get(f):
+                raise ValueError(f"gap content missing story.{key}.{f}")
+        lv = c["levels"].get(key) or {}
         if len(lv.get("res") or []) < 2 or len(lv.get("sup") or []) < 2:
-            raise ValueError(f"gap content indices.{key}: need 2 res + 2 sup levels")
-        if key in missing and ic.get("lvl_est") is None:
-            raise ValueError(f"gap content indices.{key}: feed had no level — lvl_est required")
-    if len(c.get("clock") or []) < 3 or len(c.get("calendar") or []) < 3:
-        raise ValueError("gap content: need >=3 clock rows and >=3 calendar rows")
+            raise ValueError(f"gap content levels.{key}: need 2 res + 2 sup")
+        if key in missing and (c.get("lvl_est") or {}).get(key) is None:
+            raise ValueError(f"gap content: feed had no {key} level — lvl_est.{key} required")
+    if len(c.get("clock") or []) < 3:
+        raise ValueError("gap content: need >=3 clock rows")
     pb = c.get("playbook") or {}
-    if len(pb.get("do") or []) < 4 or len(pb.get("dont") or []) < 4:
-        raise ValueError("gap content: need >=4 playbook items per column")
+    if len(pb.get("do") or []) < 3 or len(pb.get("dont") or []) < 3:
+        raise ValueError("gap content: need >=3 playbook items per column")
+    # Numeric-prose invariant: the engine composes every number; the model
+    # writing literal leans/prices invites the exact drift v12 was built to
+    # kill. Soft check on the headline only (worst offender historically).
+    import re as _re
+    if _re.search(r"\d{2,}%|\d,\d{3}", st.get("headline", "")):
+        raise ValueError("gap content: story.headline contains literal numbers — use tokens/no numbers")
 
 
 _DIAL_SEV = {"Calm": 0, "Elevated": 1, "High": 2, "Extreme": 3}
@@ -1424,7 +1431,12 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
             return _record(name, slug, "skipped", usages, attempts)
         print(f"  .. retry succeeded for '{name}'.")
 
-    IX = gap_engine.compute(feed, ctx, judgment=content["indices"])
+    judgment = {k: {"catalyst_adj": (content.get("catalyst_adj") or {}).get(k),
+                    "lvl_est": (content.get("lvl_est") or {}).get(k),
+                    "day_est": (content.get("day_est") or {}).get(k),
+                    "vol_est": (content.get("vol_est") or {}).get(k)}
+                for k in gap_engine.BOARD_ORDER}
+    IX = gap_engine.compute(feed, ctx, judgment=judgment)
     ln = gap_engine.leans(IX)
     print(f"  [engine] leans {ln['lo']}-{ln['hi']}% down | "
           + " ".join(f"{k}:{IX[k]['on_dial']}" for k in gap_engine.BOARD_ORDER))

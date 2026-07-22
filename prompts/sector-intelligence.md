@@ -133,7 +133,9 @@ Then a directional **FUEL TAG**:
    ticker, lowercase — e.g. `drill-smh`, `drill-xle`) — never invent a different id scheme,
    so the page structure stays identical run to run.
 5. `#picks` — **Today's Picks**: a ranked list of the 3–5 SINGLE BEST stock setups across
-   ALL the drill-downs (both long and short/avoid), each one row: rank, ticker + company,
+   ALL the drill-downs (both long and short/avoid), ordered STRICTLY by Swing-Conviction
+   score descending regardless of direction (never place a lower score above a higher
+   one), each one row: rank, ticker + company,
    direction badge, Swing-Conviction score, the entry zone / key level, the one-line
    catalyst, and the earnings-window flag. This is the "just tell me the picks" summary a
    member reads first — every pick must also appear in a drill-down above (no new names

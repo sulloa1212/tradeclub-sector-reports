@@ -194,7 +194,7 @@ def _release_badge(run_time_et: str) -> str:
     if not run_time_et:
         return ""
     return (
-        '<style>.tc-sched{position:fixed;left:18px;bottom:130px;z-index:99999;'
+        '<style>.tc-sched{position:fixed;right:18px;bottom:74px;z-index:99999;'
         'display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;'
         'background:#10151f;border:1px solid #26303f;color:#9fb0c3;'
         'font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'

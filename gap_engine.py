@@ -759,9 +759,10 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     # ── composed narrative (numbers computed, words from STORY) ─────────────
     wix, bix = IX[D["worst"]], IX[D["best"]]
     widest, calmest = IX[D["widest"]], IX[D["calmest"]]
-    heads_b = (f'{story.get("headline", "")} Closes: {D["close_line"]}. The drift+skew lean '
+    heads_b = (f'Closes: {D["close_line"]}. The drift+skew lean '
                f'<b>spreads {ln["lo"]}&ndash;{ln["hi"]}% down</b> across the four, tracking each '
-               'index&rsquo;s own read rather than a single pinned number.')
+               'index&rsquo;s own read rather than a single pinned number.'
+               + (f' The live catalyst: <b>{D["cat"]}</b>.' if D["cat"] else ""))
     tldr_items = [
         f'<span class="lead">How the four closed.</span> {wix["nm"]} was weakest at {_day_plain(wix)}; '
         f'{bix["nm"]} was strongest at {_day_plain(bix)}. This was a <b>{D["breadth"]}</b> session.',

@@ -255,7 +255,9 @@ def compute(feed: dict, ctx: dict, judgment: dict | None = None,
             key=key, nm=nm, co=co, etf=etf, bar=BAR[key],
             lvl=lvl, day=f["day"] or 0.0, est=f["est"], vol=vol,
             vol_live=f["vol_live"], vol_src=f.get("vol_src"),
-            vol1d=f.get("vol1d"), vn=f["vn"], r=r, r_wk=r_wk, sig=sig,
+            vol1d=f.get("vol1d"), vn=f["vn"],
+            vx_spot=f.get("vx_spot"), vx1d_spot=f.get("vx1d_spot"),
+            r=r, r_wk=r_wk, sig=sig,
             gamma=gamma, catalyst_adj=adj,
             fut_pct=f["fut_pct"], above_sma20=f["above_sma20"],
             above_sma50=f["above_sma50"], ma_rising=f["ma_rising"],
@@ -333,9 +335,13 @@ def _day_span(ix, parens=True):
 
 
 def _vol_disp(ix):
+    """v13 labeling fix: the band vol is the index's own ATM chain IV — never
+    call it VIX/VXN/…; the real CBOE spot is appended separately for reference."""
     est = " (est.)" if (ix.get("vol_src") or "").startswith("est") else ""
     v1 = f' &middot; 1-day {ix["vol1d"]:.1f}' if ix.get("vol1d") else ""
-    return f'Vol: {ix["vn"]} <b>{ix["vol"]:.2f}</b>{est}{v1}'
+    vx = (f' &middot; {ix["vn"]} {ix["vx_spot"]:.2f}'
+          if ix.get("vx_spot") is not None else "")
+    return f'Vol: {ix["nm"]} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
 
 
 def _derived(IX: dict, content: dict) -> dict:
@@ -427,6 +433,12 @@ def _be_calc(IX, ctx):
                   "sg": round(IX[k].get("sig", 0.0), 4), "vn": IX[k]["vn"],
                   "v1": (round(IX[k]["vol1d"], 3) if IX[k].get("vol1d") else None),
                   "v1n": IX[k]["vn"] + "1D",
+                  # Real CBOE vol-index spots (v13): display/anchor only — the
+                  # bands price off vol/v1 (the index's own ATM chain IV).
+                  "vx": (round(IX[k]["vx_spot"], 2) if IX[k].get("vx_spot") is not None else None),
+                  "vx1": (round(IX[k]["vx1d_spot"], 2) if IX[k].get("vx1d_spot") is not None else None),
+                  # Chartable 1-day symbol only where one exists (VIX1D for SPX).
+                  "v1sym": ("VIX1D" if k == "spx" else None),
                   "on": {"sd": round(IX[k]["on"]["sd"], 4), "su": round(IX[k]["on"]["su"], 4),
                          "mu": round(IX[k]["on"]["mu"], 4), "sd1": round(IX[k]["on_sig"], 3)},
                   "wk": {"sd": round(IX[k]["wk"]["sd"], 4), "su": round(IX[k]["wk"]["su"], 4),
@@ -455,7 +467,7 @@ def _be_calc(IX, ctx):
         <label>Current price<input id="beSpot" type="number" step="any" inputmode="decimal"></label>
         <label>Lower level<input id="beLo" type="number" step="any" inputmode="decimal" placeholder="e.g. 7,396"></label>
         <label>Upper level<input id="beHi" type="number" step="any" inputmode="decimal" placeholder="e.g. 7,605"></label>
-        <label><span id="beIvLab">IV pt chg</span><input id="beIv" type="number" step="any" inputmode="decimal" value="0"></label>
+        <label><span id="beIvLab">Current VIX</span><input id="beIv" type="number" step="any" min="1" inputmode="decimal" placeholder="auto"></label>
       </div>
       <div class="bebase" id="beBase"></div>
       <div class="bezrow" id="beZ"></div>
@@ -471,9 +483,9 @@ def _be_calc(IX, ctx):
     </div>
     <div class="bewhat">
       <div class="bewhat-h">How it works</div>
-      <p>It prices the <b>implied move</b> from the index&rsquo;s own option-market volatility, tilts it for <b>put skew</b> (downside tails are fatter than upside) and for the <b>directional lean</b> in tonight&rsquo;s read, then measures where your two levels fall on that distribution. The horizon sets the vol it uses: <b>Rest of day</b> prices off the 1-day number ({vn1d}) and shrinks as the session runs down; <b>Overnight</b> and <b>1-Week</b> use the 30-day number ({vn30}).</p>
+      <p>It prices the <b>implied move</b> from the index&rsquo;s own option-market volatility, tilts it for <b>put skew</b> (downside tails are fatter than upside) and for the <b>directional lean</b> in tonight&rsquo;s read, then measures where your two levels fall on that distribution. The horizon sets the vol it uses: <b>Rest of day</b> prices off each index&rsquo;s own <b>1-day option-implied IV</b> and shrinks as the session runs down; <b>Overnight</b> and <b>1-Week</b> use its <b>30-day option-implied IV</b>. The <b>{vn30}</b> readings shown in the banner are the CBOE index spots, printed for reference &mdash; they run a few points above each index&rsquo;s own at-the-money IV because they price a wider strip of out-of-the-money options, which is why they never match the band vol exactly.</p>
       <p><b>Touch odds are the headline.</b> &ldquo;Never touches either&rdquo; asks whether price stays inside your range the whole way &mdash; not merely where it finishes. That matters because a level that gets tagged intraday has already forced your decision, even if price closes back inside. Closing odds flatter a range; touch odds tell you what you&rsquo;ll actually live through.</p>
-      <p><b>The IV point-change box</b> is a what-if. Type &minus;2 to ask &ldquo;how does this range look if vol drops two points?&rdquo; It moves whichever vol the selected horizon uses, and the label changes to match.</p>
+      <p><b>The current-vol box</b> is a what-if on volatility &mdash; type an actual reading, not a point change, and the bands re-scale. What it asks for depends on the horizon. <b>Overnight and 1-week</b> pre-fill with the vol-index spot captured at the run (VIX for SPX); type the current reading and the bands shift with it. <b>Rest of day</b> asks for the 1-day reading &mdash; where no live VIX1D was captured the field starts empty; chart it and type the current value, and it sizes the intraday bands directly. Until then, rest-of-day uses that index&rsquo;s own 1-day IV.</p>
       <p class="bewarn"><b>&#9888; These are estimates, and they age.</b> Volatility, skew and the directional lean are <b>frozen at the {ctx["time_str"]} run</b> that produced this page &mdash; only your inputs and the clock keep updating. Run this during the session that follows and it&rsquo;s working from a live picture. Run it a day later, or after a gap or a volatility spike, and the inputs behind it are stale even though the numbers still move. <b>Check back for the next report for anything current.</b> Options-implied probabilities are a description of what the market is pricing, not a forecast &mdash; and nothing here accounts for your position size, spreads or fills.</p>
       <p class="bequiet">Runs entirely in your browser. Nothing is sent anywhere, and it makes no network calls.</p>
     </div>
@@ -500,7 +512,24 @@ def _be_calc(IX, ctx):
     var t=(mins-o)/(c-o), tot=W(1,k);
     return {f:(tot-W(t,k))/tot, hrs:(c-mins)/60, pre:false};
   }
-  function volFor(d,h){return (h==='rd'&&d.v1)?{v:d.v1,nm:d.v1n,short:true}:{v:d.vol,nm:d.vn,short:false};}
+  /* nm here labels the vol that SIZES THE BANDS -- the index's own ATM IV -- so
+     warnings say "SPX 1D IV" / "SPX 30D IV", not "VIX". The real VIX/VIX1D
+     spots are shown separately in the baseline strip for reference. */
+  function volFor(d,h){return (h==='rd'&&d.v1)?{v:d.v1,nm:d.nm+' 1D IV',short:true}:{v:d.vol,nm:d.nm+' 30D IV',short:false};}
+  /* What the user types in the CURRENT-VOL box (an absolute reading, not a delta):
+       extra  -> type the real vol-index spot; band vol = ATM IV shifted by its move (~1:1)
+       direct -> the typed number IS the band vol
+       prompt -> a chartable symbol exists but no run value; field starts EMPTY,
+                 fallbackVol (the index's own 1-day ATM IV) stands in until typed. */
+  function anchorFor(d,h){
+    if(h==='rd'){
+      if(d.vx1!=null) return {v:d.vx1, nm:'VIX1D', direct:true};
+      if(d.v1sym)     return {v:null,  nm:d.v1sym, direct:true, prompt:true, fallbackVol:d.v1};
+      return {v:d.v1, nm:'1-day IV', direct:true};
+    }
+    if(d.vx!=null) return {v:d.vx, nm:d.vn, extra:true};
+    return {v:d.vol, nm:'30-day IV', direct:true};
+  }
   function params(d,h,ivchg,rem){
     var base=volFor(d,h), volE=Math.max(1,base.v+(ivchg||0)), sc=volE/base.v;
     if(h==='rd'){
@@ -515,18 +544,42 @@ def _be_calc(IX, ctx):
   var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),
       elSafe=$('beSafe'),elTLo=$('beTLo'),elTHi=$('beTHi'),elTouch=$('beTouch'),
       elZ=$('beZ'),elTerm=$('beTerm'),elBase=$('beBase'),meta=$('beMeta'),hint=$('beHint'),stale=$('beStale');
-  var horizon='rd', spotTouched=false;
+  var horizon='rd', spotTouched=false, ivTouched=false;
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
   function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
   function HNAME(h){return h==='rd'?'rest of day':(h==='on'?'overnight':'1-week');}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
+  ivI.addEventListener('input',function(){ivTouched=true;});
   function syncSpot(){ var d=BE[ixSel.value];
     if(!spotTouched) spotI.value=d.C;
-    $('beIvLab').textContent=d.vn+' pt chg';
+  }
+  /* Label + pre-fill the current-vol field with the run reading for this
+     index/horizon. Absolute value, not a delta. */
+  function syncIvField(){ var a=anchorFor(BE[ixSel.value],horizon);
+    $('beIvLab').textContent='Current '+a.nm;
+    if(!ivTouched) ivI.value = a.prompt ? '' : (Math.round(a.v*100)/100);
+    ivI.placeholder = a.prompt ? ('chart '+a.nm) : 'auto';
   }
   function calc(){
-    var d=BE[ixSel.value], ivchg=parseFloat(ivI.value)||0, rem=varRemain();
+    var d=BE[ixSel.value], rem=varRemain();
+    /* current-vol field is an ABSOLUTE reading; convert to a point change vs the
+       run anchor and let the delta machinery run unchanged (volE = usedVol). */
+    var anchor=anchorFor(d,horizon), base=volFor(d,horizon);
+    var typed=parseFloat(ivI.value), haveTyped=!(isNaN(typed)||typed<=0);
+    var usedVol, shownVol, shownDelta=0, shownDeltaOk=true;
+    if(anchor.extra){
+      var eff = haveTyped ? typed : anchor.v;
+      usedVol = Math.max(1, base.v + (eff - anchor.v));
+      shownVol = eff; shownDelta = eff - anchor.v;
+    } else if(anchor.prompt){
+      usedVol = haveTyped ? Math.max(1,typed) : anchor.fallbackVol;
+      shownVol = usedVol; shownDeltaOk = false;
+    } else {
+      usedVol = haveTyped ? Math.max(1,typed) : anchor.v;
+      shownVol = usedVol; shownDelta = usedVol - base.v;
+    }
+    var ivchg = usedVol - base.v;
     var hOv=parseFloat(hrsI.value);
     if(horizon==='rd'&&!isNaN(hOv)&&hOv>0){ rem={f:Math.min(hOv/6.5,1), hrs:hOv, manual:true}; }
     var p=params(d,horizon,ivchg,rem), C=parseFloat(spotI.value);
@@ -534,24 +587,48 @@ def _be_calc(IX, ctx):
     var mtxt=HNAME(horizon)+' 1SD &plusmn;'+p.sd1.toFixed(2)+'%';
     if(horizon==='rd') mtxt+=' &middot; '+(rem.manual?rem.hrs.toFixed(1)+'h (manual)':(rem.f<=0?'market closed':rem.hrs.toFixed(1)+'h to the bell'));
     meta.innerHTML=mtxt;
-    $('beIvLab').textContent=p.vsrc.nm+' pt chg';
-    var dPct=(C-d.C)/d.C*100, vBase=p.vsrc.v, vNow=vBase+ivchg;
+    $('beIvLab').textContent='Current '+anchor.nm;
+    var dPct=(C-d.C)/d.C*100;
     function sgn(x,dp){return (x>0?'+':'')+x.toFixed(dp);}
     var pxCls=Math.abs(dPct)<0.05?'bbflat':(dPct<0?'bbdn':'bbup');
-    var ivCls=Math.abs(ivchg)<0.005?'bbflat':(ivchg>0?'bbdn':'bbup');
+    var ivCls=(!shownDeltaOk||Math.abs(shownDelta)<0.005)?'bbflat':(shownDelta>0?'bbdn':'bbup');
+    /* Both the real CBOE spot (what the platform shows) and the index's own ATM
+       IV that actually sizes the bands -- they diverge by design, so each is
+       labeled for what it is; "drives bands" tags the model vol. */
+    function volCell(realV,realNm,modV,modNm){
+      var s='';
+      if(realV!=null) s+='<b>'+realNm+' '+realV.toFixed(2)+'</b>';
+      if(modV!=null)  s+='<b>'+modNm+' '+modV.toFixed(2)+' <i class="bbflat">drives bands</i></b>';
+      return s;
+    }
+    var assume;
+    if(anchor.extra){
+      assume='<b>'+anchor.nm+' '+shownVol.toFixed(2)+' <i class="'+ivCls+'">'+sgn(shownDelta,2)+'</i></b>'
+            +'<b>'+base.nm+' '+usedVol.toFixed(2)+' <i class="bbflat">drives bands</i></b>';
+    } else if(anchor.prompt&&!haveTyped){
+      assume='<b class="bbnull">'+anchor.nm+' not set</b>'
+            +'<b>'+base.nm+' '+usedVol.toFixed(2)+' <i class="bbflat">drives bands</i></b>';
+    } else {
+      assume='<b>'+anchor.nm+' '+shownVol.toFixed(2)
+            +(shownDeltaOk?' <i class="'+ivCls+'">'+sgn(shownDelta,2)+'</i>':'')
+            +' <i class="bbflat">drives bands</i></b>';
+    }
     elBase.innerHTML=
       '<span class="bbgrp"><em>At the '+CFG.genlbl+' run</em>'
         +'<b>'+d.nm+' '+fnum(d.C)+'</b>'
-        +'<b>'+d.vn+' '+d.vol.toFixed(2)+'</b>'
-        +(d.v1?'<b>'+d.v1n+' '+d.v1.toFixed(2)+'</b>':'<b class="bbnull">'+d.v1n+' not set</b>')
+        +volCell(d.vx, d.vn, d.vol, d.nm+' 30D IV')
+        +volCell(d.vx1, d.v1n, d.v1, d.nm+' 1D IV')
       +'</span>'
       +'<span class="bbarrow">&rarr;</span>'
       +'<span class="bbgrp"><em>Your assumption now</em>'
         +'<b>'+d.nm+' '+fnum(C)+' <i class="'+pxCls+'">'+sgn(dPct,2)+'%</i></b>'
-        +'<b>'+p.vsrc.nm+' '+vNow.toFixed(2)+' <i class="'+ivCls+'">'+sgn(ivchg,2)+'</i></b>'
+        +assume
       +'</span>';
-    var vwarn=(horizon==='rd'&&!p.vsrc.short)
-      ? ' Rest-of-day is using the 30-day '+d.vn+' because no '+d.v1n+' was available at generation &mdash; on a steep term structure that misprices a few-hour horizon.' : '';
+    var vwarn='';
+    if(anchor.prompt&&!haveTyped)
+      vwarn=' '+anchor.nm+' isn\\u2019t published by the data feed &mdash; chart it and type the current value for the skew-adjusted view; until then this uses '+base.nm+' '+usedVol.toFixed(2)+'.';
+    else if(horizon==='rd'&&!p.vsrc.short)
+      vwarn=' Rest-of-day is using the 30-day '+d.nm+' IV because no 1-day IV was available at generation &mdash; on a steep term structure that misprices a few-hour horizon.';
     var drift=(C-d.C)/d.C*100, lvl=0;
     var sm='Vol, skew and drift are frozen at the '+CFG.genlbl+' run &mdash; only your inputs and the clock update.';
     var today=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return '';}})();
@@ -562,8 +639,8 @@ def _be_calc(IX, ctx):
       lvl=1;
       var sug=-CFG.vbeta*drift;
       sm+=' Your reference is <b>'+(drift>0?'+':'')+drift.toFixed(2)+'%</b> off the baked '+fnum(d.C)+'.';
-      if(Math.abs(sug)>=0.3&&!ivchg) sm+=' A move that size usually shifts '+d.vn+' about <b>'+(sug>0?'+':'')+sug.toFixed(1)
-        +'</b> point'+(Math.abs(sug)>=1.5?'s':'')+' &mdash; consider putting that in IV pt chg, or vol here is stale in the flattering direction.';
+      if(Math.abs(sug)>=0.3&&!ivchg&&anchor.v!=null) sm+=' A move that size usually shifts '+anchor.nm+' about <b>'+(sug>0?'+':'')+sug.toFixed(1)
+        +'</b> point'+(Math.abs(sug)>=1.5?'s':'')+', to about <b>'+(anchor.v+sug).toFixed(1)+'</b> &mdash; consider entering that as the current reading, or vol here is stale in the flattering direction.';
     }
     stale.className='bewarn'+(lvl===2?' lvl2':(lvl===1?' lvl1':''));
     stale.innerHTML=sm+vwarn;
@@ -587,11 +664,12 @@ def _be_calc(IX, ctx):
       +'. Rough guide, not a guarantee.';
   }
   function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
-    document.querySelector('.behrs').style.visibility=(h==='rd')?'visible':'hidden';calc();}
-  ixSel.addEventListener('change',function(){syncSpot();calc();});
+    document.querySelector('.behrs').style.visibility=(h==='rd')?'visible':'hidden';
+    ivTouched=false;syncIvField();calc();}
+  ixSel.addEventListener('change',function(){syncSpot();ivTouched=false;syncIvField();calc();});
   [spotI,loI,hiI,ivI,hrsI].forEach(function(e){e.addEventListener('input',calc);});
   Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
-  syncSpot();pick('rd');
+  syncSpot();syncIvField();pick('rd');
   setInterval(function(){if(horizon==='rd'&&isNaN(parseFloat(hrsI.value)))calc();},60000);
 })();
 </script>'''.replace("__BE_JSON__", blob)
@@ -822,10 +900,13 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     vol_bits = []
     for k in BOARD_ORDER:
         src = IX[k].get("vol_src") or ""
-        vol_bits.append(f'{IX[k]["vn"]} ' + ("chain IV" if src.startswith("uw") else
-                                             ("quote" if src.startswith("yf") else "est.")))
-    footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). Implied vols: '
-                   + ", ".join(vol_bits) + '. The dealer-gamma regime is computed from live options '
+        vol_bits.append(f'{IX[k]["nm"]} ' + ("own ATM chain IV" if src.startswith("uw") else
+                                             (f'{IX[k]["vn"]} index quote' if src.startswith("yf")
+                                              else "estimated")))
+    footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). Band vols: '
+                   + ", ".join(vol_bits) + '. Where shown, VIX/VXN/VXD spots are reference readings '
+                   'only — they price a wider options strip and sit a few points above the ATM IV '
+                   'that sizes the bands. The dealer-gamma regime is computed from live options '
                    'positioning data where available. The per-index directional <b>signal</b> is '
                    'mechanical (trend/momentum/futures), with a small analyst catalyst nudge.')
 
@@ -942,7 +1023,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         <dt>Breakeven Calculator</dt><dd>Enter <b>any two price levels</b> &mdash; expiration breakevens, T+0 breakevens, or support/resistance &mdash; and it returns the odds the index stays between them, evaluated at <i>your exact levels</i> rather than the round-percent band marks. Three horizons: <b>rest of day</b> (now &rarr; today&rsquo;s 4:00 PM ET close, taken from your computer&rsquo;s clock, so it tightens on its own through the afternoon), <b>overnight</b>, and <b>1-week</b>.</dd>
         <dt>Touch vs. ends-up</dt><dd>These are different questions and the gap between them is wide. <b>Touch</b> = the odds price <i>reaches</i> your level at any point before the horizon. <b>Ends up</b> = the odds it&rsquo;s past your level when the horizon arrives. Touch is roughly <b>double</b> ends-up, because price can tag a level and come back. If you adjust or exit when a level trades, <b>touch is your number</b> &mdash; ends-up will flatter the position.</dd>
         <dt>&sigma; distance</dt><dd>Each level is also shown as a distance in <b>standard deviations</b> from your reference price. This is usually the fastest read in the whole tool: a level 1&sigma; away is genuinely in play, one 3&sigma; away is background noise. When your two levels sit at very different &sigma;, the risk isn&rsquo;t two-sided &mdash; it&rsquo;s all on the near side.</dd>
-        <dt>Current price / IV pt chg</dt><dd>The calculator starts from the price baked in at generation, but you can type the <b>live price</b> from your platform and everything re-computes around it. <b>IV pt chg</b> does the same for volatility &mdash; type <b>+2</b> if the vol index has risen two points since the run. Both are manual on purpose: the report never calls out to the internet.</dd>
+        <dt>Current price / Current vol</dt><dd>The calculator starts from the price baked in at generation, but you can type the <b>live price</b> from your platform and everything re-computes around it. The <b>current-vol</b> box does the same for volatility, and it takes an <b>actual value, not a point change</b>. On <b>overnight/1-week</b> it&rsquo;s pre-filled with the run&rsquo;s vol-index spot (VIX for SPX) &mdash; overwrite it with the current reading. On <b>rest of day</b> it asks for the 1-day reading; where no live VIX1D was captured it starts empty &mdash; chart it and type it, and it sizes the intraday bands directly (the index&rsquo;s own 1-day IV is used until you do). Both are manual on purpose: the report never calls out to the internet.</dd>
         <dt>Risk dials</dt><dd>Calm / Elevated / High / Extreme &mdash; computed from the implied move size, with matching thresholds at both horizons so &ldquo;Elevated&rdquo; means the same vol regime on the overnight and 1-week rows.</dd>
         <dt>The Cushion (gamma)</dt><dd><b>Positive</b> = dealers buy dips/sell rips, moves fade. <b>Negative</b> = dealers amplify moves; pushes extend. <b>Thin</b> = no reliable positioning read. Computed from live options data where available.</dd>
         <dt>Whole-number levels</dt><dd>Round numbers act as magnets (option open-interest clusters there). Approximate &mdash; re-verify live.</dd>

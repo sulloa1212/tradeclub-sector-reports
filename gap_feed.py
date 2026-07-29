@@ -197,6 +197,16 @@ def fetch_all(premarket: bool = False) -> dict:
     data = {k: fetch_index(k, premarket) for k in INDEXES}
     for k, d in data.items():
         d["vol1d"], d["gamma"], d["vol_src"] = None, "thin", None
+        # Real CBOE vol-index spot (v13 fix): DISPLAY ONLY, never feeds the
+        # band math. fetch_index put the yfinance quote in d["vol"]; keep it
+        # as the reference spot before chain IV takes over the model vol.
+        d["vx_spot"] = d["vol"] if d["vol_live"] else None
+        d["vx1d_spot"] = None
+        if k == "spx":
+            try:
+                d["vx1d_spot"] = round(_last_price("^VIX1D"), 2)
+            except Exception as e:
+                print(f"  [feed] ^VIX1D spot failed: {e}")
         iv30, iv1d, src = uw_iv(k)
         if iv30 is not None:
             d["vol"], d["vol_live"], d["vol1d"] = iv30, True, iv1d
@@ -216,5 +226,7 @@ def fetch_all(premarket: bool = False) -> dict:
     print(f"[feed] levels ok for {ok}/4; "
           + ", ".join(f"{d['nm']} vol={d['vol_src'] or 'MISSING'}"
                       f"{'+1d' if d['vol1d'] else ''} gamma={d['gamma']}"
+                      f" vx={d['vx_spot'] or 'n/a'}"
+                      + (f"/{d['vx1d_spot']}" if d.get("vx1d_spot") else "")
                       for d in data.values()))
     return data

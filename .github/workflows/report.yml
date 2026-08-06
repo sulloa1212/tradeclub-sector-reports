@@ -8,6 +8,13 @@ name: Build report(s) (manual / scheduled)
 #   {"ref":"main","inputs":{"reports":"sector-intelligence,mean-reversion","force":false}}
 
 on:
+  # Self-healing backup for gap-risk: cron-job.org is the primary trigger
+  # (9:30 CR / 11:30 ET), but on 2026-08-06 GitHub's API 500'd on the dispatch
+  # and the day's report silently never ran. This backup fires at 16:30 UTC
+  # (12:30 PM EDT / 11:30 AM EST) and the already-built guard skips it whenever
+  # the primary already produced today's file — so it never double-bills.
+  schedule:
+    - cron: '30 16 * * 1-5'
   workflow_dispatch:
     inputs:
       reports:
@@ -41,8 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Non-secret inputs surfaced as env so the shell never interpolates ${{ }}
-      # directly (avoids script injection + quoting surprises).
-      REPORTS_IN: ${{ inputs.reports }}
+      # directly (avoids script injection + quoting surprises). A scheduled run
+      # has no inputs — it defaults to gap-risk (the backup's only job).
+      REPORTS_IN: ${{ inputs.reports || (github.event_name == 'schedule' && 'gap-risk') || '' }}
       SLUG_IN: ${{ inputs.slug }}
       FORCE_IN: ${{ inputs.force }}
     steps:

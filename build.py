@@ -963,7 +963,7 @@ def inject_dash_button(html: str) -> str:
 
 # First-visit consent gate: an overlay on every report + the hub that requires
 # acknowledging the disclaimer / Terms & Conditions before reading. Acceptance
-# is remembered in localStorage for 30 days (per device, no cookies, nothing
+# is remembered in localStorage for the current calendar day (per device, no cookies, nothing
 # sent anywhere). Fail-open: if storage is unavailable, the page stays usable.
 DISCLAIMER_GATE = (
     '<style>'
@@ -1000,17 +1000,9 @@ DISCLAIMER_GATE = (
     '<a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and '
     '<a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p>'
     '<button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button>'
-    '<div class="tc-gate-note">Remembered on this device for 30 days. Nothing is sent anywhere.</div>'
+    '<div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div>'
     '</div></div>'
-    '<script>(function(){var KEY="tcai_terms_accepted_v1",DAYS=30;'
-    'var g=document.getElementById("tcGate");if(!g)return;var ok=false;'
-    'try{var t=parseInt(localStorage.getItem(KEY)||"0",10);'
-    'ok=t>0&&(Date.now()-t)<DAYS*864e5;}catch(e){ok=true;}'
-    'if(ok){g.remove();return;}'
-    'g.style.display="flex";document.documentElement.style.overflow="hidden";'
-    'document.getElementById("tcGateBtn").addEventListener("click",function(){'
-    'try{localStorage.setItem(KEY,String(Date.now()));}catch(e){}'
-    'g.remove();document.documentElement.style.overflow="";});})();</script>'
+    '<script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script>'
 )
 
 

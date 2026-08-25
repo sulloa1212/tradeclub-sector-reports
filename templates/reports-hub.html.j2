@@ -82,7 +82,7 @@
     box-shadow:0 10px 28px rgba(78,161,255,.5)}
   @media print{.tc-dash-btn{display:none}}
 
-  /* First-visit consent gate (disclaimer / T&C acknowledgment, localStorage 30d) */
+  /* Daily consent gate (disclaimer / T&C acknowledgment, once per calendar day) */
   .tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;
     justify-content:center;padding:20px;background:rgba(4,7,12,.82);
     backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -112,17 +112,10 @@
       <p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; and they are generated with the assistance of AI, which can make mistakes. Always verify every price, level and date with your broker before acting.</p>
       <p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every report and agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
       <button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button>
-      <div class="tc-gate-note">Remembered on this device for 30 days. Nothing is sent anywhere.</div>
+      <div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div>
     </div>
   </div>
-  <script>(function(){var KEY="tcai_terms_accepted_v1",DAYS=30;
-    var g=document.getElementById("tcGate");if(!g)return;var ok=false;
-    try{var t=parseInt(localStorage.getItem(KEY)||"0",10);ok=t>0&&(Date.now()-t)<DAYS*864e5;}catch(e){ok=true;}
-    if(ok){g.remove();return;}
-    g.style.display="flex";document.documentElement.style.overflow="hidden";
-    document.getElementById("tcGateBtn").addEventListener("click",function(){
-      try{localStorage.setItem(KEY,String(Date.now()));}catch(e){}
-      g.remove();document.documentElement.style.overflow="";});})();</script>
+  <script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script>
   <a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a>
   <div class="wrap">
     <header class="hero">

@@ -1104,6 +1104,58 @@ _PROSE_TONE_CSS = (
     '</style>')
 
 
+def _sort_picks_table(html: str) -> str:
+    """Enforce the Picks contract in code: rows ordered strictly by the swing
+    score, descending, ranks renumbered. The prompt demands it, but the model
+    has shipped out-of-order rows twice (2026-07-22, 2026-08-25) — a table that
+    SAYS "ranked strictly by score" and isn't teaches readers not to trust it.
+    Fail-safe: any parsing surprise returns the page unchanged."""
+    try:
+        anchor = html.find('id="picks"')
+        if anchor < 0:
+            return html
+        tstart = html.find("<table", anchor)
+        next_h2 = html.find("<h2", anchor + 10)
+        if tstart < 0 or (0 < next_h2 < tstart):
+            return html
+        tend = html.find("</table>", tstart)
+        table = html[tstart:tend]
+        # score column index from the header row
+        header = re.search(r"<tr[^>]*>(.*?)</tr>", table, re.S)
+        cells = re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", header.group(1), re.S)
+        score_col = next((i for i, c in enumerate(cells)
+                          if re.search(r"swing|score|conv", re.sub(r"<[^>]+>", "", c), re.I)), None)
+        if score_col is None:
+            return html
+        rows = re.findall(r"<tr[^>]*>.*?</tr>", table[header.end():], re.S)
+        if len(rows) < 2:
+            return html
+        parsed = []
+        for r in rows:
+            rc = re.findall(r"<t[hd][^>]*>.*?</t[hd]>", r, re.S)
+            if len(rc) <= score_col:
+                return html
+            m = re.search(r"\b(\d{2,3})\b", re.sub(r"<[^>]+>", "", rc[score_col]))
+            if not m:
+                return html
+            parsed.append((int(m.group(1)), r))
+        ordered = sorted(parsed, key=lambda x: -x[0])
+        if [p[1] for p in ordered] == rows:
+            return html  # already sorted
+        out_rows = []
+        for rank, (_, r) in enumerate(ordered, 1):
+            # renumber the first cell's standalone integer (the RANK column)
+            r = re.sub(r"(<t[hd][^>]*>\s*(?:<[^>]+>\s*)*)(\d{1,2})(\s*(?:<[^>]+>\s*)*</t[hd]>)",
+                       lambda m: m.group(1) + str(rank) + m.group(3), r, count=1)
+            out_rows.append(r)
+        new_table = table[:header.end()] + "".join(out_rows)
+        print("  [picks] re-sorted rows strictly by score (model shipped them out of order)")
+        return html[:tstart] + new_table + html[tend:]
+    except Exception as e:
+        print(f"  [picks] sort skipped ({e})")
+        return html
+
+
 _LONG_BOLD = re.compile(
     r"<(b|strong)(\s[^>]*)?>((?:(?!</?(?:b|strong)[\s>]).)*?)</\1>",
     re.DOTALL | re.IGNORECASE)
@@ -1172,6 +1224,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     date = today_str()
 
     body = _unbold_long_runs(body)
+    body = _sort_picks_table(body)
     # Templated/engine reports own their design; only house-path pages get the
     # authoritative prose-tone override (last in <head> wins the cascade).
     if not report.get("template") and not report.get("engine") and "</head>" in body:

@@ -961,6 +961,67 @@ def inject_dash_button(html: str) -> str:
     return (html[:m.end()] + DASH_BUTTON + html[m.end():]) if m else (DASH_BUTTON + html)
 
 
+# First-visit consent gate: an overlay on every report + the hub that requires
+# acknowledging the disclaimer / Terms & Conditions before reading. Acceptance
+# is remembered in localStorage for 30 days (per device, no cookies, nothing
+# sent anywhere). Fail-open: if storage is unavailable, the page stays usable.
+DISCLAIMER_GATE = (
+    '<style>'
+    '.tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;'
+    'justify-content:center;padding:20px;background:rgba(4,7,12,.82);'
+    'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}'
+    '.tc-gate-card{max-width:540px;width:100%;background:#141a24;border:1px solid #26303f;'
+    'border-top:4px solid #4ea1ff;border-radius:14px;padding:26px 26px 22px;'
+    'box-shadow:0 24px 70px rgba(0,0,0,.6);'
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
+    '.tc-gate-eyebrow{color:#4ea1ff;font-weight:800;letter-spacing:.08em;'
+    'text-transform:uppercase;font-size:11px;margin-bottom:8px}'
+    '.tc-gate-card h2{color:#e8edf4;font-size:21px;margin:0 0 12px;line-height:1.3}'
+    '.tc-gate-card p{color:#9fb0c3;font-size:13.5px;line-height:1.65;margin:0 0 12px}'
+    '.tc-gate-card p b{color:#e8edf4}'
+    '.tc-gate-card a{color:#4ea1ff;text-decoration:underline}'
+    '.tc-gate-btn{display:block;width:100%;margin-top:6px;padding:13px 20px;'
+    'border-radius:999px;border:none;background:#4ea1ff;color:#08131f;cursor:pointer;'
+    'font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;'
+    'transition:transform .12s,box-shadow .12s}'
+    '.tc-gate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,161,255,.45)}'
+    '.tc-gate-note{color:#6b7787;font-size:11px;text-align:center;margin-top:10px}'
+    '@media print{.tc-gate{display:none!important}}'
+    '</style>'
+    '<div class="tc-gate" id="tcGate" role="dialog" aria-modal="true" aria-labelledby="tcGateTitle">'
+    '<div class="tc-gate-card">'
+    '<div class="tc-gate-eyebrow">Trade Club AI &middot; Member Notice</div>'
+    '<h2 id="tcGateTitle">Before you continue</h2>'
+    '<p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; '
+    'and they are generated with the assistance of AI, which can make mistakes. Always verify '
+    'every price, level and date with your broker before acting.</p>'
+    '<p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every '
+    'report and agree to our '
+    '<a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and '
+    '<a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p>'
+    '<button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button>'
+    '<div class="tc-gate-note">Remembered on this device for 30 days. Nothing is sent anywhere.</div>'
+    '</div></div>'
+    '<script>(function(){var KEY="tcai_terms_accepted_v1",DAYS=30;'
+    'var g=document.getElementById("tcGate");if(!g)return;var ok=false;'
+    'try{var t=parseInt(localStorage.getItem(KEY)||"0",10);'
+    'ok=t>0&&(Date.now()-t)<DAYS*864e5;}catch(e){ok=true;}'
+    'if(ok){g.remove();return;}'
+    'g.style.display="flex";document.documentElement.style.overflow="hidden";'
+    'document.getElementById("tcGateBtn").addEventListener("click",function(){'
+    'try{localStorage.setItem(KEY,String(Date.now()));}catch(e){}'
+    'g.remove();document.documentElement.style.overflow="";});})();</script>'
+)
+
+
+def inject_disclaimer_gate(html: str) -> str:
+    """Insert the consent gate right after the opening <body>. No-op if present."""
+    if "tc-gate" in html:
+        return html
+    m = re.search(r"<body[^>]*>", html, re.IGNORECASE)
+    return (html[:m.end()] + DISCLAIMER_GATE + html[m.end():]) if m else (DISCLAIMER_GATE + html)
+
+
 def release_badge(run_time_et: str) -> str:
     """Small fixed schedule pill in the bottom-left stack (above the
     previous-reports dropdown): when a fresh edition of this report comes out.
@@ -1232,6 +1293,7 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     body = prune_dead_nav(body)
     body = inject_hub_button(body)
     body = inject_dash_button(body)
+    body = inject_disclaimer_gate(body)
     body = inject_release_badge(body, report.get("run_time_et", ""))
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 

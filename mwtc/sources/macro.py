@@ -206,8 +206,15 @@ def _enrich_earnings(r: dict, today_iso: str) -> dict:
     when = ("reported" if reported else
             "before open" if hour == "bmo" else
             "after close" if hour == "amc" else "time TBD")
+    # Reported SINCE THE LAST CLOSE (yesterday after-hours, or today so far):
+    # these are the day's freshest results — a mega-cap that reported last
+    # night is usually the morning's biggest story (missed for NVDA 2026-08-26
+    # when the window started at 'today').
+    yesterday_iso = (dt.date.fromisoformat(today_iso) - dt.timedelta(days=1)).isoformat()
+    overnight = reported and r.get("date") in (yesterday_iso, today_iso)
     return {**r, "reported": reported, "eps_surprise_pct": surprise,
-            "beat_miss": beat, "when": when, "is_today": r.get("date") == today_iso}
+            "beat_miss": beat, "when": when, "is_today": r.get("date") == today_iso,
+            "is_overnight_result": overnight}
 
 
 def earnings_calendar() -> Optional[list]:
@@ -216,9 +223,13 @@ def earnings_calendar() -> Optional[list]:
     largest names by revenue, and surfaces today's names first."""
     today = dt.date.today()
     today_iso = today.isoformat()
+    # Window starts YESTERDAY so last night's after-close reporters are included
+    # — they were "upcoming" on yesterday's calendar and would otherwise vanish
+    # from today's entirely (how NVDA's 2026-08-26 blowout got missed).
     rows = _finnhub_calendar(
         "/calendar/earnings",
-        {"from": today_iso, "to": (today + dt.timedelta(days=7)).isoformat()},
+        {"from": (today - dt.timedelta(days=1)).isoformat(),
+         "to": (today + dt.timedelta(days=7)).isoformat()},
         "earningsCalendar",
     )
     if not isinstance(rows, list):
@@ -226,8 +237,9 @@ def earnings_calendar() -> Optional[list]:
     named = [r for r in rows if r.get("epsEstimate") is not None
              or r.get("revenueEstimate")]
     enriched = [_enrich_earnings(r, today_iso) for r in named]
-    # Today's names first, then by revenue size.
-    enriched.sort(key=lambda r: (not r["is_today"], -(r.get("revenueEstimate") or 0)))
+    # Freshest first: overnight results and today's names, then by revenue size.
+    enriched.sort(key=lambda r: (not (r["is_today"] or r.get("is_overnight_result")),
+                                 -(r.get("revenueEstimate") or 0)))
     return enriched[:40] or [_enrich_earnings(r, today_iso) for r in rows[:40]]
 
 

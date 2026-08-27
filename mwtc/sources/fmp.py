@@ -159,8 +159,10 @@ def earnings_calendar(days: int = 7) -> Optional[list]:
     (key absent or plan-gated), in which case earnings stay single-source and every
     row is flagged unverified rather than asserted."""
     today = dt.date.today()
+    # From YESTERDAY, matching the Finnhub window: last night's after-close
+    # reporters must exist in BOTH sources or the reconciler withholds them.
     rows = _get("/earnings-calendar",
-                {"from": today.isoformat(),
+                {"from": (today - dt.timedelta(days=1)).isoformat(),
                  "to": (today + dt.timedelta(days=days)).isoformat()})
     if not isinstance(rows, list):
         return None

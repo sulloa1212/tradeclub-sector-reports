@@ -54,8 +54,13 @@ def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dic
         macro_packet.get("earnings_calendar"),
         fmp_packet.get("earnings_calendar"),
     )
+    # Results since the last close (yesterday AMC / today BMO): the freshest
+    # prints, usually the morning's biggest story when a mega-cap is among them.
+    cal = verified.get("calendar") or []
+    overnight = [r for r in cal if r.get("is_overnight_result")]
     return {
         "calendar": verified.get("calendar"),
+        "overnight_results": overnight[:6] or None,
         "verification": verified.get("verification"),
         "second_source": verified.get("second_source"),
         "focus_detail": per_focus,

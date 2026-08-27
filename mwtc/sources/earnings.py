@@ -167,9 +167,10 @@ def summarize(rows: list) -> dict:
 def build(primary_rows: Optional[list], fmp_rows: Optional[list]) -> dict:
     """Reconcile + package. Returns {calendar, verification, second_source}."""
     reconciled = reconcile(primary_rows, fmp_rows)
-    # Keep the established sort (today first, then size) but float verified up
+    # Freshest first (overnight results + today's names), verified floating up
     # within equal buckets so the prompt leads with confirmed names.
-    reconciled.sort(key=lambda r: (not r.get("is_today"), not r.get("verified")))
+    reconciled.sort(key=lambda r: (not (r.get("is_today") or r.get("is_overnight_result")),
+                                   not r.get("verified")))
     return {
         "calendar": reconciled or None,
         "verification": summarize(reconciled),

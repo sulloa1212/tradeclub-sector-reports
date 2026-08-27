@@ -287,6 +287,43 @@ def economic_news(limit: int = 15) -> Optional[list]:
         return None
 
 
+def market_news(limit: int = 15) -> Optional[list]:
+    """UNFILTERED overnight/market headlines (Finnhub general, ~18h window) —
+    the second news source beside UW's headlines, so a thin or empty UW feed
+    can never leave the report blind to last night's biggest story."""
+    if not config.FINNHUB_API_KEY:
+        return None
+    try:
+        r = requests.get("https://finnhub.io/api/v1/news",
+                         params={"category": "general", "token": config.FINNHUB_API_KEY},
+                         timeout=30)
+        r.raise_for_status()
+        items = r.json()
+        if not isinstance(items, list):
+            return None
+        import time as _t
+        cutoff = _t.time() - 18 * 3600
+        seen, out = set(), []
+        for it in items:
+            if not isinstance(it, dict) or it.get("datetime", 0) < cutoff:
+                continue
+            head = (it.get("headline") or "").strip()
+            if not head or head.lower() in seen:
+                continue
+            seen.add(head.lower())
+            out.append({
+                "headline": head,
+                "summary": (it.get("summary") or "")[:240],
+                "source": it.get("source"),
+                "url": it.get("url"),
+                "datetime": it.get("datetime"),
+            })
+        return out[:limit] or None
+    except Exception as e:  # noqa: BLE001
+        log.warning("market_news failed: %s", e)
+        return None
+
+
 def collect() -> dict:
     """Assemble the full free-macro packet."""
     indices = _quote_group(config.INDICES)
@@ -307,4 +344,5 @@ def collect() -> dict:
         "economic_calendar": economic_calendar(),
         "earnings_calendar": earnings_calendar(),
         "economic_news": economic_news(),
+        "market_news": market_news(),
     }

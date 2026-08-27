@@ -32,7 +32,12 @@ Other task-message modifiers (apply when present, in either mode):
 
 # STEP 1 — MANDATORY LIVE RESEARCH (before any conclusion)
 
-Base everything on **current data, not memory** — web-search and read first. Gather:
+Base everything on **current data, not memory** — web-search and read first.
+**START with an overnight scan:** search specifically for major news since the
+previous close — after-hours earnings results (mega-caps especially), M&A,
+guidance changes, overnight geopolitical events. The prior evening is the most
+commonly missed window, and a mega-cap print from last night usually outranks
+everything else on the tape. Then gather:
 1. **Macro (US):** latest CPI/PCE, Fed funds rate + market rate-cut/hike odds, latest
    jobs report, 10-yr Treasury yield + trend, the dollar (DXY), GDP/growth, the VIX.
 2. **Geopolitics & policy:** active conflicts/escalations, tariffs/trade, OPEC, major

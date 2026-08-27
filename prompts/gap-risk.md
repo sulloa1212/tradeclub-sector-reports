@@ -27,7 +27,10 @@ the tokens `{LEAN_NDX}` `{LEAN_SPX}` `{LEAN_RUT}` `{LEAN_DJX}` `{LEAN_LO}`
 
 # LIVE RESEARCH (do this before writing)
 
-Web-search: today's session recap (what moved and why), the live catalyst(s),
+**Start with an overnight scan** — search specifically for major news since
+the previous close (after-hours mega-cap earnings results, M&A, guidance,
+overnight geopolitical events); the prior evening is the most commonly missed
+window. Then web-search: today's session recap (what moved and why), the live catalyst(s),
 the overseas setup (Asia/Europe), and the event calendar for the next ~5
 sessions (after-close earnings, CPI/PCE/jobs, Fed events, active geopolitical
 risks). **DATES ARE THE #1 HALLUCINATION RISK:** every calendar date must come

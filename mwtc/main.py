@@ -123,6 +123,9 @@ def collect_data() -> dict:
         "sentiment": sentiment_packet,
         "fed": _fed_view(uw_packet),
         "earnings": earnings_view,
+        # Second headlines source (Finnhub general, ~18h) beside UW's feed —
+        # either alone can be thin; together the overnight story can't vanish.
+        "overnight_news": macro_packet.get("market_news"),
         "notes": {
             "price_levels": "yfinance values are prior-session closes, not live premarket.",
             "uw_available": uw_packet.get("available", False),

@@ -173,6 +173,36 @@ def _inject_section_nav(html: str) -> str:
     return html
 
 
+def _coverage_gaps(html: str, data: dict) -> list:
+    """Deterministic must-cover check against the packet: the top overnight
+    earnings result must appear early in the report, and every large pre-market
+    mover must appear somewhere. Returns human-readable gap descriptions."""
+    gaps = []
+    try:
+        up = html.upper()
+        ov = ((data.get("earnings") or {}).get("overnight_results") or [])
+        if ov:
+            sym = str(ov[0].get("symbol") or "").upper()
+            if sym and sym not in up[:8000]:
+                gaps.append(f"the biggest overnight earnings result ({sym}) must lead the summary")
+        movers = data.get("movers") or {}
+        for grp in ("gainers", "losers"):
+            for m in (movers.get(grp) or [])[:3]:
+                if not isinstance(m, dict):
+                    continue
+                sym = str(m.get("symbol") or m.get("ticker") or "").upper()
+                try:
+                    pct = abs(float(m.get("changesPercentage") or m.get("change_pct")
+                                    or m.get("pct") or 0))
+                except (TypeError, ValueError):
+                    pct = 0
+                if sym and pct >= 4 and sym not in up:
+                    gaps.append(f"top pre-market {grp[:-1]} {sym} ({pct:.0f}%) never mentioned")
+    except Exception as e:  # noqa: BLE001 — the check must never kill a run
+        log.warning("coverage check skipped: %s", e)
+    return gaps
+
+
 def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) -> str:
     """Call Claude and return the finished HTML string. mode = premarket|postmarket."""
     from anthropic import Anthropic
@@ -193,22 +223,38 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
     # timeout the SDK refuses a non-streaming call ("Streaming is required for
     # operations that may take longer than 10 minutes"). Matches build.py.
     client = Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=4, timeout=900)
-    log.info("Calling Anthropic model=%s mode=%s", config.ANTHROPIC_MODEL, mode)
-    resp = client.messages.create(
-        model=config.ANTHROPIC_MODEL,
-        # 64000: Sonnet's output ceiling. The 21-section MWTC report outgrew 32000
-        # and tripped the truncation guard; running at the max leaves no headroom
-        # to lose a report to length. Cost is per token used.
-        max_tokens=64000,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
-    generate.last_usage = getattr(resp, "usage", None)  # for the cost line in the notifier
-    # A dense report (esp. post-market) can outrun the budget; never publish a
-    # report that was cut off mid-element. Fail loud so the run can be re-fired.
-    if getattr(resp, "stop_reason", None) == "max_tokens":
-        raise RuntimeError("report truncated at max_tokens — raise max_tokens or trim the prompt")
-    raw = "".join(block.text for block in resp.content if getattr(block, "type", "") == "text")
+    raw = None
+    for attempt in (1, 2):
+        log.info("Calling Anthropic model=%s mode=%s attempt=%s",
+                 config.ANTHROPIC_MODEL, mode, attempt)
+        resp = client.messages.create(
+            model=config.ANTHROPIC_MODEL,
+            # 64000: Sonnet's output ceiling. The 21-section MWTC report outgrew 32000
+            # and tripped the truncation guard; running at the max leaves no headroom
+            # to lose a report to length. Cost is per token used.
+            max_tokens=64000,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        generate.last_usage = getattr(resp, "usage", None)  # for the notifier cost line
+        # A dense report (esp. post-market) can outrun the budget; never publish a
+        # report that was cut off mid-element. Fail loud so the run can be re-fired.
+        if getattr(resp, "stop_reason", None) == "max_tokens":
+            raise RuntimeError("report truncated at max_tokens — raise max_tokens or trim the prompt")
+        raw = "".join(block.text for block in resp.content if getattr(block, "type", "") == "text")
+        # Coverage check (2026-08-27 NVDA lesson): the packet SAYS what the
+        # biggest overnight facts are — verify the report actually covers them
+        # instead of trusting the prompt. One targeted retry, then fail-open.
+        gaps = _coverage_gaps(raw, data_packet)
+        if not gaps:
+            break
+        if attempt == 1:
+            log.warning("coverage gaps, retrying once: %s", gaps)
+            user = user + ("\n\nCOVERAGE FIX (your previous draft missed these — "
+                           "they are in the packet and MUST be covered): "
+                           + "; ".join(gaps))
+        else:
+            log.warning("coverage gaps persist after retry (publishing anyway): %s", gaps)
     html = _inject_logos(_strip_fences(raw))
     # Inject the deterministic dial dashboard at the marker (never LLM-drawn).
     html = html.replace("<!--DASHBOARD-->", gauges.render_dashboard(data_packet, mode))

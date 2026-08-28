@@ -34,6 +34,7 @@ import sys
 import html
 import datetime
 import urllib.request
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas_market_calendars as mcal

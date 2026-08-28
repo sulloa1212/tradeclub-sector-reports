@@ -593,7 +593,7 @@ def _be_calc(IX, ctx):
   var horizon='rd', spotTouched=false, ivTouched=false;
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
   function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
-  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':(n===1?'1 session':n+' sessions')));}
+  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':'expiration'));}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
   ivI.addEventListener('input',function(){ivTouched=true;});

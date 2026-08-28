@@ -315,8 +315,9 @@
     <div class="panel becalc">
       <div class="berow">
         <label>Index<select id="beIx"><option value="spx">SPX &mdash; S&amp;P 500 &middot; SPY</option><option value="ndx">NDX &mdash; Nasdaq-100 &middot; QQQ</option><option value="rut">RUT &mdash; Russell 2000 &middot; IWM</option><option value="djx">DJX &mdash; Dow Jones &middot; DIA</option></select></label>
-        <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button></span></label>
+        <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button><button type="button" class="beh" data-h="exit">Expiration</button></span></label>
         <label class="behrs">Hours (override)<input id="beHrs" type="number" step="any" min="0.25" max="6.5" inputmode="decimal" placeholder="auto"></label>
+        <label class="beexp">Expiration<input id="beExp" type="date"></label>
         <span class="bemeta" id="beMeta"></span>
       </div>
       <div class="berow">
@@ -339,7 +340,7 @@
     </div>
     <div class="bewhat">
       <div class="bewhat-h">How it works</div>
-      <p>It prices the <b>implied move</b> from the index&rsquo;s own option-market volatility, tilts it for <b>put skew</b> (downside tails are fatter than upside) and for the <b>directional lean</b> in tonight&rsquo;s read, then measures where your two levels fall on that distribution. The horizon sets the vol it uses: <b>Rest of day</b> prices off each index&rsquo;s own <b>1-day option-implied IV</b> and shrinks as the session runs down; <b>Overnight</b> and <b>1-Week</b> use its <b>30-day option-implied IV</b>. The <b>VIX, VXN, RVX, VXD</b> readings shown in the banner are the CBOE index spots, printed for reference &mdash; they run a few points above each index&rsquo;s own at-the-money IV because they price a wider strip of out-of-the-money options, which is why they never match the band vol exactly.</p>
+      <p>It prices the <b>implied move</b> from the index&rsquo;s own option-market volatility, tilts it for <b>put skew</b> (downside tails are fatter than upside) and for the <b>directional lean</b> in tonight&rsquo;s read, then measures where your two levels fall on that distribution. The horizon sets the vol it uses: <b>Rest of day</b> prices off each index&rsquo;s own <b>1-day option-implied IV</b> and shrinks as the session runs down; <b>Overnight</b>, <b>1-Week</b> and <b>Expiration</b> use its <b>30-day option-implied IV</b>. <b>Expiration</b> counts the trading sessions between now and the date you pick &mdash; weekends and market holidays do not count &mdash; and stretches the move by the square root of that number. Note it will read wider than <b>Overnight</b> for tomorrow: overnight prices only the <i>gap</i>, a fraction of a session&rsquo;s variance, while one session at Expiration is a whole trading day. The <b>VIX, VXN, RVX, VXD</b> readings shown in the banner are the CBOE index spots, printed for reference &mdash; they run a few points above each index&rsquo;s own at-the-money IV because they price a wider strip of out-of-the-money options, which is why they never match the band vol exactly.</p>
       <p><b>Touch odds are the headline.</b> &ldquo;Never touches either&rdquo; asks whether price stays inside your range the whole way &mdash; not merely where it finishes. That matters because a level that gets tagged intraday has already forced your decision, even if price closes back inside. Closing odds flatter a range; touch odds tell you what you&rsquo;ll actually live through.</p>
       <p><b>The current-vol box</b> is a what-if on volatility &mdash; type an actual reading, not a point change, and the bands re-scale. What it asks for depends on the horizon. <b>Overnight and 1-week</b> pre-fill with the vol-index spot captured at the run (VIX for SPX); type the current reading and the bands shift with it. <b>Rest of day</b> asks for the 1-day reading &mdash; where no live VIX1D was captured the field starts empty; chart it and type the current value, and it sizes the intraday bands directly. Until then, rest-of-day uses that index&rsquo;s own 1-day IV.</p>
       <p class="bewarn"><b>&#9888; These are estimates, and they age.</b> Volatility, skew and the directional lean are <b>frozen at the ~12:33 PM ET run</b> that produced this page &mdash; only your inputs and the clock keep updating. Run this during the session that follows and it&rsquo;s working from a live picture. Run it a day later, or after a gap or a volatility spike, and the inputs behind it are stale even though the numbers still move. <b>Check back for the next report for anything current.</b> Options-implied probabilities are a description of what the market is pricing, not a forecast &mdash; and nothing here accounts for your position size, spreads or fills.</p>
@@ -1026,7 +1027,7 @@
 
 <script>
 (function(){
-  var BLOB={"ix": {"ndx": {"nm": "NDX", "co": "Nasdaq-100 &middot; QQQ", "C": 29451.11, "vol": 17.0, "r": 1.28, "sg": -0.343, "vn": "VXN", "v1": 14.0, "v1n": "VXN1D", "vx": 20.31, "vx1": null, "v1sym": null, "on": {"sd": 0.8567, "su": 0.6693, "mu": -0.1178, "sd1": 0.763}, "wk": {"sd": 2.5943, "su": 2.1949, "mu": -0.2033, "sd1": 2.395}}, "rut": {"nm": "RUT", "co": "Russell 2000 &middot; IWM", "C": 2979.04, "vol": 16.3, "r": 1.24, "sg": -0.935, "vn": "RVX", "v1": 11.1, "v1n": "RVX1D", "vx": null, "vx1": null, "v1sym": null, "on": {"sd": 0.81, "su": 0.6532, "mu": -0.3078, "sd1": 0.732}, "wk": {"sd": 2.4621, "su": 2.1299, "mu": -0.5313, "sd1": 2.296}}, "spx": {"nm": "SPX", "co": "S&amp;P 500 &middot; SPY", "C": 7719.59, "vol": 3.8, "r": 1.22, "sg": 0.015, "vn": "VIX", "v1": 0.9, "v1n": "VIX1D", "vx": 14.59, "vx1": 10.05, "v1sym": "VIX1D", "on": {"sd": 0.1875, "su": 0.1537, "mu": 0.0012, "sd1": 0.171}, "wk": {"sd": 0.571, "su": 0.4995, "mu": 0.002, "sd1": 0.535}}, "djx": {"nm": "DJX", "co": "Dow Jones &middot; DIA", "C": 535.81, "vol": 11.4, "r": 1.16, "sg": 0.11, "vn": "VXD", "v1": 9.9, "v1n": "VXD1D", "vx": 13.19, "vx1": null, "v1sym": null, "on": {"sd": 0.5496, "su": 0.4738, "mu": 0.0253, "sd1": 0.512}, "wk": {"sd": 1.6852, "su": 1.5264, "mu": 0.0437, "sd1": 1.606}}}, "cfg": {"dk": 0.45, "rdskew": 0.8, "rddrift": 0.35, "uk": 1.5, "vbeta": 1.0, "gen": "2026-08-28T12:33:00", "genlbl": "~12:33 PM ET", "gday": "2026-08-28"}}, BE=BLOB.ix, CFG=BLOB.cfg;
+  var BLOB={"ix": {"ndx": {"nm": "NDX", "co": "Nasdaq-100 &middot; QQQ", "C": 29451.11, "vol": 17.0, "r": 1.28, "sg": -0.343, "vn": "VXN", "v1": 14.0, "v1n": "VXN1D", "vx": 20.31, "vx1": null, "v1sym": null, "on": {"sd": 0.8567, "su": 0.6693, "mu": -0.1178, "sd1": 0.763}, "wk": {"sd": 2.5943, "su": 2.1949, "mu": -0.2033, "sd1": 2.395}}, "rut": {"nm": "RUT", "co": "Russell 2000 &middot; IWM", "C": 2979.04, "vol": 16.3, "r": 1.24, "sg": -0.935, "vn": "RVX", "v1": 11.1, "v1n": "RVX1D", "vx": null, "vx1": null, "v1sym": null, "on": {"sd": 0.81, "su": 0.6532, "mu": -0.3078, "sd1": 0.732}, "wk": {"sd": 2.4621, "su": 2.1299, "mu": -0.5313, "sd1": 2.296}}, "spx": {"nm": "SPX", "co": "S&amp;P 500 &middot; SPY", "C": 7719.59, "vol": 3.8, "r": 1.22, "sg": 0.015, "vn": "VIX", "v1": 0.9, "v1n": "VIX1D", "vx": 14.59, "vx1": 10.05, "v1sym": "VIX1D", "on": {"sd": 0.1875, "su": 0.1537, "mu": 0.0012, "sd1": 0.171}, "wk": {"sd": 0.571, "su": 0.4995, "mu": 0.002, "sd1": 0.535}}, "djx": {"nm": "DJX", "co": "Dow Jones &middot; DIA", "C": 535.81, "vol": 11.4, "r": 1.16, "sg": 0.11, "vn": "VXD", "v1": 9.9, "v1n": "VXD1D", "vx": 13.19, "vx1": null, "v1sym": null, "on": {"sd": 0.5496, "su": 0.4738, "mu": 0.0253, "sd1": 0.512}, "wk": {"sd": 1.6852, "su": 1.5264, "mu": 0.0437, "sd1": 1.606}}}, "cfg": {"dk": 0.45, "rdskew": 0.8, "rddrift": 0.35, "uk": 1.5, "vbeta": 1.0, "gen": "2026-08-28T12:33:00", "genlbl": "~12:33 PM ET", "gday": "2026-08-28", "wkskew": 0.65, "wkdrift": 0.55, "hol": ["2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03", "2026-05-25", "2026-06-19", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25", "2027-01-01", "2027-01-18", "2027-02-15", "2027-03-26", "2027-05-31", "2027-06-18", "2027-07-05", "2027-09-06", "2027-11-25", "2027-12-24"]}}, BE=BLOB.ix, CFG=BLOB.cfg;
   function erf(x){var s=x<0?-1:1;x=Math.abs(x);var a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;var t=1/(1+p*x);var y=1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x));return s*y;}
   function Phi(z){return 0.5*(1+erf(z/Math.SQRT2));}
   function F(pp,L){var wd=pp.sd/(pp.sd+pp.su),wu=pp.su/(pp.sd+pp.su);if(L<=pp.mu){return wd*(2*Phi((L-pp.mu)/pp.sd));}return wd+wu*(2*Phi((L-pp.mu)/pp.su)-1);}
@@ -1063,24 +1064,65 @@
     if(d.vx!=null) return {v:d.vx, nm:d.vn, extra:true};
     return {v:d.vol, nm:'30-day IV', direct:true};
   }
-  function params(d,h,ivchg,rem){
+  /* ---- Expiration horizon -------------------------------------------------
+     Unlike overnight and 1-week, N is whatever date the user picks, so the
+     parameters cannot be precomputed server-side -- this branch does what the
+     Python engine does for the fixed tenors, in the browser.
+
+     The two tenor lines are the only NEW math here. They interpolate between
+     the anchors the engine already ships: full skew and full drift at 1 session
+     (overnight), CFG.wkskew / CFG.wkdrift at 5 (one week). So N=1 and N=5
+     reproduce the existing horizons exactly. The clamps stop the skew going
+     flat -- or negative -- out at long tenors, where nothing has been
+     validated against anything. */
+  var HOL=(CFG.hol||[]).reduce(function(a,k){a[k]=1;return a;},{});
+  function iso(dt){return dt.toISOString().slice(0,10);}
+  function isSession(k){
+    var p=k.split('-'), wd=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay();
+    return wd>=1&&wd<=5&&!HOL[k];
+  }
+  /* Sessions strictly after today, up to and including the chosen date. */
+  function sessionsUntil(endISO){
+    var todayISO=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return iso(new Date());}})();
+    if(!endISO||endISO<=todayISO) return 0;
+    var p=todayISO.split('-'), cur=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])), n=0;
+    for(var g=0;g<2000;g++){
+      cur.setUTCDate(cur.getUTCDate()+1);
+      var k=iso(cur);
+      if(isSession(k)) n++;
+      if(k>=endISO) break;
+    }
+    return n;
+  }
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function skewTenorN(n){return clamp(1-(1-CFG.wkskew)*(n-1)/4, 0.55, 1);}
+  function driftTenorN(n){return clamp(1-(1-CFG.wkdrift)*(n-1)/4, 0.35, 1);}
+
+  function params(d,h,ivchg,rem,nDays){
     var base=volFor(d,h), volE=Math.max(1,base.v+(ivchg||0)), sc=volE/base.v;
     if(h==='rd'){
       var S=volE/100*Math.sqrt(1/252)*Math.sqrt(Math.max(rem.f,1e-6))*100;
       var r=1+(d.r-1)*CFG.rdskew, su=2*S/(1+r), sd=r*su;
       return {sd:sd,su:su,mu:CFG.dk*(d.sg*CFG.rddrift)*S,sd1:S,vsrc:base};
     }
+    if(h==='exit'){
+      var N=Math.max(nDays||0,0);
+      if(!N) return null;
+      var Se=volE/100*Math.sqrt(N/252)*100;
+      var re=1+(d.r-1)*skewTenorN(N), sue=2*Se/(1+re), sde=re*sue;
+      return {sd:sde,su:sue,mu:CFG.dk*(d.sg*driftTenorN(N))*Se,sd1:Se,vsrc:base,n:N};
+    }
     var p=d[h];
     return {sd:p.sd*sc,su:p.su*sc,mu:p.mu*sc,sd1:p.sd1*sc,vsrc:base};
   }
   var $=function(id){return document.getElementById(id);};
-  var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),
+  var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),expI=$('beExp'),
       elSafe=$('beSafe'),elTLo=$('beTLo'),elTHi=$('beTHi'),elTouch=$('beTouch'),
       elZ=$('beZ'),elTerm=$('beTerm'),elBase=$('beBase'),meta=$('beMeta'),hint=$('beHint'),stale=$('beStale');
   var horizon='rd', spotTouched=false, ivTouched=false;
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
   function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
-  function HNAME(h){return h==='rd'?'rest of day':(h==='on'?'overnight':'1-week');}
+  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':'expiration'));}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
   ivI.addEventListener('input',function(){ivTouched=true;});
@@ -1115,10 +1157,21 @@
     var ivchg = usedVol - base.v;
     var hOv=parseFloat(hrsI.value);
     if(horizon==='rd'&&!isNaN(hOv)&&hOv>0){ rem={f:Math.min(hOv/6.5,1), hrs:hOv, manual:true}; }
-    var p=params(d,horizon,ivchg,rem), C=parseFloat(spotI.value);
+    var nD = horizon==='exit' ? sessionsUntil(expI.value) : null;
+    var p=params(d,horizon,ivchg,rem,nD), C=parseFloat(spotI.value);
     if(isNaN(C)||C<=0) C=d.C;
-    var mtxt=HNAME(horizon)+' 1SD &plusmn;'+p.sd1.toFixed(2)+'%';
+    if(horizon==='exit'&&!p){
+      dash();
+      meta.innerHTML='expiration';
+      hint.innerHTML = expI.value
+        ? '<b>That date is today or already past.</b> Pick a later expiration.'
+        : 'Pick your <b>expiration date</b> to see the odds out to it.';
+      stale.className='bewarn'; stale.innerHTML='';
+      elBase.innerHTML=''; return;
+    }
+    var mtxt=HNAME(horizon,nD)+' 1SD &plusmn;'+p.sd1.toFixed(2)+'%';
     if(horizon==='rd') mtxt+=' &middot; '+(rem.manual?rem.hrs.toFixed(1)+'h (manual)':(rem.f<=0?'market closed':rem.hrs.toFixed(1)+'h to the bell'));
+    if(horizon==='exit') mtxt+=' &middot; '+nD+' session'+(nD===1?'':'s')+' out';
     meta.innerHTML=mtxt;
     $('beIvLab').textContent='Current '+anchor.nm;
     var dPct=(C-d.C)/d.C*100;
@@ -1192,16 +1245,20 @@
                  +'<span class="zchip '+zcls(zH)+'"><b>'+fnum(hi)+'</b> = +'+zH.toFixed(2)+'&sigma; <i>(+'+b.toFixed(2)+'%)</i></span>'
                  +'<span class="zlab">distance from '+fnum(C)+' in 1SD units &mdash; the closer side is the one in play</span>';
     elTerm.innerHTML='<b>Where it ends up</b> (ignoring the path): stays between <b>'+pct(inside)+'</b> &middot; ends below '+fnum(lo)+' '+pct(below)+' &middot; ends above '+fnum(hi)+' '+pct(above)+'. Always kinder than the touch odds above &mdash; use it only if you would hold to the horizon rather than adjust on a tag.';
-    hint.innerHTML='<b>'+d.nm+' '+HNAME(horizon)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
+    hint.innerHTML='<b>'+d.nm+' '+HNAME(horizon,nD)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
       +(tLo>tHi*3?'&mdash; almost entirely the <b>downside</b>':(tHi>tLo*3?'&mdash; almost entirely the <b>upside</b>':'&mdash; risk is two-sided'))
       +'. Rough guide, not a guarantee.';
   }
   function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
-    document.querySelector('.behrs').style.visibility=(h==='rd')?'visible':'hidden';
+    document.querySelector('.behrs').style.display=(h==='rd')?'':'none';
+    document.querySelector('.beexp').style.display=(h==='exit')?'':'none';
     ivTouched=false;syncIvField();calc();}
   ixSel.addEventListener('change',function(){syncSpot();ivTouched=false;syncIvField();calc();});
-  [spotI,loI,hiI,ivI,hrsI].forEach(function(e){e.addEventListener('input',calc);});
+  [spotI,loI,hiI,ivI,hrsI,expI].forEach(function(e){e.addEventListener('input',calc);});
   Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
+  /* Floor the date picker at today (ET), so "already past" is unreachable by
+     the calendar and only typing can produce it. */
+  try{ expI.min=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){}
   syncSpot();syncIvField();pick('rd');
   setInterval(function(){if(horizon==='rd'&&isNaN(parseFloat(hrsI.value)))calc();},60000);
 })();

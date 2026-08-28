@@ -446,7 +446,11 @@ def _be_calc(IX, ctx):
               for k in IX}
     cfg = {"dk": DRIFT_K, "rdskew": RD_SKEW_TENOR, "rddrift": RD_DRIFT, "uk": UVOL_K,
            "vbeta": VOL_BETA, "gen": ctx["gen_iso"], "genlbl": ctx["time_str"],
-           "gday": ctx["gen_date"]}
+           "gday": ctx["gen_date"],
+           # Expiration horizon: the tenor anchors the interpolation runs through,
+           # and the holiday set the session counter needs client-side.
+           "wkskew": SKEW_TENOR, "wkdrift": DRIFT_TENOR,
+           "hol": sorted(f"{y:04d}-{m:02d}-{d:02d}" for (y, m, d) in HOLIDAYS)}
     blob = json.dumps({"ix": params, "cfg": cfg})
     vn30 = ", ".join(dict.fromkeys(IX[k]["vn"] for k in BE_ORDER))
     vn1d = ", ".join(dict.fromkeys(IX[k]["vn"] + "1D" for k in BE_ORDER))
@@ -459,8 +463,9 @@ def _be_calc(IX, ctx):
     <div class="panel becalc">
       <div class="berow">
         <label>Index<select id="beIx">{opts}</select></label>
-        <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button></span></label>
+        <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button><button type="button" class="beh" data-h="exit">Expiration</button></span></label>
         <label class="behrs">Hours (override)<input id="beHrs" type="number" step="any" min="0.25" max="6.5" inputmode="decimal" placeholder="auto"></label>
+        <label class="beexp">Expiration<input id="beExp" type="date"></label>
         <span class="bemeta" id="beMeta"></span>
       </div>
       <div class="berow">
@@ -530,24 +535,65 @@ def _be_calc(IX, ctx):
     if(d.vx!=null) return {v:d.vx, nm:d.vn, extra:true};
     return {v:d.vol, nm:'30-day IV', direct:true};
   }
-  function params(d,h,ivchg,rem){
+  /* ---- Expiration horizon -------------------------------------------------
+     Unlike overnight and 1-week, N is whatever date the user picks, so the
+     parameters cannot be precomputed server-side -- this branch does what the
+     Python engine does for the fixed tenors, in the browser.
+
+     The two tenor lines are the only NEW math here. They interpolate between
+     the anchors the engine already ships: full skew and full drift at 1 session
+     (overnight), CFG.wkskew / CFG.wkdrift at 5 (one week). So N=1 and N=5
+     reproduce the existing horizons exactly. The clamps stop the skew going
+     flat -- or negative -- out at long tenors, where nothing has been
+     validated against anything. */
+  var HOL=(CFG.hol||[]).reduce(function(a,k){a[k]=1;return a;},{});
+  function iso(dt){return dt.toISOString().slice(0,10);}
+  function isSession(k){
+    var p=k.split('-'), wd=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay();
+    return wd>=1&&wd<=5&&!HOL[k];
+  }
+  /* Sessions strictly after today, up to and including the chosen date. */
+  function sessionsUntil(endISO){
+    var todayISO=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return iso(new Date());}})();
+    if(!endISO||endISO<=todayISO) return 0;
+    var p=todayISO.split('-'), cur=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])), n=0;
+    for(var g=0;g<2000;g++){
+      cur.setUTCDate(cur.getUTCDate()+1);
+      var k=iso(cur);
+      if(isSession(k)) n++;
+      if(k>=endISO) break;
+    }
+    return n;
+  }
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function skewTenorN(n){return clamp(1-(1-CFG.wkskew)*(n-1)/4, 0.55, 1);}
+  function driftTenorN(n){return clamp(1-(1-CFG.wkdrift)*(n-1)/4, 0.35, 1);}
+
+  function params(d,h,ivchg,rem,nDays){
     var base=volFor(d,h), volE=Math.max(1,base.v+(ivchg||0)), sc=volE/base.v;
     if(h==='rd'){
       var S=volE/100*Math.sqrt(1/252)*Math.sqrt(Math.max(rem.f,1e-6))*100;
       var r=1+(d.r-1)*CFG.rdskew, su=2*S/(1+r), sd=r*su;
       return {sd:sd,su:su,mu:CFG.dk*(d.sg*CFG.rddrift)*S,sd1:S,vsrc:base};
     }
+    if(h==='exit'){
+      var N=Math.max(nDays||0,0);
+      if(!N) return null;
+      var Se=volE/100*Math.sqrt(N/252)*100;
+      var re=1+(d.r-1)*skewTenorN(N), sue=2*Se/(1+re), sde=re*sue;
+      return {sd:sde,su:sue,mu:CFG.dk*(d.sg*driftTenorN(N))*Se,sd1:Se,vsrc:base,n:N};
+    }
     var p=d[h];
     return {sd:p.sd*sc,su:p.su*sc,mu:p.mu*sc,sd1:p.sd1*sc,vsrc:base};
   }
   var $=function(id){return document.getElementById(id);};
-  var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),
+  var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),expI=$('beExp'),
       elSafe=$('beSafe'),elTLo=$('beTLo'),elTHi=$('beTHi'),elTouch=$('beTouch'),
       elZ=$('beZ'),elTerm=$('beTerm'),elBase=$('beBase'),meta=$('beMeta'),hint=$('beHint'),stale=$('beStale');
   var horizon='rd', spotTouched=false, ivTouched=false;
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
   function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
-  function HNAME(h){return h==='rd'?'rest of day':(h==='on'?'overnight':'1-week');}
+  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':(n===1?'1 session':n+' sessions')));}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
   ivI.addEventListener('input',function(){ivTouched=true;});
@@ -582,10 +628,21 @@ def _be_calc(IX, ctx):
     var ivchg = usedVol - base.v;
     var hOv=parseFloat(hrsI.value);
     if(horizon==='rd'&&!isNaN(hOv)&&hOv>0){ rem={f:Math.min(hOv/6.5,1), hrs:hOv, manual:true}; }
-    var p=params(d,horizon,ivchg,rem), C=parseFloat(spotI.value);
+    var nD = horizon==='exit' ? sessionsUntil(expI.value) : null;
+    var p=params(d,horizon,ivchg,rem,nD), C=parseFloat(spotI.value);
     if(isNaN(C)||C<=0) C=d.C;
-    var mtxt=HNAME(horizon)+' 1SD &plusmn;'+p.sd1.toFixed(2)+'%';
+    if(horizon==='exit'&&!p){
+      dash();
+      meta.innerHTML='expiration';
+      hint.innerHTML = expI.value
+        ? '<b>That date is today or already past.</b> Pick a later expiration.'
+        : 'Pick your <b>expiration date</b> to see the odds out to it.';
+      stale.className='bewarn'; stale.innerHTML='';
+      elBase.innerHTML=''; return;
+    }
+    var mtxt=HNAME(horizon,nD)+' 1SD &plusmn;'+p.sd1.toFixed(2)+'%';
     if(horizon==='rd') mtxt+=' &middot; '+(rem.manual?rem.hrs.toFixed(1)+'h (manual)':(rem.f<=0?'market closed':rem.hrs.toFixed(1)+'h to the bell'));
+    if(horizon==='exit') mtxt+=' &middot; '+nD+' session'+(nD===1?'':'s')+' out';
     meta.innerHTML=mtxt;
     $('beIvLab').textContent='Current '+anchor.nm;
     var dPct=(C-d.C)/d.C*100;
@@ -659,16 +716,20 @@ def _be_calc(IX, ctx):
                  +'<span class="zchip '+zcls(zH)+'"><b>'+fnum(hi)+'</b> = +'+zH.toFixed(2)+'&sigma; <i>(+'+b.toFixed(2)+'%)</i></span>'
                  +'<span class="zlab">distance from '+fnum(C)+' in 1SD units &mdash; the closer side is the one in play</span>';
     elTerm.innerHTML='<b>Where it ends up</b> (ignoring the path): stays between <b>'+pct(inside)+'</b> &middot; ends below '+fnum(lo)+' '+pct(below)+' &middot; ends above '+fnum(hi)+' '+pct(above)+'. Always kinder than the touch odds above &mdash; use it only if you would hold to the horizon rather than adjust on a tag.';
-    hint.innerHTML='<b>'+d.nm+' '+HNAME(horizon)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
+    hint.innerHTML='<b>'+d.nm+' '+HNAME(horizon,nD)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
       +(tLo>tHi*3?'&mdash; almost entirely the <b>downside</b>':(tHi>tLo*3?'&mdash; almost entirely the <b>upside</b>':'&mdash; risk is two-sided'))
       +'. Rough guide, not a guarantee.';
   }
   function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
-    document.querySelector('.behrs').style.visibility=(h==='rd')?'visible':'hidden';
+    document.querySelector('.behrs').style.display=(h==='rd')?'':'none';
+    document.querySelector('.beexp').style.display=(h==='exit')?'':'none';
     ivTouched=false;syncIvField();calc();}
   ixSel.addEventListener('change',function(){syncSpot();ivTouched=false;syncIvField();calc();});
-  [spotI,loI,hiI,ivI,hrsI].forEach(function(e){e.addEventListener('input',calc);});
+  [spotI,loI,hiI,ivI,hrsI,expI].forEach(function(e){e.addEventListener('input',calc);});
   Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
+  /* Floor the date picker at today (ET), so "already past" is unreachable by
+     the calendar and only typing can produce it. */
+  try{ expI.min=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){}
   syncSpot();syncIvField();pick('rd');
   setInterval(function(){if(horizon==='rd'&&isNaN(parseFloat(hrsI.value)))calc();},60000);
 })();

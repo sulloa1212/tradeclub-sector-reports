@@ -20,6 +20,7 @@ import argparse
 import datetime as dt
 import urllib.request
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from . import config, main as mwtc_main
 from .report import generator, gauges
@@ -49,8 +50,11 @@ STUB_HTML = ("<!DOCTYPE html><html><head><meta charset='utf-8'><title>MWTC stub<
 
 
 def utc_date() -> str:
-    """UTC date, matching today_str() in build.py and the site's dated files."""
-    return dt.datetime.utcnow().strftime("%Y-%m-%d")
+    """ET (market-clock) date, matching today_str() in build.py and the site's
+    dated files. Was UTC until 2026-08-28: a run fired after 8 PM ET crosses
+    UTC midnight and steals the NEXT day's file slot, making the next morning's
+    real run skip itself as already-built."""
+    return dt.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
 
 def inject_hub_button(html: str) -> str:

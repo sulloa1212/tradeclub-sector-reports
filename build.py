@@ -125,14 +125,16 @@ env = Environment(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def today_str() -> str:
-    """Today's date (UTC). GitHub Actions runs in UTC; the US pre-market run
-    shares the same calendar date, so this is the right day to stamp."""
-    return datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    """Today's date on the US MARKET clock (ET), never UTC. On 2026-08-27 a
+    GitHub backup cron fired 8.5h late at 9:04 PM ET — past UTC midnight — so
+    the rebuild stamped Thursday's post-market report as 2026-08-28.html and
+    Friday's real run then skipped itself as "already built"."""
+    return datetime.datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
 
 def now_stamp() -> str:
     """Human-readable generation timestamp for the hub header (US Eastern —
-    the audience's market clock; filenames/idempotency stay on UTC dates)."""
+    the audience's market clock, same clock as file dates / idempotency)."""
     from zoneinfo import ZoneInfo
     now = datetime.datetime.now(ZoneInfo("America/New_York"))
     hour = str((now.hour % 12) or 12)

@@ -60,7 +60,9 @@ jobs:
       - name: Skip if today's requested report(s) already exist
         id: guard
         run: |
-          TODAY=$(date -u +%F)
+          # ET, matching build.py's file-date clock — a late-fired evening run
+          # must not cross UTC midnight and claim tomorrow's slot (2026-08-27).
+          TODAY=$(TZ=America/New_York date +%F)
           LIST="${REPORTS_IN:-$SLUG_IN}"
           if [ "$FORCE_IN" = "true" ]; then
             echo "force=true — building regardless of today's files."

@@ -722,7 +722,9 @@ def _be_calc(IX, ctx):
   }
   function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
     document.querySelector('.behrs').style.display=(h==='rd')?'':'none';
-    document.querySelector('.beexp').style.display=(h==='exit')?'':'none';
+    /* 'flex' explicitly: the stylesheet hides .beexp by default, so clearing
+       the inline style ('') falls back to display:none and never shows it. */
+    document.querySelector('.beexp').style.display=(h==='exit')?'flex':'none';
     ivTouched=false;syncIvField();calc();}
   ixSel.addEventListener('change',function(){syncSpot();ivTouched=false;syncIvField();calc();});
   [spotI,loI,hiI,ivI,hrsI,expI].forEach(function(e){e.addEventListener('input',calc);});

@@ -6,9 +6,17 @@ v12 developer handoff (2026-07-20):
   • COMPUTED dials — variance-consistent thresholds shared across horizons;
     the model's dial_bump is gone ("a dial that silently keeps yesterday's
     setting is worse than no dial").
-  • COMPUTED gamma — the regime now arrives from the feed (UW greek-exposure),
-    not from model judgment; the cushion copy follows it (no cushion line on
-    thin, "dealers amplify" on negative).
+  • COMPUTED gamma — the regime arrives from the feed (UW greek-exposure), not
+    from model judgment, and feeds compute_signal's drift term ONLY.
+    The "cushion line" was removed 2026-09-01: it was printed under a gamma
+    heading but its number was levels["sup"][0] — the MODEL's support level,
+    not anything derived from dealer positioning. Presenting an LLM's
+    technical read as a computed gamma level overstated its provenance.
+    UW's strike-level endpoint (/spot-exposures/strike) can support a real
+    call/put wall, but naively it returns the largest-OI round strike far
+    from spot (8,000 with spot at 7,650 on 2026-09-01) — it needs expiry
+    filtering and a window around spot before it means anything. Until then
+    the report shows no gamma-derived price level at all.
   • The computed-vs-judgment invariant: every number that appears in prose is
     derived from the computed stats here; the model supplies ONLY the STORY
     (headline / catalyst / watch / per-index driver+gapfill+tail), levels,
@@ -747,37 +755,9 @@ def _daycell(d):
     return '<td class="num flat">+0.0%</td>'
 
 
-def _cushion(ix, levels, lean_pct):
-    """Cushion copy follows the COMPUTED gamma regime (v12 invariant)."""
-    nm, g = ix["nm"], ix.get("gamma", "thin")
-    if g == "thin":
-        return ("thin", '&#x1F6E1;&#xFE0F; A note on the cushion (gamma)',
-                f'Reliable dealer-positioning (gamma) data is <b>thin for {nm}</b> right now, so '
-                'there&rsquo;s no clean &ldquo;cushion line&rdquo; here &mdash; this read leans on '
-                'the implied band and the broad tape rather than a positioning level.')
-    line = (levels.get("sup") or ["&mdash;"])[0]
-    if g == "pos":
-        return ("", '&#x1F6E1;&#xFE0F; What &ldquo;the cushion&rdquo; means (gamma, in plain English)',
-                f'On a calm day big options dealers <b>buy dips and sell rips</b> &mdash; a shock '
-                f'absorber that fades moves (a <b class="pos">positive</b> cushion). {nm} is near its '
-                f'<b>~{line} cushion line</b>. Hold above it and dip-buying keeps pullbacks shallow; '
-                f'lose it overnight and the shock absorber weakens. Tonight&rsquo;s lean sits at '
-                f'~{lean_pct}% down.')
-    return ("", '&#x1F6E1;&#xFE0F; What &ldquo;the cushion&rdquo; means (gamma, in plain English)',
-            f'Dealer positioning in {nm} currently reads <b class="neg">negative</b> &mdash; instead of '
-            f'absorbing moves, dealers amplify them, so pushes tend to extend rather than fade. '
-            f'<b>~{line}</b> is the level to watch; losing it overnight would deepen the move. '
-            f'Tonight&rsquo;s lean sits at ~{lean_pct}% down.')
-
-
 def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
     res = (levels.get("res") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     sup = (levels.get("sup") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
-    cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix["key"]])
-    special = ""
-    if ix.get("gamma", "thin") != "thin":
-        special = (f'<div class="lvrow"><span class="lab">Cushion line</span>'
-                   f'<span class="chip f">~{sup[0]}</span></div>')
     est_tag = ", est." if ix["est"] else ""
     pts = f'{ix["on_pts"]:,.1f}' if ix["lvl"] < 1000 else f'{ix["on_pts"]:,.0f}'
     dsub = (f'Live <b>{ix["disp"]}</b> {_day_span(ix)}{est_tag} &nbsp;&middot;&nbsp; '
@@ -803,10 +783,6 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
       <div class="cardgrid">
         <div class="cmain">
           {on_block}
-          <div class="cushion {cclass}">
-            <span class="h">{chead}</span>
-            {ctext}
-          </div>
           <div class="weekhead">&#x1F4C6; 1-Week Outlook <small>&mdash; next ~5 trading sessions; ranked in the Big Move section below</small></div>
           {wk_block}
         </div>
@@ -820,7 +796,6 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
               <div class="lvrow"><span class="lab">Overnight 1SD</span><span class="chip f">{ix['on_lo']} &ndash; {ix['on_hi']}</span></div>
               <div class="lvrow"><span class="lab">1-week 1SD</span><span class="chip f">{ix['wk_lo']} &ndash; {ix['wk_hi']}</span></div>
               <div class="lvrow"><span class="lab">Support</span><span class="chip s">{sup[0]}</span><span class="chip s">{sup[1]}</span></div>
-              {special}
             </div>
             <div class="note" style="margin-top:8px">Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.</div>
           </div>
@@ -1088,7 +1063,6 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         <dt>&sigma; distance</dt><dd>Each level is also shown as a distance in <b>standard deviations</b> from your reference price. This is usually the fastest read in the whole tool: a level 1&sigma; away is genuinely in play, one 3&sigma; away is background noise. When your two levels sit at very different &sigma;, the risk isn&rsquo;t two-sided &mdash; it&rsquo;s all on the near side.</dd>
         <dt>Current price / Current vol</dt><dd>The calculator starts from the price baked in at generation, but you can type the <b>live price</b> from your platform and everything re-computes around it. The <b>current-vol</b> box does the same for volatility, and it takes an <b>actual value, not a point change</b>. On <b>overnight/1-week</b> it&rsquo;s pre-filled with the run&rsquo;s vol-index spot (VIX for SPX) &mdash; overwrite it with the current reading. On <b>rest of day</b> it asks for the 1-day reading; where no live VIX1D was captured it starts empty &mdash; chart it and type it, and it sizes the intraday bands directly (the index&rsquo;s own 1-day IV is used until you do). Both are manual on purpose: the report never calls out to the internet.</dd>
         <dt>Risk dials</dt><dd>Calm / Elevated / High / Extreme &mdash; computed from the implied move size, with matching thresholds at both horizons so &ldquo;Elevated&rdquo; means the same vol regime on the overnight and 1-week rows.</dd>
-        <dt>The Cushion (gamma)</dt><dd><b>Positive</b> = dealers buy dips/sell rips, moves fade. <b>Negative</b> = dealers amplify moves; pushes extend. <b>Thin</b> = no reliable positioning read. Computed from live options data where available.</dd>
         <dt>Whole-number levels</dt><dd>Round numbers act as magnets (option open-interest clusters there). Approximate &mdash; re-verify live.</dd>
         <dt>Breadth read</dt><dd>The spread between the four indices is a signal: a narrow tech move is positioning; a broad one is real risk-on/off.</dd>
       </dl>

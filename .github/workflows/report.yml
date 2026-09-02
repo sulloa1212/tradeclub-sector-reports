@@ -138,3 +138,17 @@ jobs:
             sleep $((i % 5 + 1))
           done
           echo "ERROR: could not push after retries"; exit 1
+
+      # ---- Dead-man's switch de MWTC Health -------------------------------
+      # Igual que en mwtc.yml: solo reporta si realmente se construyó algo.
+      # `already_built == 'true'` significa que el informe de hoy ya existía,
+      # y eso no es evidencia de que el proceso de hoy funcione.
+      - name: Check in to MWTC Health
+        if: success() && steps.guard.outputs.already_built == 'false'
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.HEALTH_CHECKIN_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"run\":\"${{ github.run_id }}\"}" \
+            https://mwtc-health.green-paper-667a.workers.dev/checkin/tradeclub-sectors
+          echo "Checked in as tradeclub-sectors."

@@ -119,3 +119,22 @@ jobs:
             sleep $((i % 5 + 1))
           done
           echo "ERROR: could not push after retries"; exit 1
+
+      # ---- Dead-man's switch de MWTC Health -------------------------------
+      # Condicionado a `steps.guard.outputs.go`, no solo a success(): el guard
+      # sale con 0 en días de mercado cerrado y cuando el informe ya existe,
+      # así que un job exitoso NO significa que se haya publicado algo. Sin
+      # esta condición el check quedaría verde para siempre con una lista de
+      # feriados equivocada.
+      #
+      # La clave sale del modo: tradeclub-premarket / tradeclub-postmarket.
+      # Son corridas independientes y fallan por separado.
+      - name: Check in to MWTC Health
+        if: success() && steps.guard.outputs.go == 'true' && inputs.mode != 'check-keys'
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.HEALTH_CHECKIN_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"run\":\"${{ github.run_id }}\",\"mode\":\"${{ inputs.mode }}\"}" \
+            https://mwtc-health.green-paper-667a.workers.dev/checkin/tradeclub-${{ inputs.mode }}
+          echo "Checked in as tradeclub-${{ inputs.mode }}."

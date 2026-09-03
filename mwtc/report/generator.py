@@ -192,12 +192,33 @@ def _coverage_gaps(html: str, data: dict) -> list:
                     continue
                 sym = str(m.get("symbol") or m.get("ticker") or "").upper()
                 try:
-                    pct = abs(float(m.get("changesPercentage") or m.get("change_pct")
-                                    or m.get("pct") or 0))
+                    pct = abs(float(m.get("pct_change") or m.get("changesPercentage")
+                                    or m.get("change_pct") or m.get("pct") or 0))
                 except (TypeError, ValueError):
                     pct = 0
                 if sym and pct >= 4 and sym not in up:
                     gaps.append(f"top pre-market {grp[:-1]} {sym} ({pct:.0f}%) never mentioned")
+        # Reaction contradiction (2026-09-03 AVGO lesson): an overnight reporter
+        # trading hard DOWN must be covered as down — a report that mentions the
+        # ticker only in bullish beat language gets one targeted retry.
+        for r in ov:
+            sym = str(r.get("symbol") or "").upper()
+            try:
+                pct = float(r.get("premarket_reaction_pct"))
+            except (TypeError, ValueError):
+                continue
+            if not sym or pct >= -3:
+                continue
+            i = up.find(sym)
+            if i < 0:
+                continue
+            ctx = up[max(0, i - 400): i + 400]
+            neg = ("DOWN", "DROP", "FALL", "FELL", "SLID", "SLIP", "LOWER", "WEAK",
+                   "SANK", "TUMBL", "DECLIN", "SELL", "SOLD", "GUID", "MISS",
+                   "DISAPPOINT", "NEGATIVE", "RED")
+            if not any(w in ctx for w in neg):
+                gaps.append(f"{sym} trades {pct:.1f}% pre-market after its print — "
+                            "cover the actual reaction and its driver, not just the headline beat")
     except Exception as e:  # noqa: BLE001 — the check must never kill a run
         log.warning("coverage check skipped: %s", e)
     return gaps

@@ -302,7 +302,21 @@ def market_news(limit: int = 15) -> Optional[list]:
         if not isinstance(items, list):
             return None
         import time as _t
+        import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
         cutoff = _t.time() - 18 * 3600
+        # Freshness anchor: the most recent 4:00 PM ET close (weekends walked
+        # back). An 18h window at 8:40 AM reaches into the PRIOR day's session,
+        # and the model can't read unix epochs — on 2026-09-03 it presented
+        # Wednesday-daytime AVGO stories (pre-print upgrade, flow color) as the
+        # overnight reaction. Stamp each item so stale can't pass as fresh.
+        _et = _ZI("America/New_York")
+        _now = _dt.datetime.now(_et)
+        _close = _now.replace(hour=16, minute=0, second=0, microsecond=0)
+        if _now < _close:
+            _close -= _dt.timedelta(days=1)
+        while _close.weekday() >= 5:
+            _close -= _dt.timedelta(days=1)
         seen, out = set(), []
         for it in items:
             if not isinstance(it, dict) or it.get("datetime", 0) < cutoff:
@@ -311,12 +325,15 @@ def market_news(limit: int = 15) -> Optional[list]:
             if not head or head.lower() in seen:
                 continue
             seen.add(head.lower())
+            _when = _dt.datetime.fromtimestamp(it.get("datetime", 0), _et)
             out.append({
                 "headline": head,
                 "summary": (it.get("summary") or "")[:240],
                 "source": it.get("source"),
                 "url": it.get("url"),
-                "datetime": it.get("datetime"),
+                "when_et": _when.strftime("%a %I:%M %p ET"),
+                "fresh": ("since last close" if _when >= _close else
+                          "BEFORE the last close — prior session's news cycle, background only"),
             })
         return out[:limit] or None
     except Exception as e:  # noqa: BLE001

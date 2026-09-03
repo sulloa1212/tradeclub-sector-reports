@@ -58,6 +58,23 @@ def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dic
     # prints, usually the morning's biggest story when a mega-cap is among them.
     cal = verified.get("calendar") or []
     overnight = [r for r in cal if r.get("is_overnight_result")]
+    # Attach the live pre-market reaction (FMP movers) to each overnight print:
+    # the reaction — not the headline EPS line — is the tradeable fact. On
+    # 2026-09-03 AVGO beat but fell ~5% overnight on soft guidance; nothing in
+    # the packet said "down", so the report spun the beat as constructive.
+    react = {}
+    for m in (fmp_packet.get("gainers") or []) + (fmp_packet.get("losers") or []):
+        if isinstance(m, dict):
+            sym = str(m.get("ticker") or m.get("symbol") or "").upper()
+            try:
+                if sym:
+                    react[sym] = float(m.get("pct_change"))
+            except (TypeError, ValueError):
+                pass
+    for r in overnight:
+        pct = react.get(str(r.get("symbol") or "").upper())
+        if pct is not None:
+            r["premarket_reaction_pct"] = pct
     return {
         "calendar": verified.get("calendar"),
         "overnight_results": overnight[:6] or None,

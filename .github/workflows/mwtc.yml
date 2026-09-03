@@ -57,8 +57,12 @@ jobs:
           if ! python -c "import build,sys; sys.exit(0 if build.market_open_today() else 1)"; then
             echo "US market closed today — skipping."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          if [ -f "site/$SLUG/$(date -u +%F).html" ]; then
-            echo "$SLUG already built for $(date -u +%F) — skipping."
+          # ET, matching mwtc/publish.py's file-date clock — a market-wrap retry
+          # after 8 PM ET crosses UTC midnight and would claim tomorrow's slot
+          # (same failure as the 2026-08-27 gap-risk incident).
+          TODAY=$(TZ=America/New_York date +%F)
+          if [ -f "site/$SLUG/$TODAY.html" ]; then
+            echo "$SLUG already built for $TODAY — skipping."
             echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "go=true" >> "$GITHUB_OUTPUT"

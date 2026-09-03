@@ -179,11 +179,16 @@ def _coverage_gaps(html: str, data: dict) -> list:
     mover must appear somewhere. Returns human-readable gap descriptions."""
     gaps = []
     try:
-        up = html.upper()
+        # VISIBLE text, not raw markup: the report's <style> block alone eats
+        # most of an 8000-char raw window, so the lead check false-flagged a
+        # report that led with AVGO (2026-09-03) and burned a paid retry.
+        up = re.sub(r"(?is)<(style|script)[^>]*>.*?</\1>", " ", html)
+        up = re.sub(r"<[^>]+>", " ", up)
+        up = re.sub(r"\s+", " ", up).upper()
         ov = ((data.get("earnings") or {}).get("overnight_results") or [])
         if ov:
             sym = str(ov[0].get("symbol") or "").upper()
-            if sym and sym not in up[:8000]:
+            if sym and sym not in up[:4000]:
                 gaps.append(f"the biggest overnight earnings result ({sym}) must lead the summary")
         movers = data.get("movers") or {}
         for grp in ("gainers", "losers"):

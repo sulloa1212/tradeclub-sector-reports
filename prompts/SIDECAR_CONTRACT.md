@@ -8,7 +8,7 @@ shape for every report, regardless of the report's internal content.
 
 | Field | Type | Card use |
 |---|---|---|
-| `report` | string | card title, e.g. `"Gap Risk Report"` |
+| `report` | string | card title, e.g. `"Gap Scout Report"` |
 | `date` | string | `YYYY-MM-DD`, the date stamp |
 | `status_label` | string | the badge text, e.g. `"ELEVATED"`, `"12 SETUPS"`, `"BULLISH TILT"` |
 | `accent` | string | one of `bull` \| `bear` \| `neutral` \| `warn` — drives the badge/border color |

@@ -978,7 +978,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily AI {ctx["gap_word"]} Gap Risk Report &mdash; {ctx["label"].title()} &mdash; {ctx["long_date"]} &middot; Trade Club AI</title>
+<title>Daily AI {ctx["gap_word"]} Gap Scout Report &mdash; {ctx["label"].title()} &mdash; {ctx["long_date"]} &middot; Trade Club AI</title>
 {style}
 </head>
 <body><div class="wrap">
@@ -986,8 +986,8 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
   <div class="header">
     <img class="brand-tc" alt="Trade Club AI" src="{tc_logo}">
     <div class="head-text">
-      <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Risk &middot; {ctx["label"].title()}</div>
-      <h1>Daily AI {ctx["gap_word"]} Gap Risk Report</h1>
+      <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Scout &middot; {ctx["label"].title()}</div>
+      <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>
       <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT &mdash; gap into the next open + 1-week outlook</div>
       <div class="stamp">{ctx["long_date"]} &middot; {ctx["time_str"]} &nbsp;|&nbsp; <b style="color:var(--accent)">{ctx["label"]}</b> &middot; {ctx["phrase"]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
     </div>
@@ -1102,7 +1102,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
       </div>
     </div>
     <p style="margin-top:12px">{ctx["label"].title()}, <b>time-stamped {ctx["long_date"]}, {ctx["time_str"]}</b>, into a {ctx["phrase"]} with a 1-week outlook &mdash; it goes stale quickly. {footer_note} Re-verify before trading. Nothing here is a directive to trade.</p>
-    <p style="margin-top:10px;color:var(--faint)">Daily AI {ctx["gap_word"]} Gap Risk Report &middot; deterministic engine v2 &middot; drift+skew lean &middot; disjoint bands &middot; breakeven calculator (touch odds + intraday clock) &middot; Trade Club AI &middot; Generated {ctx["gen_date"]} ({ctx["label"].lower()}) &middot; mwtradecoach.com</p>
+    <p style="margin-top:10px;color:var(--faint)">Daily AI {ctx["gap_word"]} Gap Scout Report &middot; deterministic engine v2 &middot; drift+skew lean &middot; disjoint bands &middot; breakeven calculator (touch odds + intraday clock) &middot; Trade Club AI &middot; Generated {ctx["gen_date"]} ({ctx["label"].lower()}) &middot; mwtradecoach.com</p>
   </div>
 
 {be_script}

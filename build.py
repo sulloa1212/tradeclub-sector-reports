@@ -114,6 +114,10 @@ NAV_START = "<!--TC_NAV_START-->"
 NAV_END = "<!--TC_NAV_END-->"
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# The run-time stamp every engine (gap) page prints in its header, e.g.
+# "~9:02 AM ET". First match in the file = the header (body prose can also
+# contain times); shared meaning with the workflow's pm-window guard.
+_STAMP_RE = re.compile(r"~\d{1,2}:\d{2} [AP]M ET")
 
 env = Environment(
     loader=FileSystemLoader(str(TEMPLATES)),
@@ -1054,12 +1058,15 @@ def prune_dead_nav(html: str) -> str:
                   html, flags=re.S)
 
 
-def previous_reports_widget(slug: str, dates: list) -> str:
+def previous_reports_widget(slug: str, entries: list) -> str:
     """A floating 'Previous reports' dropdown (pure CSS, no JS) linking each kept
-    dated copy. Empty when there are no prior reports."""
-    if not dates:
+    dated copy. Each entry is (stem, label) — plain dates for single-run reports,
+    'date · 9:02 AM ET' style for two-run gap days. Empty when nothing prior.
+    Accepts legacy plain-string lists for compatibility."""
+    entries = [(e, e) if isinstance(e, str) else e for e in entries]
+    if not entries:
         return ""
-    items = "".join(f'<li><a href="/{slug}/{d}.html">{d}</a></li>' for d in dates)
+    items = "".join(f'<li><a href="/{slug}/{s}.html">{l}</a></li>' for s, l in entries)
     return (
         '<style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;'
         'font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}'
@@ -1070,7 +1077,7 @@ def previous_reports_widget(slug: str, dates: list) -> str:
         '.tc-prev>summary:hover{background:#1b2740;color:#fff}'
         '.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}'
         '.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;'
-        'background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:190px;max-height:50vh;'
+        'background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:230px;max-height:50vh;'
         'overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}'
         '.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;'
         'font-variant-numeric:tabular-nums;font-weight:600}'
@@ -1291,6 +1298,14 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     body = inject_disclaimer_gate(body)
     body = inject_release_badge(body, report.get("run_time_et", ""))
     (d / f"{date}.html").write_text(body, encoding="utf-8")
+    # Two-run gap days (since 2026-09-15): the 9:00 AM edition also survives as
+    # <date>-am.html so the 2:00 PM edition can overwrite the canonical daily
+    # file without erasing the morning read. Detected from the page's own
+    # header time stamp — the same source the workflow's pm-window guard uses.
+    if report.get("engine"):
+        st = _STAMP_RE.search(body)
+        if st and st.group(0).endswith("AM ET"):
+            (d / f"{date}-am.html").write_text(body, encoding="utf-8")
 
     index_path = d / "index.json"
     meta = {}
@@ -1313,18 +1328,40 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
         (d / f"{old}.html").unlink(missing_ok=True)
         meta.pop(old, None)
         print(f"  pruned old report: {old}.html")
+    # -am morning snapshots ride along with their base date: prune orphans.
+    for p in d.glob("*-am.html"):
+        if p.stem[:-3] not in keep:
+            p.unlink(missing_ok=True)
+            print(f"  pruned old report: {p.name}")
     kept = [meta[x] for x in keep if x in meta]
     index_path.write_text(json.dumps(kept, indent=2, ensure_ascii=False),
                           encoding="utf-8")
     # Refresh the 'Previous reports' dropdown in EVERY kept page so they all show
     # the same current list (each excluding itself) — never a stale snapshot, and
-    # never a link to a pruned report.
-    for kd in keep:
-        fp = d / f"{kd}.html"
+    # never a link to a pruned report. Engine (gap) entries are labeled with the
+    # page's own run-time stamp so the AM and PM editions are distinguishable;
+    # an -am snapshot identical to its canonical (AM-only day) is not repeated.
+    def _label(stem: str) -> str:
+        if not report.get("engine"):
+            return stem
+        fp2 = d / f"{stem}.html"
+        m2 = _STAMP_RE.search(fp2.read_text(encoding="utf-8")) if fp2.exists() else None
+        return f"{stem[:10]} · {m2.group(0)[1:]}" if m2 else stem
+
+    entries = []
+    for x in keep:
+        can_label = _label(x)
+        entries.append((x, can_label))
+        if (d / f"{x}-am.html").exists():
+            am_label = _label(f"{x}-am")
+            if am_label != can_label:
+                entries.append((f"{x}-am", am_label))
+    for stem, _lab in entries:
+        fp = d / f"{stem}.html"
         if not fp.exists():
             continue
         h = refresh_previous_reports(fp.read_text(encoding="utf-8"), slug,
-                                     [x for x in keep if x != kd])
+                                     [e for e in entries if e[0] != stem])
         fp.write_text(h, encoding="utf-8")
     # index.html mirrors the newest report.
     (d / "index.html").write_text((d / f"{date}.html").read_text(encoding="utf-8"),

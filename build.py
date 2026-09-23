@@ -31,6 +31,7 @@ import json
 import os
 import re
 import sys
+import time
 import html
 import datetime
 import urllib.request
@@ -114,6 +115,16 @@ NAV_START = "<!--TC_NAV_START-->"
 NAV_END = "<!--TC_NAV_END-->"
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _overload_pause(e: Exception) -> None:
+    """Anthropic 529 'overloaded' lasts minutes, not milliseconds — an instant
+    retry just fails again (2026-09-23: both 9:00 AM gap attempts died within
+    the same second and the morning edition was lost). Wait it out first."""
+    s = str(e).lower()
+    if "529" in s or "overloaded" in s or "rate_limit" in s:
+        print("  .. API overloaded/rate-limited — waiting 120s before the retry...")
+        time.sleep(120)
 # The run-time stamp every engine (gap) page prints in its header, e.g.
 # "~9:02 AM ET". First match in the file = the header (body prose can also
 # contain times); shared meaning with the workflow's pm-window guard.
@@ -494,6 +505,7 @@ def build_sector(client: Anthropic, master_prompt: str, sector: str) -> dict:
         body, sidecar = attempt()
     except Exception as e:
         print(f"  !! attempt 1 failed — {e}")
+        _overload_pause(e)
         print(f"  !! retrying '{sector}' once with a stricter format reminder...")
         attempts = 2
         try:
@@ -1438,6 +1450,7 @@ def build_report_templated(client: Anthropic, report: dict) -> dict:
         content, sidecar = attempt()
     except Exception as e:
         print(f"  !! attempt 1 failed — {e}")
+        _overload_pause(e)
         print(f"  !! retrying '{name}' once (inner-content-only reminder)...")
         attempts = 2
         brevity = ("" if "truncated" not in str(e) else
@@ -1566,6 +1579,7 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
         content = attempt()
     except Exception as e:
         print(f"  !! attempt 1 failed — {e}")
+        _overload_pause(e)
         print(f"  !! retrying '{name}' once (JSON-contract reminder)...")
         attempts = 2
         try:
@@ -1656,6 +1670,7 @@ def build_report(client: Anthropic, report: dict, house_block: str) -> dict:
         body, sidecar = attempt()
     except Exception as e:
         print(f"  !! attempt 1 failed — {e}")
+        _overload_pause(e)
         print(f"  !! retrying '{name}' once with a stricter format reminder...")
         attempts = 2
         brevity = ("" if "truncated" not in str(e) else
@@ -1731,7 +1746,7 @@ def main_reports(slugs: list):
         print(f"ERROR: {HOUSE_PROMPT_PATH} not found.")
         sys.exit(1)
     house_block = HOUSE_PROMPT_PATH.read_text(encoding="utf-8")
-    client = Anthropic(timeout=900)
+    client = Anthropic(timeout=900, max_retries=5)
 
     print(f"Building {len(selected)} report(s) with model {MODEL}.")
     records = [build_report(client, r, house_block) for r in selected]
@@ -1778,7 +1793,7 @@ def main():
         sys.exit(1)
 
     master_prompt = MASTER_PROMPT_PATH.read_text(encoding="utf-8")
-    client = Anthropic(timeout=900)  # generous timeout: web search can be slow.
+    client = Anthropic(timeout=900, max_retries=5)  # generous timeout: web search can be slow.
 
     print(f"Building {len(sectors)} sector(s) with model {MODEL}.")
     records = [build_sector(client, master_prompt, sector) for sector in sectors]

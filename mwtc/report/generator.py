@@ -270,6 +270,11 @@ def _cap_packet(data: dict) -> dict:
             if s > BUDGET:
                 log.warning("packet key '%s' oversized (%s chars) — truncating to ~%s",
                             k, f"{s:,}", f"{BUDGET:,}")
+                if isinstance(data[k], dict):
+                    subs = sorted(((sk, _size(sv)) for sk, sv in data[k].items()),
+                                  key=lambda x: -x[1])[:6]
+                    log.warning("  '%s' sub-key sizes: %s", k,
+                                ", ".join(f"{sk}={ss:,}" for sk, ss in subs))
                 data[k] = _shrink(data[k], BUDGET)
     except Exception as e:  # noqa: BLE001 — the governor must never kill a run
         log.warning("packet size governor skipped: %s", e)

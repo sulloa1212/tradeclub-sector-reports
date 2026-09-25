@@ -11,6 +11,7 @@ a URL not on that list does not exist. All endpoints are GET. Auth = Bearer toke
 """
 from __future__ import annotations
 
+import json
 import time
 import math
 import logging
@@ -344,31 +345,70 @@ def expected_move(ticker: str, spot: Optional[float]) -> Optional[dict]:
     }
 
 
+def _clamp(name: str, v: Any, char_cap: int = 60_000) -> Any:
+    """Hard CLIENT-SIDE cap on one endpoint's payload. Never trust the server's
+    `limit` param: on 2026-09-24 an endpoint started returning a huge payload
+    regardless of it, the institutional block hit 2.2M chars (~630K tokens),
+    and two reports 400-failed on the model's context limit. Lists keep their
+    newest-first prefix (binary-searched to the budget); dicts clamp their
+    children; an oversized scalar is dropped. 60K chars ≈ 17K tokens — far
+    above any normal payload here (usual limits are 20-40 rows)."""
+    if v is None:
+        return None
+    try:
+        size = len(json.dumps(v, default=str))
+        if size <= char_cap:
+            return v
+        if isinstance(v, list):
+            lo, hi = 0, len(v)
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if len(json.dumps(v[:mid], default=str)) <= char_cap:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            log.warning("UW %s clamped client-side: %s chars / %d rows -> %d rows",
+                        name, f"{size:,}", len(v), lo)
+            return v[:lo]
+        if isinstance(v, dict):
+            child_cap = max(char_cap // max(len(v), 1), 8_000)
+            log.warning("UW %s dict payload %s chars — clamping children to %s",
+                        name, f"{size:,}", f"{child_cap:,}")
+            return {k: _clamp(f"{name}.{k}", x, child_cap) for k, x in v.items()}
+        log.warning("UW %s oversized scalar dropped (%s chars)", name, f"{size:,}")
+        return None
+    except Exception as e:  # noqa: BLE001 — the clamp must never kill a fetch
+        log.warning("UW clamp skipped for %s: %s", name, e)
+        return v
+
+
 def collect(tickers: list[str], etf_spots: Optional[dict] = None) -> dict:
     """Pull the full institutional packet. Values are None where unavailable so the
     report can clearly mark missing sections. ``etf_spots`` maps ticker->spot for
-    the expected-move calc."""
+    the expected-move calc. Every payload passes through _clamp — the server's
+    row limits are advisory, ours are not."""
     etf_spots = etf_spots or {}
     packet: dict = {
         "available": bool(config.UW_API_KEY),
-        "market_tide": market_tide(),
-        "dark_pool_recent": dark_pool_recent(),
-        "flow_alerts_market": flow_alerts(),
-        "unusual_screener": unusual_screener(),
-        "options_intel": options_intel(config.OPTIONS_IV_UNIVERSE,
-                                       config.OPTIONS_TOP_STRIKE_TICKERS),
-        "news_headlines": news_headlines(),
-        "insider": insider_transactions(),
-        "congress": congress_trades(),
+        "market_tide": _clamp("market_tide", market_tide()),
+        "dark_pool_recent": _clamp("dark_pool_recent", dark_pool_recent()),
+        "flow_alerts_market": _clamp("flow_alerts_market", flow_alerts()),
+        "unusual_screener": _clamp("unusual_screener", unusual_screener()),
+        "options_intel": _clamp("options_intel",
+                                options_intel(config.OPTIONS_IV_UNIVERSE,
+                                              config.OPTIONS_TOP_STRIKE_TICKERS)),
+        "news_headlines": _clamp("news_headlines", news_headlines()),
+        "insider": _clamp("insider", insider_transactions()),
+        "congress": _clamp("congress", congress_trades()),
         "per_ticker": {},
     }
     for t in tickers:
         packet["per_ticker"][t] = {
-            "gex_by_strike": gex_by_strike(t),
-            "options_volume": options_volume(t),
-            "dark_pool": dark_pool(t),
-            "flow_alerts": flow_alerts(t),
-            "interpolated_iv": interpolated_iv(t),
+            "gex_by_strike": _clamp(f"{t}.gex_by_strike", gex_by_strike(t)),
+            "options_volume": _clamp(f"{t}.options_volume", options_volume(t)),
+            "dark_pool": _clamp(f"{t}.dark_pool", dark_pool(t)),
+            "flow_alerts": _clamp(f"{t}.flow_alerts", flow_alerts(t)),
+            "interpolated_iv": _clamp(f"{t}.interpolated_iv", interpolated_iv(t)),
             "expected_move": expected_move(t, etf_spots.get(t)),
         }
     return packet

@@ -439,6 +439,11 @@ def _be_calc(IX, ctx):
                   "vx1": (round(IX[k]["vx1d_spot"], 2) if IX[k].get("vx1d_spot") is not None else None),
                   # Chartable 1-day symbol only where one exists (VIX1D for SPX).
                   "v1sym": ("VIX1D" if k == "spx" else None),
+                  # ETF twin (QQQ/SPY/IWM/DIA) for the calculator's ETF-$ unit
+                  # mode: the math is scale-invariant, so swapping the base spot
+                  # is the whole conversion. None hides the toggle client-side.
+                  "es": (round(IX[k]["etf_spot"], 2) if IX[k].get("etf_spot") else None),
+                  "esym": IX[k].get("etf_sym"),
                   "on": {"sd": round(IX[k]["on"]["sd"], 4), "su": round(IX[k]["on"]["su"], 4),
                          "mu": round(IX[k]["on"]["mu"], 4), "sd1": round(IX[k]["on_sig"], 3)},
                   "wk": {"sd": round(IX[k]["wk"]["sd"], 4), "su": round(IX[k]["wk"]["su"], 4),
@@ -463,6 +468,7 @@ def _be_calc(IX, ctx):
     <div class="panel becalc">
       <div class="berow">
         <label>Index<select id="beIx">{opts}</select></label>
+        <label>Units<span class="beseg"><button type="button" class="beh beu on" data-u="ix">Index pts</button><button type="button" class="beh beu" data-u="etf" id="beEtfBtn">ETF $</button></span></label>
         <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button><button type="button" class="beh" data-h="exit">Expiration</button></span></label>
         <label class="behrs">Hours (override)<input id="beHrs" type="number" step="any" min="0.25" max="6.5" inputmode="decimal" placeholder="auto"></label>
         <label class="beexp">Expiration<input id="beExp" type="date"></label>
@@ -590,7 +596,20 @@ def _be_calc(IX, ctx):
   var ixSel=$('beIx'),spotI=$('beSpot'),loI=$('beLo'),hiI=$('beHi'),ivI=$('beIv'),hrsI=$('beHrs'),expI=$('beExp'),
       elSafe=$('beSafe'),elTLo=$('beTLo'),elTHi=$('beTHi'),elTouch=$('beTouch'),
       elZ=$('beZ'),elTerm=$('beTerm'),elBase=$('beBase'),meta=$('beMeta'),hint=$('beHint'),stale=$('beStale');
-  var horizon='rd', spotTouched=false, ivTouched=false;
+  var horizon='rd', spotTouched=false, ivTouched=false, unit='ix';
+  /* ETF-$ mode: the band math only has ONE absolute input (the base spot) —
+     everything else is percentages — so pricing in QQQ/SPY/IWM/DIA is just a
+     base-spot swap. baked spot + name follow the unit everywhere. */
+  function baseC(d){return (unit==='etf'&&d.es)?d.es:d.C;}
+  function pxName(d){return (unit==='etf'&&d.es)?d.esym:d.nm;}
+  function syncUnitUI(){var d=BE[ixSel.value];
+    var b=document.getElementById('beEtfBtn');
+    if(b){b.textContent=(d.esym||'ETF')+' $'; b.disabled=!d.es;}
+    if(!d.es&&unit==='etf'){unit='ix';}
+    Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(x){x.classList.toggle('on',x.getAttribute('data-u')===unit);});
+    var c=baseC(d);
+    loI.placeholder='e.g. '+fnum(c*0.985); hiI.placeholder='e.g. '+fnum(c*1.015);
+  }
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
   function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
   function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':'expiration'));}
@@ -598,7 +617,7 @@ def _be_calc(IX, ctx):
   spotI.addEventListener('input',function(){spotTouched=true;});
   ivI.addEventListener('input',function(){ivTouched=true;});
   function syncSpot(){ var d=BE[ixSel.value];
-    if(!spotTouched) spotI.value=d.C;
+    if(!spotTouched) spotI.value=baseC(d);
   }
   /* Label + pre-fill the current-vol field with the run reading for this
      index/horizon. Absolute value, not a delta. */
@@ -630,7 +649,8 @@ def _be_calc(IX, ctx):
     if(horizon==='rd'&&!isNaN(hOv)&&hOv>0){ rem={f:Math.min(hOv/6.5,1), hrs:hOv, manual:true}; }
     var nD = horizon==='exit' ? sessionsUntil(expI.value) : null;
     var p=params(d,horizon,ivchg,rem,nD), C=parseFloat(spotI.value);
-    if(isNaN(C)||C<=0) C=d.C;
+    var C0=baseC(d);
+    if(isNaN(C)||C<=0) C=C0;
     if(horizon==='exit'&&!p){
       dash();
       meta.innerHTML='expiration';
@@ -645,7 +665,7 @@ def _be_calc(IX, ctx):
     if(horizon==='exit') mtxt+=' &middot; '+nD+' session'+(nD===1?'':'s')+' out';
     meta.innerHTML=mtxt;
     $('beIvLab').textContent='Current '+anchor.nm;
-    var dPct=(C-d.C)/d.C*100;
+    var dPct=(C-C0)/C0*100;
     function sgn(x,dp){return (x>0?'+':'')+x.toFixed(dp);}
     var pxCls=Math.abs(dPct)<0.05?'bbflat':(dPct<0?'bbdn':'bbup');
     var ivCls=(!shownDeltaOk||Math.abs(shownDelta)<0.005)?'bbflat':(shownDelta>0?'bbdn':'bbup');
@@ -672,13 +692,13 @@ def _be_calc(IX, ctx):
     }
     elBase.innerHTML=
       '<span class="bbgrp"><em>At the '+CFG.genlbl+' run</em>'
-        +'<b>'+d.nm+' '+fnum(d.C)+'</b>'
+        +'<b>'+pxName(d)+' '+fnum(C0)+'</b>'
         +volCell(d.vx, d.vn, d.vol, d.nm+' 30D IV')
         +volCell(d.vx1, d.v1n, d.v1, d.nm+' 1D IV')
       +'</span>'
       +'<span class="bbarrow">&rarr;</span>'
       +'<span class="bbgrp"><em>Your assumption now</em>'
-        +'<b>'+d.nm+' '+fnum(C)+' <i class="'+pxCls+'">'+sgn(dPct,2)+'%</i></b>'
+        +'<b>'+pxName(d)+' '+fnum(C)+' <i class="'+pxCls+'">'+sgn(dPct,2)+'%</i></b>'
         +assume
       +'</span>';
     var vwarn='';
@@ -686,7 +706,7 @@ def _be_calc(IX, ctx):
       vwarn=' '+anchor.nm+' isn\\u2019t published by the data feed &mdash; chart it and type the current value for the skew-adjusted view; until then this uses '+base.nm+' '+usedVol.toFixed(2)+'.';
     else if(horizon==='rd'&&!p.vsrc.short)
       vwarn=' Rest-of-day is using the 30-day '+d.nm+' IV because no 1-day IV was available at generation &mdash; on a steep term structure that misprices a few-hour horizon.';
-    var drift=(C-d.C)/d.C*100, lvl=0;
+    var drift=(C-C0)/C0*100, lvl=0;
     var sm='Vol, skew and drift are frozen at the '+CFG.genlbl+' run &mdash; only your inputs and the clock update.';
     var today=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return '';}})();
     if(today&&CFG.gday&&today>CFG.gday){
@@ -695,7 +715,7 @@ def _be_calc(IX, ctx):
     } else if(Math.abs(drift)>=0.35){
       lvl=1;
       var sug=-CFG.vbeta*drift;
-      sm+=' Your reference is <b>'+(drift>0?'+':'')+drift.toFixed(2)+'%</b> off the baked '+fnum(d.C)+'.';
+      sm+=' Your reference is <b>'+(drift>0?'+':'')+drift.toFixed(2)+'%</b> off the baked '+fnum(C0)+'.';
       if(Math.abs(sug)>=0.3&&!ivchg&&anchor.v!=null) sm+=' A move that size usually shifts '+anchor.nm+' about <b>'+(sug>0?'+':'')+sug.toFixed(1)
         +'</b> point'+(Math.abs(sug)>=1.5?'s':'')+', to about <b>'+(anchor.v+sug).toFixed(1)+'</b> &mdash; consider entering that as the current reading, or vol here is stale in the flattering direction.';
     }
@@ -720,19 +740,26 @@ def _be_calc(IX, ctx):
       +(tLo>tHi*3?'&mdash; almost entirely the <b>downside</b>':(tHi>tLo*3?'&mdash; almost entirely the <b>upside</b>':'&mdash; risk is two-sided'))
       +'. Rough guide, not a guarantee.';
   }
-  function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
+  function pick(h){horizon=h;Array.prototype.forEach.call(document.querySelectorAll('.beh[data-h]'),function(x){x.classList.toggle('on',x.getAttribute('data-h')===h);});
     document.querySelector('.behrs').style.display=(h==='rd')?'':'none';
     /* 'flex' explicitly: the stylesheet hides .beexp by default, so clearing
        the inline style ('') falls back to display:none and never shows it. */
     document.querySelector('.beexp').style.display=(h==='exit')?'flex':'none';
     ivTouched=false;syncIvField();calc();}
-  ixSel.addEventListener('change',function(){syncSpot();ivTouched=false;syncIvField();calc();});
+  ixSel.addEventListener('change',function(){syncUnitUI();syncSpot();ivTouched=false;syncIvField();calc();});
   [spotI,loI,hiI,ivI,hrsI,expI].forEach(function(e){e.addEventListener('input',calc);});
-  Array.prototype.forEach.call(document.querySelectorAll('.beh'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
+  Array.prototype.forEach.call(document.querySelectorAll('.beh[data-h]'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
+  /* Units toggle: switching scale invalidates typed levels/spot — clear them
+     and re-prefill from the baked spot of the new unit. */
+  Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(b){b.addEventListener('click',function(){
+    var u=b.getAttribute('data-u'); if(u===unit||b.disabled) return;
+    unit=u; spotTouched=false; loI.value=''; hiI.value='';
+    syncUnitUI(); syncSpot(); calc();
+  });});
   /* Floor the date picker at today (ET), so "already past" is unreachable by
      the calendar and only typing can produce it. */
   try{ expI.min=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); }catch(e){}
-  syncSpot();syncIvField();pick('rd');
+  syncUnitUI();syncSpot();syncIvField();pick('rd');
   setInterval(function(){if(horizon==='rd'&&isNaN(parseFloat(hrsI.value)))calc();},60000);
 })();
 </script>'''.replace("__BE_JSON__", blob)

@@ -257,6 +257,9 @@ def compute(feed: dict, ctx: dict, judgment: dict | None = None,
             vol_live=f["vol_live"], vol_src=f.get("vol_src"),
             vol1d=f.get("vol1d"), vn=f["vn"],
             vx_spot=f.get("vx_spot"), vx1d_spot=f.get("vx1d_spot"),
+            # ETF twin spot for the calculator's ETF-$ mode (compute whitelists
+            # feed fields — forgetting this line silently nulls the toggle).
+            etf_spot=f.get("etf_spot"),
             r=r, r_wk=r_wk, sig=sig,
             gamma=gamma, catalyst_adj=adj,
             fut_pct=f["fut_pct"], above_sma20=f["above_sma20"],
@@ -443,7 +446,7 @@ def _be_calc(IX, ctx):
                   # mode: the math is scale-invariant, so swapping the base spot
                   # is the whole conversion. None hides the toggle client-side.
                   "es": (round(IX[k]["etf_spot"], 2) if IX[k].get("etf_spot") else None),
-                  "esym": IX[k].get("etf_sym"),
+                  "esym": IX[k].get("etf"),
                   "on": {"sd": round(IX[k]["on"]["sd"], 4), "su": round(IX[k]["on"]["su"], 4),
                          "mu": round(IX[k]["on"]["mu"], 4), "sd1": round(IX[k]["on_sig"], 3)},
                   "wk": {"sd": round(IX[k]["wk"]["sd"], 4), "su": round(IX[k]["wk"]["su"], 4),

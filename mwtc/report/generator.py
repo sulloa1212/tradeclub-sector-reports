@@ -229,6 +229,53 @@ def _coverage_gaps(html: str, data: dict) -> list:
     return gaps
 
 
+def _cap_packet(data: dict) -> dict:
+    """Emergency size governor. 2026-09-24: a source started returning a huge
+    payload and the packet hit 1.66M tokens — past the model's 1M limit —
+    killing the evening wrap AND the next morning's pre-market with a 400.
+    Any top-level key whose JSON exceeds the per-key budget has its longest
+    lists truncated until it fits; the log names the offender so the source
+    can also be fixed at the root. Never raises — worst case it truncates."""
+    BUDGET = 250_000  # chars of JSON per top-level key (~70k tokens)
+
+    def _size(v) -> int:
+        return len(json.dumps(v, default=str))
+
+    def _shrink(v, budget: int):
+        if isinstance(v, list):
+            lo, hi = 0, len(v)          # longest prefix that fits
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if _size(v[:mid]) <= budget:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            return v[:lo]
+        if isinstance(v, dict):
+            out = dict(v)
+            while _size(out) > budget and out:
+                k = max(out, key=lambda kk: _size(out[kk]))
+                child_budget = max(budget // max(len(out), 1), 2_000)
+                shrunk = _shrink(out[k], child_budget)
+                out[k] = (shrunk if _size(shrunk) < _size(out[k])
+                          else f"[truncated: oversized ({_size(out[k]):,} chars)]")
+            return out
+        return f"[truncated: oversized value ({_size(v):,} chars)]"
+
+    try:
+        sizes = sorted(((k, _size(v)) for k, v in data.items()), key=lambda x: -x[1])
+        log.info("packet key sizes (chars): %s",
+                 ", ".join(f"{k}={s:,}" for k, s in sizes[:8]))
+        for k, s in sizes:
+            if s > BUDGET:
+                log.warning("packet key '%s' oversized (%s chars) — truncating to ~%s",
+                            k, f"{s:,}", f"{BUDGET:,}")
+                data[k] = _shrink(data[k], BUDGET)
+    except Exception as e:  # noqa: BLE001 — the governor must never kill a run
+        log.warning("packet size governor skipped: %s", e)
+    return data
+
+
 def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) -> str:
     """Call Claude and return the finished HTML string. mode = premarket|postmarket."""
     from anthropic import Anthropic
@@ -238,6 +285,7 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
 
     mode = (mode or config.REPORT_MODE or "premarket").lower()
     template_html = _load_template()
+    data_packet = _cap_packet(data_packet)
     packet_json = json.dumps(data_packet, default=str, indent=2)
 
     system, user = prompt.build_messages(mode, packet_json, template_html, report_date)

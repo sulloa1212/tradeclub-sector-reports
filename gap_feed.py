@@ -33,6 +33,10 @@ INDEXES = {
     "rut": {"nm": "RUT", "sym": "^RUT", "vol_sym": "^RVX", "vn": "RVX", "fut": "RTY=F", "div": 1.0},
 }
 
+# Tradeable ETF twin per index — its live spot feeds the breakeven
+# calculator's "ETF $" unit mode (index and ETF have no fixed ratio).
+ETF = {"spx": "SPY", "ndx": "QQQ", "djx": "DIA", "rut": "IWM"}
+
 # When a vol index can't be fetched, estimate it from VIX by the typical ratio
 # (marked "est." downstream — the model may override with a searched value).
 VOL_RATIO_VS_VIX = {"ndx": 1.25, "rut": 1.30, "djx": 0.92, "spx": 1.0}
@@ -197,6 +201,13 @@ def fetch_all(premarket: bool = False) -> dict:
     data = {k: fetch_index(k, premarket) for k in INDEXES}
     for k, d in data.items():
         d["vol1d"], d["gamma"], d["vol_src"] = None, "thin", None
+        # ETF twin spot for the calculator's ETF-$ mode; display/prefill only,
+        # never feeds the band math. Fail-safe: None hides the mode client-side.
+        d["etf_sym"], d["etf_spot"] = ETF.get(k), None
+        try:
+            d["etf_spot"] = round(_last_price(ETF[k]), 2)
+        except Exception as e:
+            print(f"  [feed] {ETF.get(k)} ETF spot failed: {e}")
         # Real CBOE vol-index spot (v13 fix): DISPLAY ONLY, never feeds the
         # band math. fetch_index put the yfinance quote in d["vol"]; keep it
         # as the reference spot before chain IV takes over the model vol.

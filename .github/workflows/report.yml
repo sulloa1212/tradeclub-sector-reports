@@ -80,6 +80,13 @@ jobs:
           # must not cross UTC midnight and claim tomorrow's slot (2026-08-27).
           TODAY=$(TZ=America/New_York date +%F)
           LIST="${REPORTS_IN:-$SLUG_IN}"
+          # Only main may publish. This workflow pushes to main, so a run on any
+          # other ref without preview=true would release that ref's code to
+          # production with one forgotten checkbox. Refuse it outright.
+          if [ "$GITHUB_REF_NAME" != "main" ] && [ "$PREVIEW_IN" != "true" ]; then
+            echo "::error::Ref '$GITHUB_REF_NAME' is not main. A run on any other ref must set preview=true; it publishes nothing."
+            exit 1
+          fi
           if [ "$PREVIEW_IN" = "true" ]; then
             echo "preview=true — building for an artifact only; nothing will be published."
             echo "already_built=false" >> "$GITHUB_OUTPUT"; exit 0
@@ -147,10 +154,15 @@ jobs:
           # appended to the task line — used by the on-demand sector deep dive.
           FOCUS_LINE: ${{ inputs.focus_line }}
           # Passed through for notify() (Telegram preferred, Resend fallback).
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          # Blank on a preview: build.py already refuses to notify when
+          # PREVIEW is set; without credentials it could not even if it tried.
+          TELEGRAM_BOT_TOKEN: ${{ inputs.preview != true && secrets.TELEGRAM_BOT_TOKEN || '' }}
+          TELEGRAM_CHAT_ID: ${{ inputs.preview != true && vars.TELEGRAM_CHAT_ID || '' }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
+          # preview: a marker the collect step uses to prove the page it
+          # packages was written by THIS build, not left over in the checkout
+          if [ "$PREVIEW_IN" = "true" ]; then touch "$RUNNER_TEMP/preview_started"; sleep 1; fi
           LIST="${REPORTS_IN}"
           if [ -z "$LIST" ]; then LIST="${SLUG_IN}"; fi
           if [ -z "$LIST" ]; then echo "ERROR: no reports specified (set 'reports')"; exit 1; fi
@@ -161,9 +173,15 @@ jobs:
         if: inputs.preview == true
         run: |
           TODAY=$(TZ=America/New_York date +%F)
+          LIST="${REPORTS_IN:-$SLUG_IN}"
           mkdir -p preview_out
-          for s in $(echo "${REPORTS_IN}" | tr ',' ' '); do
-            cp "site/$s/$TODAY.html" "preview_out/$s.html"
+          for s in $(echo "$LIST" | tr ',' ' '); do
+            f="site/$s/$TODAY.html"
+            if [ ! -f "$f" ] || [ ! "$f" -nt "$RUNNER_TEMP/preview_started" ]; then
+              echo "::error::$f was not written by this build — refusing to package a stale page."
+              exit 1
+            fi
+            cp "$f" "preview_out/$s.html"
           done
           ls -la preview_out
 
@@ -177,8 +195,11 @@ jobs:
           if-no-files-found: error
 
       - name: Commit & push the rebuilt site (race-safe)
-        if: steps.guard.outputs.already_built == 'false' && inputs.preview != true
+        if: steps.guard.outputs.already_built == 'false' && inputs.preview != true && github.ref == 'refs/heads/main'
         run: |
+          if [ "$PREVIEW_IN" = "true" ] || [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "::error::refusing to publish (preview=$PREVIEW_IN, ref=$GITHUB_REF_NAME)"; exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           LIST="${REPORTS_IN:-$SLUG_IN}"
@@ -203,7 +224,7 @@ jobs:
       # `already_built == 'true'` significa que el informe de hoy ya existía,
       # y eso no es evidencia de que el proceso de hoy funcione.
       - name: Check in to MWTC Health
-        if: success() && steps.guard.outputs.already_built == 'false' && inputs.preview != true
+        if: success() && steps.guard.outputs.already_built == 'false' && inputs.preview != true && github.ref == 'refs/heads/main'
         run: |
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.HEALTH_CHECKIN_TOKEN }}" \

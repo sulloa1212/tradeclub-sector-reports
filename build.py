@@ -757,9 +757,17 @@ def send_telegram(token: str, chat_id: str, text: str):
         r.read()
 
 
+def is_preview() -> bool:
+    """A preview build publishes nothing, so it must announce nothing."""
+    return os.environ.get("PREVIEW", "").strip().lower() in ("1", "true", "yes")
+
+
 def notify(records: list, cost: dict, date: str):
     """Send ONE notification that the reports are live, with today's cost.
     Channel is chosen by which credentials are configured (Telegram preferred)."""
+    if is_preview():
+        print("  .. PREVIEW run — no notification sent.")
+        return
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("TELEGRAM_CHAT_ID")
     if token and chat:
@@ -811,6 +819,9 @@ def build_reports_telegram_message(records: list, cost: dict, date: str) -> str:
 def notify_reports(records: list, cost: dict, date: str):
     """Notify that the registry reports are live (report-shaped). Telegram
     preferred, then Resend email; skips cleanly if neither is configured."""
+    if is_preview():
+        print("  .. PREVIEW run — no notification sent.")
+        return
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("TELEGRAM_CHAT_ID")
     if token and chat:
@@ -1601,6 +1612,10 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
     ln = gap_engine.leans(IX)
     print(f"  [engine] leans {ln['lo']}-{ln['hi']}% down | "
           + " ".join(f"{k}:{IX[k]['on_dial']}" for k in gap_engine.BOARD_ORDER))
+    # 'model' = the model's own round numbers were usable; 'converted' = the
+    # engine fell back to the index levels. A contract the model never honours
+    # would otherwise go unnoticed, because the fallback cannot fail a run.
+    print(f"  [engine] etf levels: {gap_engine.etf_level_sources(IX, content)}")
     body = gap_engine.render(IX, content, ctx, style_path.read_text(encoding="utf-8"))
 
     # Sidecar derived from the computed stats (not model-authored numbers).
@@ -1815,10 +1830,7 @@ def main():
     # let a notification problem fail the build — the reports are published.
     if have_site:
         try:
-            if os.environ.get("PREVIEW", "").lower() in ("1", "true"):
-                print("PREVIEW run — no notification sent.")
-            else:
-                notify(records, cost, today_str())
+            notify(records, cost, today_str())
         except Exception as e:
             print(f"  !! notification failed (non-fatal) — {e}")
 

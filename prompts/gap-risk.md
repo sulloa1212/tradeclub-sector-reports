@@ -16,11 +16,19 @@ words the machine cannot derive:
 3. **Whole-number levels** — 2 resistances + 2 supports per index (round-number
    magnets near the live level, sane against the 1SD ranges in the packet).
 3b. **ETF whole-number levels** — the report also carries a panel for each
-   index's ETF (SPY, QQQ, IWM, DIA). For each, give 2 resistances + 2 supports
-   in the **ETF's own price**: round-dollar levels near the ETF price shown in
-   that index's `etf` block of the packet, sane against the ETF 1SD ranges
-   there. These are the ETF's own round numbers — never an index level divided
-   or converted.
+   index's ETF (SPY, QQQ, IWM, DIA). For each, give **3 resistances + 3
+   supports** in the **ETF's own price**: round-dollar levels near the ETF
+   price shown in that index's `etf` block of the packet, sane against the ETF
+   1SD ranges there. These are the ETF's own round numbers — never an index
+   level divided or converted. Every resistance must sit ABOVE the ETF price
+   and every support BELOW it, whole dollars only, nearest the price first.
+   **Skip any level closer than 0.15% to the ETF price** (about $1 on a $700
+   ETF) — a level the price is already sitting on is not a level; give the
+   next one out instead. The engine keeps the nearest two valid levels on each
+   side and discards the whole set if fewer than two survive. Give them only
+   for indices whose packet entry has an `etf` block, under the key that block
+   names (`key_for_etf_levels`). ETF levels go in `etf_levels`, never in
+   `levels`.
 4. **Catalyst nudge** — `catalyst_adj` per index in **−0.30…+0.30**: a small
    drift adjustment for fresh news the mechanical inputs can't see yet. 0 when
    nothing is live. Never use it to manufacture conviction.
@@ -74,8 +82,8 @@ inside string values. Never bold a whole sentence.
    "rut": {...}, "spx": {...}, "djx": {...}
  },
  "etf_levels": {
-   "qqq": {"res": ["745","750"], "sup": ["735","730"]},   // ETF price, whole dollars
-   "iwm": {...}, "spy": {...}, "dia": {...}            // keys = packet etf.key_for_etf_levels
+   "qqq": {"res": ["<R1>","<R2>","<R3>"], "sup": ["<S1>","<S2>","<S3>"]},   // whole dollars in the ETF's
+   "iwm": {...}, "spy": {...}, "dia": {...}                // own price; keys = packet etf.key_for_etf_levels
  },
  "catalyst_adj": {"ndx": -0.20, "rut": 0, "spx": -0.10, "djx": 0},
  "lvl_est": {"rut": 2953.2}, "day_est": {"rut": -0.8}, "vol_est": {"rut": 21.5},

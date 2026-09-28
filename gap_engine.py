@@ -367,6 +367,7 @@ def etf_levels(ex: dict, model_lv, index_lv) -> dict:
     px = ex["lvl"]
     band = max(3 * ex["wk_sig"], 6.0) / 100.0          # how far a level may sit
     lo, hi = px * (1 - band), px * (1 + band)
+    near = px * 0.0015           # a "level" pennies from the price is no level
 
     def seq(vals):
         # the model's JSON can hold anything here: only a real list is a list
@@ -378,7 +379,7 @@ def etf_levels(ex: dict, model_lv, index_lv) -> dict:
             n = _level_num(v)
             if n is None or abs(n - round(n)) > 1e-9 or not (lo <= n <= hi):
                 continue
-            if (n > px) if above else (n < px):
+            if (n - px >= near) if above else (px - n >= near):
                 out.append(int(round(n)))
         out = sorted(set(out), reverse=not above)       # nearest the price first
         return out[:2]
@@ -398,13 +399,48 @@ def etf_levels(ex: dict, model_lv, index_lv) -> dict:
             if n is None or not ratio:
                 continue
             c = int(round(n * ratio))
-            if (c > px) if above else (c < px):
+            if (c - px >= near) if above else (px - c >= near):
                 out.append(c)
         out = sorted(set(out), reverse=not above)
         return [f"{v:,}" for v in out[:2]]
 
     return {"res": conv(i.get("res"), True), "sup": conv(i.get("sup"), False),
             "source": "converted"}
+
+
+def etf_model_levels(content: dict, ex: dict):
+    """The model's levels for this ETF, wherever it put them. The contract asks
+    for etf_levels[<etf, lowercase>]; models also answer with 'SPY', with the
+    index key, or drop the ETF entry inside 'levels'. All are the same answer."""
+    wanted = (ex["key"], ex["index_key"])
+    for box in (content.get("etf_levels"), content.get("levels")):
+        if not isinstance(box, dict):
+            continue
+        low = {str(k).strip().lower(): v for k, v in box.items()}
+        names = wanted if box is content.get("etf_levels") else wanted[:1]
+        for nm in names:
+            if isinstance(low.get(nm), dict):
+                return low[nm]
+    return None
+
+
+def etf_panels(IX: dict, content: dict) -> list:
+    """[(index_key, etf_view, levels)] for every ETF that has a price."""
+    levels_all = content.get("levels") if isinstance(content.get("levels"), dict) else {}
+    out = []
+    for k in BOARD_ORDER:
+        ex = etf_view(IX[k]) if k in IX else None
+        if ex:
+            out.append((k, ex, etf_levels(ex, etf_model_levels(content, ex),
+                                          levels_all.get(k))))
+    return out
+
+
+def etf_level_sources(IX: dict, content: dict) -> str:
+    """One line for the build log: did the model honour the ETF contract?"""
+    got = {ex["key"]: lv["source"] for _, ex, lv in etf_panels(IX, content)}
+    return " ".join(f"{IX[k]['etf'].lower()}={got.get(IX[k]['etf'].lower(), 'no-price')}"
+                    for k in BOARD_ORDER if k in IX)
 
 
 def leans(IX: dict) -> dict:
@@ -476,7 +512,13 @@ def _vol_disp(ix):
     v1 = f' &middot; 1-day {ix["vol1d"]:.1f}' if ix.get("vol1d") else ""
     vx = (f' &middot; {ix["vn"]} {ix["vx_spot"]:.2f}'
           if ix.get("vx_spot") is not None else "")
-    return f'Vol: {ix.get("index_nm", ix["nm"])} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
+    if ix.get("is_etf"):
+        # say which option chain this IV really is: the index's own for SPX/NDX,
+        # the ETF's own for RUT/DJX (UW carries no RUT or DJX index chain)
+        src = ix.get("vol_src") or ""
+        chain = (src[3:] + " options") if src.startswith("uw:") else ix["index_nm"]
+        return f'Vol: {chain} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
+    return f'Vol: {ix["nm"]} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
 
 
 def _derived(IX: dict, content: dict) -> dict:
@@ -598,7 +640,7 @@ def _be_calc(IX, ctx):
     section = f'''
   <section id="becalc">
     <h2 class="sec-h"><span class="num" style="background:var(--accent);color:#08121e">&#x1F3AF;</span> Breakeven Calculator</h2>
-    <p style="color:var(--muted);font-size:13.5px;margin:0 0 10px">Enter <b>any two price levels</b> &mdash; your expiration breakevens, T+0 breakevens, or the support/resistance you&rsquo;d adjust at &mdash; and this returns the odds the index stays between them.</p>
+    <p style="color:var(--muted);font-size:13.5px;margin:0 0 10px">Enter <b>any two price levels</b> &mdash; your expiration breakevens, T+0 breakevens, or the support/resistance you&rsquo;d adjust at &mdash; and this returns the odds price stays between them. Work in index points or, with the <b>Units</b> switch, in the ETF&rsquo;s dollars.</p>
 
     <div class="panel becalc">
       <div class="berow">
@@ -739,14 +781,17 @@ def _be_calc(IX, ctx):
   function pxName(d){return (unit==='etf'&&d.es)?d.esym:d.nm;}
   function syncUnitUI(){var d=BE[ixSel.value];
     var b=document.getElementById('beEtfBtn');
-    if(b){b.textContent=(d.esym||'ETF')+' $'; b.disabled=!d.es;}
+    if(b){b.textContent=(d.esym||'ETF')+' $'; b.disabled=!d.es;
+      b.title=d.es?'':'No '+(d.esym||'ETF')+' price was captured at this run';}
     if(!d.es&&unit==='etf'){unit='ix';}
     Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(x){x.classList.toggle('on',x.getAttribute('data-u')===unit);});
     var c=baseC(d);
     loI.placeholder='e.g. '+fnum(c*0.985); hiI.placeholder='e.g. '+fnum(c*1.015);
   }
   function pct(v){return (Math.round(v*1000)/10).toFixed(1)+'%';}
-  function fnum(n){return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
+  /* ETF prices are quoted to the cent; index levels keep their old format. */
+  function fnum(n){if(unit==='etf')return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
   function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':'expiration'));}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
@@ -859,6 +904,16 @@ def _be_calc(IX, ctx):
     if(horizon==='rd'&&rem.f<=0&&!rem.manual){dash();hint.innerHTML='<b>Market is closed.</b> Switch to Overnight, or type an hours override.';return;}
     var lo=parseFloat(loI.value),hi=parseFloat(hiI.value);
     if(isNaN(lo)||isNaN(hi)){dash();hint.innerHTML='Enter both levels to see the odds.';return;}
+    /* Levels typed in the other unit give confident nonsense (SPY 760/775 read
+       as SPX points is "100% touch"). Both levels far from the reference price
+       is the signature of that mistake: stop and say so. */
+    if(d.es&&Math.abs(d.es/d.C-1)>0.30&&Math.abs(lo/C-1)>0.30&&Math.abs(hi/C-1)>0.30){
+      dash();
+      hint.innerHTML='<b>Check the Units switch.</b> Both levels are more than 30% from the reference price '
+        +fnum(C)+', so they look like '+(unit==='etf'?d.nm+' index points':d.esym+' dollars')
+        +'. Units is set to <b>'+(unit==='etf'?d.esym+' $':'Index pts')+'</b>.';
+      return;
+    }
     if(lo>=hi){dash();hint.innerHTML='<b style="color:#f87171">Lower level must be below the upper.</b>';return;}
     var a=(lo-C)/C*100, b=(hi-C)/C*100;
     var tLo=(a>=0)?1:touchDn(a,p.mu,p.sd), tHi=(b<=0)?1:touchUp(b,p.mu,p.su);
@@ -871,7 +926,7 @@ def _be_calc(IX, ctx):
                  +'<span class="zchip '+zcls(zH)+'"><b>'+fnum(hi)+'</b> = +'+zH.toFixed(2)+'&sigma; <i>(+'+b.toFixed(2)+'%)</i></span>'
                  +'<span class="zlab">distance from '+fnum(C)+' in 1SD units &mdash; the closer side is the one in play</span>';
     elTerm.innerHTML='<b>Where it ends up</b> (ignoring the path): stays between <b>'+pct(inside)+'</b> &middot; ends below '+fnum(lo)+' '+pct(below)+' &middot; ends above '+fnum(hi)+' '+pct(above)+'. Always kinder than the touch odds above &mdash; use it only if you would hold to the horizon rather than adjust on a tag.';
-    hint.innerHTML='<b>'+d.nm+' '+HNAME(horizon,nD)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
+    hint.innerHTML='<b>'+pxName(d)+' '+HNAME(horizon,nD)+'</b>: about a <b>'+pct(tAny)+'</b> chance price tags '+fnum(lo)+' or '+fnum(hi)+' before the horizon '
       +(tLo>tHi*3?'&mdash; almost entirely the <b>downside</b>':(tHi>tLo*3?'&mdash; almost entirely the <b>upside</b>':'&mdash; risk is two-sided'))
       +'. Rough guide, not a guarantee.';
   }
@@ -932,34 +987,82 @@ def _cushion(ix, levels, lean_pct):
             f'Tonight&rsquo;s lean sits at ~{lean_pct}% down.')
 
 
-def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
+def _cushion_etf(ex, index_levels, lean_pct):
+    """The INDEX's cushion read, restated for its ETF. The gamma regime and the
+    cushion line belong to the index panel; quoting the ETF's own first support
+    here would name a different line for the same read. Returns the text parts
+    plus the line in ETF dollars (None when there is none)."""
+    inm, enm, g = ex["index_nm"], ex["nm"], ex.get("gamma", "thin")
+    if g == "thin":
+        return ("thin", '&#x1F6E1;&#xFE0F; A note on the cushion (gamma)',
+                f'Reliable dealer-positioning (gamma) data is <b>thin for {inm}</b> right now, so '
+                'there&rsquo;s no clean &ldquo;cushion line&rdquo; here &mdash; this read leans on '
+                'the implied band and the broad tape rather than a positioning level.', None)
+    sup = index_levels.get("sup") if isinstance(index_levels, dict) else None
+    line = sup[0] if isinstance(sup, (list, tuple)) and sup else None
+    n = _level_num(line)
+    conv = fmt_etf(n * ex["lvl"] / ex["index_lvl"]) if n and ex.get("index_lvl") else None
+    where = (f'{inm} is near its <b>~{line} cushion line</b> &mdash; about <b>{conv}</b> in {enm}'
+             if conv else f'{inm} has no cushion line on this run')
+    if g == "pos":
+        return ("", '&#x1F6E1;&#xFE0F; What &ldquo;the cushion&rdquo; means (gamma, in plain English)',
+                f'On a calm day big options dealers <b>buy dips and sell rips</b> &mdash; a shock '
+                f'absorber that fades moves (a <b class="pos">positive</b> cushion). {where}. Hold '
+                f'above it and dip-buying keeps pullbacks shallow; lose it overnight and the shock '
+                f'absorber weakens. Tonight&rsquo;s lean sits at ~{lean_pct}% down.', conv)
+    watch = (f'<b>{inm} ~{line}</b> (about <b>{conv}</b> in {enm}) is the level to watch; losing it '
+             'overnight would deepen the move.' if conv else '')
+    return ("", '&#x1F6E1;&#xFE0F; What &ldquo;the cushion&rdquo; means (gamma, in plain English)',
+            f'Dealer positioning in {inm} currently reads <b class="neg">negative</b> &mdash; instead of '
+            f'absorbing moves, dealers amplify them, so pushes tend to extend rather than fade. '
+            f'{watch} Tonight&rsquo;s lean sits at ~{lean_pct}% down.', conv)
+
+
+def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=None):
     """One panel. `ix` is an index, or an ETF view of one (etf_view): same
     layout and the same odds, with every price in the ETF's own dollars."""
     is_etf = bool(ix.get("is_etf"))
     res = (levels.get("res") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     sup = (levels.get("sup") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
-    cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix.get("index_key", ix["key"])])
-    special = ""
-    if ix.get("gamma", "thin") != "thin" and sup[0] != "&mdash;":
-        special = (f'<div class="lvrow"><span class="lab">Cushion line</span>'
-                   f'<span class="chip f">~{sup[0]}</span></div>')
     est_tag = ", est." if ix["est"] else ""
+    live_lab = "Live"
+    frm = ix["disp"]
     if is_etf:
-        on_move = f'&plusmn;${ix["on_pts"]:,.2f}'
-        wk_move = f'&plusmn;${ix["wk_pts"]:,.2f}'
-        noun = ix["nm"]
+        inm, enm = ix["index_nm"], ix["nm"]
+        cclass, chead, ctext, cline = _cushion_etf(ix, index_levels, ln["on"][ix["index_key"]])
+        special = (f'<div class="lvrow"><span class="lab">Cushion line</span>'
+                   f'<span class="chip f">~{cline}</span></div>') if cline else ""
+        nw = '<span style="white-space:nowrap">'
+        on_move = f'{nw}&plusmn;${ix["on_pts"]:,.2f}</span>'
+        wk_move = f'{nw}&plusmn;${ix["wk_pts"]:,.2f}</span>'
+        noun = enm
+        if ctx.get("premarket"):
+            # ETFs trade before the open; the index does not. What this panel
+            # prices from is yesterday's close, and it must say so.
+            live_lab = "Prior close"
+            frm = f'the prior close, {ix["disp"]}'
         cardnav = (f'<a href="#board">&uarr; Gap Board</a> &nbsp;&middot;&nbsp; '
-                   f'<a href="#{ix["index_key"]}">&uarr; {ix["index_nm"]} panel</a>')
-        etf_note = (f'<div class="etfnote">Same odds as the <a href="#{ix["index_key"]}">'
-                    f'{ix["index_nm"]} panel</a> &mdash; {ix["nm"]} tracks {ix["index_nm"]}, so every '
-                    f'probability is identical. Only the prices change: they are in '
-                    f'<b>{ix["nm"]} dollars</b>.</div>')
+                   f'<a href="#{ix["index_key"]}">&uarr; {inm} panel</a>')
+        etf_note = (f'<div class="etfnote">These are the <a href="#{ix["index_key"]}">{inm} panel</a>'
+                    f'&rsquo;s odds restated at {enm}&rsquo;s price &mdash; copied from the index, not '
+                    f're-estimated for {enm}. The price, day % and whole-number levels are '
+                    f'<b>{enm}&rsquo;s own</b>. Dividends are not modelled: on an ex-dividend date '
+                    f'{enm} opens lower by about the dividend.</div>')
         lv_note = ('Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
                    if levels.get("source") != "converted" else
-                   f'Converted from the {ix["index_nm"]} levels at today&rsquo;s {ix["index_nm"]}/{ix["nm"]} '
+                   f'Converted from the {inm} levels at today&rsquo;s {inm}/{enm} '
                    'ratio and rounded to the dollar &mdash; approximate, not true round-number magnets. '
                    'Re-verify live.')
+        on_note = on_note.replace(
+            'use the <b>Breakeven Calculator</b> up top.',
+            f'use the <b>Breakeven Calculator</b> up top &mdash; pick {inm} there and switch '
+            f'Units to <b>{enm} $</b> first.')
     else:
+        cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix["key"]])
+        special = ""
+        if ix.get("gamma", "thin") != "thin":
+            special = (f'<div class="lvrow"><span class="lab">Cushion line</span>'
+                       f'<span class="chip f">~{sup[0]}</span></div>')
         pts = f'{ix["on_pts"]:,.1f}' if ix["lvl"] < 1000 else f'{ix["on_pts"]:,.0f}'
         on_move = f'&plusmn;{pts} pts'
         wk_move = f'&plusmn;{ix["wk_pts"]:,.0f} pts'
@@ -967,15 +1070,15 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
         cardnav = '<a href="#board">&uarr; Gap Board</a>'
         etf_note = ""
         lv_note = 'Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
-    dsub = (f'Live <b>{ix["disp"]}</b> {_day_span(ix)}{est_tag} &nbsp;&middot;&nbsp; '
+    dsub = (f'{live_lab} <b>{ix["disp"]}</b> {_day_span(ix)}{est_tag} &nbsp;&middot;&nbsp; '
             f'overnight 1SD <b>&plusmn;{ix["on_sig"]:.2f}%</b> ({on_move}) &nbsp;&middot;&nbsp; '
             f'1-week 1SD <b>&plusmn;{ix["wk_sig"]:.2f}%</b> &nbsp;&middot;&nbsp; '
             f'{story_ix.get("tail", "")}')
     on_block = _odds_table(
-        f'{ctx["gap_word"]} gap &mdash; odds {ctx["next_day"]} opens DOWN vs UP (from {ix["disp"]})',
+        f'{ctx["gap_word"]} gap &mdash; odds {ctx["next_day"]} opens DOWN vs UP (from {frm})',
         ix["on"]["lean_dn"], ix["on"], on_note.replace("{vol}", _vol_disp(ix)))
     wk_block = _odds_table(
-        f'1-Week move &mdash; odds {noun} closes DOWN vs UP over the next ~5 sessions (from {ix["disp"]})',
+        f'1-Week move &mdash; odds {noun} closes DOWN vs UP over the next ~5 sessions (from {frm})',
         ix["wk"]["lean_dn"], ix["wk"], wk_note_html)
     return f'''
   <section id="{ix['key']}">
@@ -1003,7 +1106,7 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
             <h4>Key whole-number levels</h4>
             <div class="lvls">
               <div class="lvrow"><span class="lab">Resistance</span><span class="chip r">{res[0]}</span><span class="chip r">{res[1]}</span></div>
-              <div class="lvrow"><span class="lab">Live</span><span class="chip ">{ix['disp']}</span></div>
+              <div class="lvrow"><span class="lab">{live_lab}</span><span class="chip ">{ix['disp']}</span></div>
               <div class="lvrow"><span class="lab">Overnight 1SD</span><span class="chip f">{ix['on_lo']} &ndash; {ix['on_hi']}</span></div>
               <div class="lvrow"><span class="lab">1-week 1SD</span><span class="chip f">{ix['wk_lo']} &ndash; {ix['wk_hi']}</span></div>
               <div class="lvrow"><span class="lab">Support</span><span class="chip s">{sup[0]}</span><span class="chip s">{sup[1]}</span></div>
@@ -1085,16 +1188,12 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     be_section, be_script = _be_calc(IX, ctx)
 
     # ── ETF panels: the same four reads in SPY/QQQ/IWM/DIA prices ───────────
-    etf_model = content.get("etf_levels")
-    if not isinstance(etf_model, dict):       # optional and model-authored:
-        etf_model = {}                        # any other shape means "none"
-    views = [(k, etf_view(IX[k])) for k in BOARD_ORDER]
-    views = [(k, ex) for k, ex in views if ex]
+    panels = etf_panels(IX, content)
+    views = [(k, ex) for k, ex, _ in panels]
     etf_cards = "".join(
-        _card(ex, story.get(k) or {},
-              etf_levels(ex, etf_model.get(ex["key"]), levels_all.get(k)),
-              ln, ctx, on_note, wk_note_html)
-        for k, ex in views)
+        _card(ex, story.get(k) or {}, lv, ln, ctx, on_note, wk_note_html,
+              index_levels=levels_all.get(k))
+        for k, ex, lv in panels)
     # One nav link, not four: the nav is sticky, and on a phone every extra row
     # of pills is screen the reader never gets back. The per-ETF links live in
     # the section itself.
@@ -1104,20 +1203,35 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     etf_section = ""
     etf_legend = ""
     if views:
-        etf_legend = ('        <dt>ETF panels</dt><dd>SPY, QQQ, IWM and DIA track SPX, NDX, RUT and DJX, '
-                      'so an ETF panel carries the <b>same odds, lean, implied move and dial</b> as its '
-                      'index panel &mdash; only the prices are restated in the ETF&rsquo;s dollars. The ETF '
-                      'price is the regular-session price at generation (before the open, the prior close), '
-                      'not an after-hours print. Small tracking differences and dividends mean an '
-                      'ETF&rsquo;s day % can differ slightly from its index&rsquo;s.</dd>\n')
+        price_clock = ("before the open that is the prior close, not a pre-market or "
+                       "after-hours quote")
+        etf_legend = ('        <dt>ETF panels</dt><dd>SPY, QQQ, IWM and DIA track SPX, NDX, RUT and DJX. '
+                      'An ETF panel repeats its index panel&rsquo;s <b>odds, lean, implied move (%) '
+                      'and dial</b> &mdash; the index&rsquo;s numbers, not re-estimated for the ETF '
+                      '&mdash; with every price restated in the ETF&rsquo;s dollars. The ETF price is '
+                      f'its regular-session price at generation: {price_clock}. <b>Dividends are not '
+                      'modelled</b>: on its ex-dividend date an ETF opens lower by about the dividend, '
+                      'which the index odds do not include, so on that day the panel understates the '
+                      'chance of a lower open. The cushion line is the index&rsquo;s line converted to '
+                      'the ETF&rsquo;s price.</dd>\n')
         pairs = ", ".join(f'{ex["nm"]} for {ex["index_nm"]}' for _, ex in views)
-        gone = (f' No price was available for {", ".join(missing_etf)} at generation, so '
+        conv = [ex["nm"] for _, ex, lv in panels if lv.get("source") == "converted"]
+        if not conv:
+            lv_line = "Whole-number levels are each ETF&rsquo;s own round numbers."
+        elif len(conv) == len(panels):
+            lv_line = ("Whole-number levels on this run were converted from the index levels and "
+                       "rounded to the dollar (each panel says so).")
+        else:
+            lv_line = ("Whole-number levels are each ETF&rsquo;s own round numbers, except in "
+                       f'{", ".join(conv)}, where they were converted from the index levels '
+                       "(that panel says so).")
+        gone = (f' No usable price was available for {", ".join(missing_etf)} at generation, so '
                 f'{"that panel is" if len(missing_etf) == 1 else "those panels are"} omitted.'
                 if missing_etf else "")
         etf_section = f'''
   <section id="etfs">
     <h2 class="sec-h"><span class="num">&#36;</span> ETF Panels &mdash; The Same Read In ETF Prices</h2>
-    <div class="breadth"><b>How these relate to the index panels:</b> each ETF tracks its index ({pairs}), so the <b>odds, lean, implied move and risk dial are the same numbers</b> shown in the index panel &mdash; nothing is re-estimated. What changes is the <b>price</b>: every level here is in the ETF&rsquo;s own dollars, taken from the same regular-session price as the index level. Whole-number levels are the ETF&rsquo;s own round numbers.{gone}</div>
+    <div class="breadth"><b>How these relate to the index panels:</b> each ETF tracks its index ({pairs}). An ETF panel repeats its index panel&rsquo;s <b>odds, lean, implied move and risk dial</b> &mdash; the index&rsquo;s numbers, not re-estimated. What changes is the <b>price</b>: every level is in the ETF&rsquo;s own dollars, anchored to the ETF&rsquo;s regular-session price at generation ({price_clock}). {lv_line} Dividends are not modelled. The Gap Board, 60-second read, Big Move ranking and closing banner quote index levels; each ETF&rsquo;s own prices are in its panel below.{gone}</div>
     <div class="etfjump"><span class="lab">Jump to</span> {etf_jump}</div>
   </section>
 {etf_cards}'''
@@ -1192,8 +1306,8 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
                                              (f'{IX[k]["vn"]} index quote' if src.startswith("yf")
                                               else "estimated")))
     footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). '
-                   + ('ETF prices are regular-session prints of the ETFs themselves. '
-                      if views else '') + 'Band vols: '
+                   + ('ETF prices are the ETFs&rsquo; own regular-session prices at generation '
+                      '(the prior close on a pre-market run). ' if views else '') + 'Band vols: '
                    + ", ".join(vol_bits) + '. Where shown, VIX/VXN/VXD spots are reference readings '
                    'only — they price a wider options strip and sit a few points above the ATM IV '
                    'that sizes the bands. The dealer-gamma regime is computed from live options '
@@ -1215,7 +1329,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="head-text">
       <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Scout &middot; {ctx["label"].title()}</div>
       <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>
-      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{" &middot; with " + " &middot; ".join(ex["nm"] for _, ex in views) + " panels" if views else ""} &mdash; gap into the next open + 1-week outlook</div>
+      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{", plus ETF panels for " + " &middot; ".join(ex["nm"] for _, ex in views) if views else ""} &mdash; gap into the next open + 1-week outlook</div>
       <div class="stamp">{ctx["long_date"]} &middot; {ctx["time_str"]} &nbsp;|&nbsp; <b style="color:var(--accent)">{ctx["label"]}</b> &middot; {ctx["phrase"]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
     </div>
     <img class="brand-mw" alt="Michael Wade Trade Coaching" src="{mw_logo}">

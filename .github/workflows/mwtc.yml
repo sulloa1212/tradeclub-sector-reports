@@ -54,8 +54,25 @@ jobs:
           if [ "$MODE" = "check-keys" ]; then echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           SLUG=pre-market; [ "$MODE" = "postmarket" ] && SLUG=market-wrap
           if [ "$FORCE_IN" = "true" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if ! python -c "import build,sys; sys.exit(0 if build.market_open_today() else 1)"; then
+          # Exit 0 = open, 3 = closed. ANY other code is a CRASH, not a holiday.
+          # 2026-09-28: a bad pip resolution broke `import build`; the old
+          # `if ! python ...` read the traceback as "market closed", skipped
+          # the build and reported success — the Pre-Market report vanished
+          # with no red X and no alert. A crash now fails the run loudly
+          # unless it is plainly a weekend.
+          set +e
+          python -c "import build,sys; sys.exit(0 if build.market_open_today() else 3)"
+          rc=$?
+          set -e
+          if [ "$rc" = "3" ]; then
             echo "US market closed today — skipping."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          elif [ "$rc" != "0" ]; then
+            if [ "$(TZ=America/New_York date +%u)" -ge 6 ]; then
+              echo "Market-calendar check crashed (exit $rc) on a weekend — skipping."
+              echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            echo "::error::Market-calendar check CRASHED (exit $rc) on a weekday — this is NOT a closed market. Failing the run so it is visible."
+            exit 1
           fi
           # ET, matching mwtc/publish.py's file-date clock — a market-wrap retry
           # after 8 PM ET crosses UTC midnight and would claim tomorrow's slot

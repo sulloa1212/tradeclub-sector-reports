@@ -230,52 +230,242 @@ def _coverage_gaps(html: str, data: dict) -> list:
 
 
 def _cap_packet(data: dict) -> dict:
-    """Emergency size governor. 2026-09-24: a source started returning a huge
-    payload and the packet hit 1.66M tokens — past the model's 1M limit —
-    killing the evening wrap AND the next morning's pre-market with a 400.
-    Any top-level key whose JSON exceeds the per-key budget has its longest
-    lists truncated until it fits; the log names the offender so the source
-    can also be fixed at the root. Never raises — worst case it truncates."""
-    BUDGET = 250_000  # chars of JSON per top-level key (~70k tokens)
+    """Size governor: a backstop for ANOMALIES that must stay silent on a normal
+    day. 2026-09-24: a UW endpoint began returning huge payloads, the packet hit
+    1.66M tokens (model limit 1M) and the wrap and next pre-market 400-failed.
+
+    Budgets are in compact-JSON chars. Calibrated on that failure, this packet
+    runs ~0.52 tokens per compact char (the prompt embeds it with indent=2,
+    ~1.4x larger), so the 1.5M total is roughly 790K tokens.
+
+    'institutional' carries ~30 endpoint payloads and measures ~470-510K after
+    the per-endpoint trims in the UW source (every scheduled run sees a full
+    session — the 8:40 pre-market carries the prior day's). Its 700K budget
+    sits well above that; the source clamps are what catch a runaway feed.
+
+    When something IS over budget, every unprotected list gives up the same
+    fraction, so the feed that bloated pays its share and no single ticker is
+    gutted. PROTECTED leaves — the GEX window and the small payloads the
+    dashboard dials are computed from — are touched only if lists alone cannot
+    absorb the overage. Works on the copy it is given. Never raises, always
+    terminates."""
+    BUDGET = 250_000
+    BUDGETS = {"institutional": 700_000}
+    TOTAL = 1_500_000
+    PROTECTED = frozenset({"gex_by_strike", "gex_window", "options_volume",
+                           "interpolated_iv", "expected_move", "session_total"})
 
     def _size(v) -> int:
         return len(json.dumps(v, default=str))
 
+    def _f(x):
+        try:
+            v = float(str(x).replace(",", "").strip())
+            return v if v == v and abs(v) != float("inf") else None
+        except (TypeError, ValueError):
+            return None
+
+    def _is_gex(r) -> bool:
+        # A projected gex_by_strike row. Flow alerts and contract rows carry a
+        # `strike` too, but those feeds are newest/largest-first and must keep
+        # their prefix — so the gamma fields are what identify a strike ladder.
+        return (isinstance(r, dict) and "strike" in r
+                and ("call_gamma_oi" in r or "put_gamma_oi" in r))
+
     def _shrink(v, budget: int):
         if isinstance(v, list):
-            lo, hi = 0, len(v)          # longest prefix that fits
+            n = len(v)
+            ladder = n > 0 and all(_is_gex(r) for r in v[:3])
+            order = None
+            if ladder:
+                # Same rule as the source's near-spot window: keep the strikes
+                # NEAREST THE SPOT by price distance (UW's own underlying
+                # price), in their original order. Counting rows from the
+                # middle of the list is wrong when strike spacing is uneven
+                # or the chain is one-sided.
+                px = sorted(x for x in (_f(r.get("price")) for r in v
+                                        if isinstance(r, dict)) if x and x > 0)
+                ks = [_f(r.get("strike")) if isinstance(r, dict) else None for r in v]
+                if px and all(k is not None for k in ks):
+                    ref = px[len(px) // 2]
+                    order = sorted(range(n), key=lambda i: (abs(ks[i] - ref), i))
+
+            def take(m: int):
+                if not ladder:
+                    return v[:m]
+                if order is not None:
+                    return [v[i] for i in sorted(order[:m])]
+                start = (n - m) // 2           # no usable price: middle of the list
+                return v[start:start + m]
+
+            lo, hi = 0, n
             while lo < hi:
                 mid = (lo + hi + 1) // 2
-                if _size(v[:mid]) <= budget:
+                if _size(take(mid)) <= budget:
                     lo = mid
                 else:
                     hi = mid - 1
-            return v[:lo]
+            return take(lo)
         if isinstance(v, dict):
+            import heapq
             out = dict(v)
-            while _size(out) > budget and out:
-                k = max(out, key=lambda kk: _size(out[kk]))
-                child_budget = max(budget // max(len(out), 1), 2_000)
-                shrunk = _shrink(out[k], child_budget)
-                out[k] = (shrunk if _size(shrunk) < _size(out[k])
-                          else f"[truncated: oversized ({_size(out[k]):,} chars)]")
+            cost = {k: _size(x) for k, x in out.items()}
+            total = _size(out)
+
+            def keycost(k) -> int:            # '"key": ' plus the ', ' separator
+                return len(json.dumps(str(k))) + 4
+
+            # Largest child first; sizes are tracked incrementally (replacing a
+            # value changes the JSON length by exactly the difference), so a
+            # dict with 100K+ small keys costs O(n log n), not O(n^2).
+            heap = [(-c, i, k) for i, (k, c) in enumerate(cost.items())]
+            heapq.heapify(heap)
+            markers = set()
+            while heap and total > budget:
+                neg, i, k = heapq.heappop(heap)
+                child = -neg
+                if k not in out or cost.get(k) != child:
+                    continue                       # stale heap entry
+                if k in markers:                   # already a marker, still over
+                    del out[k]
+                    total -= child + keycost(k)
+                    continue
+                target = max(child - (total - budget), 2_000)
+                shrunk = None
+                if target < child and isinstance(out[k], (list, dict)):
+                    shrunk = _shrink(out[k], target)
+                new = _size(shrunk) if shrunk is not None else child
+                if new < child:
+                    out[k], cost[k] = shrunk, new
+                    total -= child - new
+                    heapq.heappush(heap, (-new, i, k))
+                    continue
+                marker = f"[truncated: oversized ({child:,} chars)]"
+                msize = len(marker) + 2
+                if msize < child:
+                    out[k], cost[k] = marker, msize
+                    markers.add(k)
+                    total -= child - msize
+                    heapq.heappush(heap, (-msize, i, k))   # deleted if still over
+                else:
+                    del out[k]                     # cannot be reduced: drop
+                    total -= child + keycost(k)
+            # Every step strictly shrinks the dict or retires a key, so the loop
+            # always ends. The tracked total is exact but for one separator, so
+            # this check rarely does anything; it stays linear if it must.
+            if out and _size(out) > budget:
+                for k in sorted(out, key=lambda kk: -cost.get(kk, 0)):
+                    del out[k]
+                    total -= cost.get(k, 0) + keycost(k)
+                    if total <= budget and _size(out) <= budget:
+                        break
             return out
         return f"[truncated: oversized value ({_size(v):,} chars)]"
 
+    def _lists(node) -> list:
+        """(parent, key) of every list under node not below a PROTECTED key."""
+        found, stack = [], [node]
+        while stack:
+            cur = stack.pop()
+            if not isinstance(cur, dict):
+                continue
+            for k, v in cur.items():
+                if k in PROTECTED:
+                    continue
+                if isinstance(v, list):
+                    found.append((cur, k))
+                elif isinstance(v, dict):
+                    stack.append(v)
+        return found
+
+    def _fit(node, budget: int, label: str):
+        """Bring node under budget: proportional trim of the unprotected lists
+        first, largest-first shrinking only as the last resort."""
+        over = _size(node) - budget
+        if over <= 0:
+            return node
+        if isinstance(node, dict):
+            lists = _lists(node)
+            sizes = [_size(par[k]) for par, k in lists]
+            cuttable = sum(sizes)
+            if cuttable and over <= cuttable * 0.9:
+                frac = over / cuttable
+                for (par, k), sz_ in zip(lists, sizes):
+                    rows = len(par[k])
+                    # each list drops at least its share, so the sum of the
+                    # cuts covers the overage
+                    par[k] = _shrink(par[k], max(int(sz_ * (1 - frac)), 2))
+                    if len(par[k]) < rows:
+                        log.warning("  governor: %s … %s %d -> %d rows",
+                                    label, k, rows, len(par[k]))
+                if _size(node) <= budget:
+                    return node
+            log.warning("  governor: %s cannot fit by trimming lists alone — "
+                        "shrinking largest-first (protected leaves may be cut)", label)
+        return _shrink(node, budget)
+
+    def _refresh_windows(node) -> None:
+        """Keep every gex_window truthful about the ladder that actually ships."""
+        stack = [node]
+        while stack:
+            cur = stack.pop()
+            if isinstance(cur, dict):
+                if "gex_window" in cur and "gex_by_strike" in cur:
+                    rows, win = cur["gex_by_strike"], cur["gex_window"]
+                    if not isinstance(rows, list) or not rows:
+                        cur["gex_by_strike"], cur["gex_window"] = None, None
+                    elif isinstance(win, dict) and len(rows) != win.get("rows_kept"):
+                        ks = [k for k in (_f(r.get("strike")) for r in rows
+                                          if isinstance(r, dict)) if k is not None]
+                        ref = _f(win.get("spot_used"))
+                        if ks and ref:
+                            win.update(rows_kept=len(rows), strike_min=min(ks),
+                                       strike_max=max(ks),
+                                       pct_below_spot=round((ref - min(ks)) / ref * 100, 1),
+                                       pct_above_spot=round((max(ks) - ref) / ref * 100, 1),
+                                       governor_trimmed=True)
+                        else:
+                            cur["gex_by_strike"], cur["gex_window"] = None, None
+                stack.extend(v for v in cur.values() if isinstance(v, (dict, list)))
+            elif isinstance(cur, list):
+                stack.extend(v for v in cur if isinstance(v, dict))
+
+    def _enforce(node, cap: int, label: str):
+        """Fit, then make the GEX windows truthful. Refreshing a window adds a
+        few fields, so room is reserved for it and the result is re-checked:
+        what ships is never above `cap`."""
+        node = _fit(node, cap - 2_000, label)
+        _refresh_windows(node)
+        extra = _size(node) - cap
+        if extra > 0:
+            node = _fit(node, cap - extra - 2_000, label)
+            _refresh_windows(node)
+        return node
+
+    if not isinstance(data, dict):
+        return data
     try:
         sizes = sorted(((k, _size(v)) for k, v in data.items()), key=lambda x: -x[1])
         log.info("packet key sizes (chars): %s",
                  ", ".join(f"{k}={s:,}" for k, s in sizes[:8]))
         for k, s in sizes:
-            if s > BUDGET:
-                log.warning("packet key '%s' oversized (%s chars) — truncating to ~%s",
-                            k, f"{s:,}", f"{BUDGET:,}")
+            cap = BUDGETS.get(k, BUDGET)
+            if s > cap:
+                log.warning("packet key '%s' oversized (%s chars) — trimming to ~%s",
+                            k, f"{s:,}", f"{cap:,}")
                 if isinstance(data[k], dict):
                     subs = sorted(((sk, _size(sv)) for sk, sv in data[k].items()),
                                   key=lambda x: -x[1])[:6]
                     log.warning("  '%s' sub-key sizes: %s", k,
                                 ", ".join(f"{sk}={ss:,}" for sk, ss in subs))
-                data[k] = _shrink(data[k], BUDGET)
+                data[k] = _enforce(data[k], cap, k)
+        total = _size(data)
+        if total > TOTAL:
+            # several keys at their caps together can still exceed the model limit
+            log.warning("packet total %s chars exceeds %s — trimming every feed "
+                        "proportionally", f"{total:,}", f"{TOTAL:,}")
+            data = _enforce(data, TOTAL, "packet")
+        log.info("packet total after governor: %s chars", f"{_size(data):,}")
     except Exception as e:  # noqa: BLE001 — the governor must never kill a run
         log.warning("packet size governor skipped: %s", e)
     return data
@@ -290,8 +480,11 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
 
     mode = (mode or config.REPORT_MODE or "premarket").lower()
     template_html = _load_template()
-    data_packet = _cap_packet(data_packet)
-    packet_json = json.dumps(data_packet, default=str, indent=2)
+    # The governor works on a COPY. The dashboard dials and the coverage check
+    # below are computed from the full packet, so a trim made only to fit the
+    # model's context can never change a dial or hide a mover from the checker.
+    prompt_packet = _cap_packet(json.loads(json.dumps(data_packet, default=str)))
+    packet_json = json.dumps(prompt_packet, default=str, indent=2)
 
     system, user = prompt.build_messages(mode, packet_json, template_html, report_date)
 

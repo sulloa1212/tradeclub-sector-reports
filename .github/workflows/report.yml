@@ -52,6 +52,8 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
+    # A hung build must fail, not sit for GitHub's 6-hour default.
+    timeout-minutes: 60
     env:
       # Non-secret inputs surfaced as env so the shell never interpolates ${{ }}
       # directly (avoids script injection + quoting surprises). A scheduled run

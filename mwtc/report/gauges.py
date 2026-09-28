@@ -89,7 +89,7 @@ def options_implied_lean(tk_data: Optional[dict]) -> Optional[int]:
     bearish) and dampens conviction when ATM IV is very high. Returns None if the
     UW options data isn't present, so the dashboard falls back to the technical
     heuristic. (Upgrade path: add 25-delta risk-reversal skew when available.)"""
-    if not tk_data:
+    if not isinstance(tk_data, dict) or not tk_data:
         return None
     pcr = _put_call(tk_data.get("options_volume"))
     if pcr is None:

@@ -381,6 +381,54 @@ def notify(sidecar: dict, mode: str) -> None:
     print(f"  .. Telegram notification sent to {len(ids)} chat(s).")
 
 
+def _packet_probe(data: dict) -> None:
+    """Dry-run diagnostics: what the model WOULD be sent, measured on live data,
+    with no model call and nothing published. Lets a change to the collectors
+    or the size governor be checked against real payloads for $0."""
+    try:
+        size = lambda v: len(json.dumps(v, default=str))  # noqa: E731
+        inst = data.get("institutional") or {}
+        print("packet probe — top-level sizes (compact chars):")
+        for k, v in sorted(data.items(), key=lambda kv: -size(kv[1])):
+            print(f"  {k:<22}{size(v):>10,}")
+        if isinstance(inst, dict):
+            print("packet probe — institutional children:")
+            for k, v in sorted(inst.items(), key=lambda kv: -size(kv[1])):
+                rows = f"{len(v)} rows" if isinstance(v, list) else type(v).__name__
+                print(f"  {k:<22}{size(v):>10,}  {rows}")
+            for t, blk in (inst.get("per_ticker") or {}).items():
+                if not isinstance(blk, dict):
+                    continue
+                w, rows = blk.get("gex_window"), blk.get("gex_by_strike")
+                if isinstance(w, dict) and isinstance(rows, list) and rows:
+                    print(f"  GEX {t}: {w.get('rows_kept')} of {w.get('rows_returned_by_uw')} strikes, "
+                          f"{w.get('strike_min')}..{w.get('strike_max')} around spot {w.get('spot_used')} "
+                          f"(-{w.get('pct_below_spot')}% / +{w.get('pct_above_spot')}%), "
+                          f"fields={sorted(rows[0]) if isinstance(rows[0], dict) else '?'}")
+                else:
+                    print(f"  GEX {t}: NOT AVAILABLE (window={w!r}, rows={type(rows).__name__})")
+            npt = (inst.get("options_intel") or {}).get("net_prem_ticks") or {}
+            for t, v in list(npt.items())[:3]:
+                if isinstance(v, dict):
+                    print(f"  net_prem {t}: session {v.get('session_date')}, {v.get('ticks')} ticks, "
+                          f"{v.get('first_tick_et')} -> {v.get('last_tick_et')}, "
+                          f"{len(v.get('buckets') or [])} buckets, total={v.get('session_total')}")
+                else:
+                    print(f"  net_prem {t}: RAW {type(v).__name__} of {len(v) if hasattr(v, '__len__') else '?'} "
+                          f"(bucketing did not apply) sample={json.dumps(v[0], default=str)[:300] if isinstance(v, list) and v else v!r}")
+            tide = inst.get("market_tide")
+            if isinstance(tide, list) and tide:
+                print(f"  market_tide: {len(tide)} rows, first={json.dumps(tide[0], default=str)[:160]} "
+                      f"last={json.dumps(tide[-1], default=str)[:160]}")
+        governed = generator._cap_packet(json.loads(json.dumps(data, default=str)))
+        total = size(governed)
+        print(f"packet probe — after governor: {total:,} compact chars, "
+              f"~{int(total * 0.524) + 11_000:,} input tokens (model limit 1,000,000); "
+              f"governor {'SILENT' if size(data) == total else 'FIRED'}")
+    except Exception as e:  # noqa: BLE001 — diagnostics must never fail a run
+        print(f"packet probe failed (non-fatal): {e}")
+
+
 def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
     data = mwtc_main.collect_data()
     data["mode"] = mode
@@ -388,6 +436,7 @@ def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
     print("sidecar:", json.dumps(sidecar, ensure_ascii=False))
 
     if dry_run:
+        _packet_probe(data)
         print("DRY RUN — collected data + derived sidecar; no report written.")
         return 0
 

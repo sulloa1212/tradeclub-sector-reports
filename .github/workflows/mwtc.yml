@@ -30,6 +30,8 @@ concurrency:
 jobs:
   mwtc:
     runs-on: ubuntu-latest
+    # A hung build must fail, not sit for GitHub's 6-hour default.
+    timeout-minutes: 60
     env:
       MODE_IN: ${{ inputs.mode }}
       FORCE_IN: ${{ inputs.force }}
@@ -98,7 +100,12 @@ jobs:
           # matter if authenticated/portfolio calls are added later.
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
-        run: python -m mwtc.main --check-keys
+        run: |
+          python -m mwtc.main --check-keys
+          # Live packet probe: collect real data and run the size governor, with
+          # no model call and nothing published ($0). Use it to check a change
+          # to the collectors against real payloads before a scheduled run.
+          python -m mwtc.publish --mode premarket --dry-run
 
       - name: Build & publish the report (live data + Anthropic)
         if: steps.guard.outputs.go == 'true'

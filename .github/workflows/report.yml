@@ -35,6 +35,10 @@ on:
         description: "Run modifiers, e.g. 'SECTOR: XLE RISK: aggressive' (for reports=sector-deep-dive)"
         required: false
         default: ""
+      preview:
+        description: "PREVIEW: build on this ref and upload the page as a downloadable artifact. Nothing is committed, published or notified."
+        type: boolean
+        default: false
       window:
         description: "gap-risk run window: am (default — skip if today's file exists) or pm (rebuild over the AM edition; skips only if today's page already carries a PM time stamp)"
         required: false
@@ -46,7 +50,9 @@ permissions:
 concurrency:
   # Different report sets (morning batch vs gap-risk) get different groups so they
   # never cancel each other; a double-fire of the SAME set queues instead of racing.
-  group: build-report-${{ github.event.inputs.reports || github.event.inputs.slug }}
+  # A preview gets its own group so it can never queue ahead of, or behind, a
+  # scheduled build of the same report.
+  group: build-report-${{ github.event.inputs.reports || github.event.inputs.slug }}${{ inputs.preview && '-preview' || '' }}
   cancel-in-progress: false
 
 jobs:
@@ -62,6 +68,7 @@ jobs:
       SLUG_IN: ${{ inputs.slug }}
       FORCE_IN: ${{ inputs.force }}
       WINDOW_IN: ${{ inputs.window }}
+      PREVIEW_IN: ${{ inputs.preview }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -73,6 +80,10 @@ jobs:
           # must not cross UTC midnight and claim tomorrow's slot (2026-08-27).
           TODAY=$(TZ=America/New_York date +%F)
           LIST="${REPORTS_IN:-$SLUG_IN}"
+          if [ "$PREVIEW_IN" = "true" ]; then
+            echo "preview=true — building for an artifact only; nothing will be published."
+            echo "already_built=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           if [ "$FORCE_IN" = "true" ]; then
             echo "force=true — building regardless of today's files."
             echo "already_built=false" >> "$GITHUB_OUTPUT"; exit 0
@@ -129,7 +140,9 @@ jobs:
           # yfinance vol quotes and gamma "thin" without it.
           UW_API_KEY: ${{ secrets.UW_API_KEY }}
           # FORCE_RUN lets a run proceed on a closed market day (weekend/holiday).
-          FORCE_RUN: ${{ inputs.force }}
+          FORCE_RUN: ${{ inputs.force || inputs.preview }}
+          # PREVIEW suppresses the Telegram/email notification in build.py.
+          PREVIEW: ${{ inputs.preview }}
           # Optional mode modifiers (SECTOR:/RISK:/EXCLUDE:/WATCHLIST:/HORIZON:)
           # appended to the task line — used by the on-demand sector deep dive.
           FOCUS_LINE: ${{ inputs.focus_line }}
@@ -144,8 +157,27 @@ jobs:
           echo "Building report(s): $LIST"
           python build.py --reports "$LIST"
 
+      - name: Collect the preview page
+        if: inputs.preview == true
+        run: |
+          TODAY=$(TZ=America/New_York date +%F)
+          mkdir -p preview_out
+          for s in $(echo "${REPORTS_IN}" | tr ',' ' '); do
+            cp "site/$s/$TODAY.html" "preview_out/$s.html"
+          done
+          ls -la preview_out
+
+      - name: Upload the preview page (artifact only)
+        if: inputs.preview == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-preview
+          path: preview_out/
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Commit & push the rebuilt site (race-safe)
-        if: steps.guard.outputs.already_built == 'false'
+        if: steps.guard.outputs.already_built == 'false' && inputs.preview != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -171,7 +203,7 @@ jobs:
       # `already_built == 'true'` significa que el informe de hoy ya existía,
       # y eso no es evidencia de que el proceso de hoy funcione.
       - name: Check in to MWTC Health
-        if: success() && steps.guard.outputs.already_built == 'false'
+        if: success() && steps.guard.outputs.already_built == 'false' && inputs.preview != true
         run: |
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.HEALTH_CHECKIN_TOKEN }}" \

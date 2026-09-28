@@ -15,6 +15,12 @@ words the machine cannot derive:
 2. **Per-index color** — one tail clause, a driver paragraph, a gap-fill note.
 3. **Whole-number levels** — 2 resistances + 2 supports per index (round-number
    magnets near the live level, sane against the 1SD ranges in the packet).
+3b. **ETF whole-number levels** — the report also carries a panel for each
+   index's ETF (SPY, QQQ, IWM, DIA). For each, give 2 resistances + 2 supports
+   in the **ETF's own price**: round-dollar levels near the ETF price shown in
+   that index's `etf` block of the packet, sane against the ETF 1SD ranges
+   there. These are the ETF's own round numbers — never an index level divided
+   or converted.
 4. **Catalyst nudge** — `catalyst_adj` per index in **−0.30…+0.30**: a small
    drift adjustment for fresh news the mechanical inputs can't see yet. 0 when
    nothing is live. Never use it to manufacture conviction.
@@ -66,6 +72,10 @@ inside string values. Never bold a whole sentence.
  "levels": {
    "ndx": {"res": ["29,500","29,750"], "sup": ["29,000","28,750"]},
    "rut": {...}, "spx": {...}, "djx": {...}
+ },
+ "etf_levels": {
+   "qqq": {"res": ["745","750"], "sup": ["735","730"]},   // ETF price, whole dollars
+   "iwm": {...}, "spy": {...}, "dia": {...}            // keys = packet etf.key_for_etf_levels
  },
  "catalyst_adj": {"ndx": -0.20, "rut": 0, "spx": -0.10, "djx": 0},
  "lvl_est": {"rut": 2953.2}, "day_est": {"rut": -0.8}, "vol_est": {"rut": 21.5},

@@ -33,8 +33,8 @@ INDEXES = {
     "rut": {"nm": "RUT", "sym": "^RUT", "vol_sym": "^RVX", "vn": "RVX", "fut": "RTY=F", "div": 1.0},
 }
 
-# Tradeable ETF twin per index — its live spot feeds the breakeven
-# calculator's "ETF $" unit mode (index and ETF have no fixed ratio).
+# Tradeable ETF twin per index — its price feeds the report's ETF panels and
+# the breakeven calculator's "ETF $" mode (index and ETF have no fixed ratio).
 ETF = {"spx": "SPY", "ndx": "QQQ", "djx": "DIA", "rut": "IWM"}
 
 # When a vol index can't be fetched, estimate it from VIX by the typical ratio
@@ -201,13 +201,21 @@ def fetch_all(premarket: bool = False) -> dict:
     data = {k: fetch_index(k, premarket) for k in INDEXES}
     for k, d in data.items():
         d["vol1d"], d["gamma"], d["vol_src"] = None, "thin", None
-        # ETF twin spot for the calculator's ETF-$ mode; display/prefill only,
-        # never feeds the band math. Fail-safe: None hides the mode client-side.
-        d["etf_sym"], d["etf_spot"] = ETF.get(k), None
+        # ETF twin (SPY/QQQ/IWM/DIA) for the ETF panels and the calculator's
+        # ETF-$ mode. Display only — it never feeds the band math. Taken from
+        # the REGULAR-SESSION daily bar, the same clock as the index level, so
+        # the index panel and its ETF panel describe the same moment: before
+        # the open that is the prior close, never an extended-hours print.
+        # Fail-safe: None drops that ETF's panel and disables the toggle.
+        d["etf_sym"], d["etf_spot"], d["etf_day"] = ETF.get(k), None, None
         try:
-            d["etf_spot"] = round(_last_price(ETF[k]), 2)
+            closes = _history(ETF[k])
+            px, prev = float(closes.iloc[-1]), float(closes.iloc[-2])
+            if px > 0 and prev > 0:
+                d["etf_spot"] = round(px, 2)
+                d["etf_day"] = round((px / prev - 1.0) * 100.0, 2)
         except Exception as e:
-            print(f"  [feed] {ETF.get(k)} ETF spot failed: {e}")
+            print(f"  [feed] {ETF.get(k)} ETF price failed: {e}")
         # Real CBOE vol-index spot (v13 fix): DISPLAY ONLY, never feeds the
         # band math. fetch_index put the yfinance quote in d["vol"]; keep it
         # as the reference spot before chain IV takes over the model vol.

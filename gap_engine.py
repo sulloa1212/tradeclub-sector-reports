@@ -216,6 +216,19 @@ def _dial(sig, cuts):
     return "Calm" if sig < lo else "Elevated" if sig < mid else "High" if sig < hi else "Extreme"
 
 
+def _fin(x):
+    """x as a finite float, else None (NaN/inf/None/str/bool all -> None)."""
+    if isinstance(x, bool) or not isinstance(x, (int, float)):
+        return None
+    return float(x) if math.isfinite(x) else None
+
+
+def _pos(x):
+    """x as a finite float above zero, else None — a price that can be shown."""
+    v = _fin(x)
+    return v if v is not None and v > 0 else None
+
+
 def compute(feed: dict, ctx: dict, judgment: dict | None = None,
             tolerant: bool = False) -> dict:
     """feed = gap_feed.fetch_all() output (levels/trend + chain IV + gamma).
@@ -259,7 +272,7 @@ def compute(feed: dict, ctx: dict, judgment: dict | None = None,
             vx_spot=f.get("vx_spot"), vx1d_spot=f.get("vx1d_spot"),
             # ETF twin spot for the calculator's ETF-$ mode (compute whitelists
             # feed fields — forgetting this line silently nulls the toggle).
-            etf_spot=f.get("etf_spot"),
+            etf_spot=_pos(f.get("etf_spot")), etf_day=_fin(f.get("etf_day")),
             r=r, r_wk=r_wk, sig=sig,
             gamma=gamma, catalyst_adj=adj,
             fut_pct=f["fut_pct"], above_sma20=f["above_sma20"],
@@ -280,6 +293,118 @@ def compute(feed: dict, ctx: dict, judgment: dict | None = None,
         ix["disp"] = fmt(lvl, lvl)
         out[key] = ix
     return out
+
+
+def fmt_etf(v):
+    """ETF prices are quoted to the cent."""
+    return f"{v:,.2f}"
+
+
+def _reprice(stats: dict, px: float, thresholds) -> dict:
+    """The SAME distribution expressed at another price: every probability,
+    lean and sigma is kept as computed for the index; only the band-edge
+    prices are re-stated from `px`."""
+    out = dict(stats)
+    rows = []
+    for rr in stats["rows"]:
+        r2 = dict(rr)
+        if rr.get("tail"):
+            xl = thresholds[-1]
+            r2["price_dn"] = "&lt;" + fmt_etf(px * (1 - xl / 100))
+            r2["price_up"] = "&gt;" + fmt_etf(px * (1 + xl / 100))
+        else:
+            r2["price_dn"] = fmt_etf(px * (1 - rr["x"] / 100))
+            r2["price_up"] = fmt_etf(px * (1 + rr["x"] / 100))
+        rows.append(r2)
+    out["rows"] = rows
+    return out
+
+
+def etf_view(ix: dict):
+    """The index's panel data re-expressed in its ETF's price, or None when no
+    ETF price was captured. An ETF tracks its index, so the odds, lean, sigma
+    and dials ARE the index's — nothing is re-estimated, which is what keeps
+    the SPY panel from ever disagreeing with the SPX panel above it."""
+    px = _pos(ix.get("etf_spot"))
+    if px is None:
+        return None
+    sym = ix["etf"]
+    ex = dict(ix)
+    ex.update(
+        key=sym.lower(), nm=sym, is_etf=True,
+        index_key=ix["key"], index_nm=ix["nm"], index_lvl=ix["lvl"],
+        co=f'{ix["co"].split(" &middot; ")[0]} ETF &middot; tracks {ix["nm"]}',
+        lvl=px, disp=fmt_etf(px), est=False,
+        day=ix["etf_day"] if ix.get("etf_day") is not None else ix["day"],
+        on_pts=px * ix["on_sig"] / 100, wk_pts=px * ix["wk_sig"] / 100,
+        on=_reprice(ix["on"], px, ON_THR), wk=_reprice(ix["wk"], px, WK_THR),
+        on_lo=fmt_etf(px * (1 - ix["on_sig"] / 100)),
+        on_hi=fmt_etf(px * (1 + ix["on_sig"] / 100)),
+        wk_lo=fmt_etf(px * (1 - ix["wk_sig"] / 100)),
+        wk_hi=fmt_etf(px * (1 + ix["wk_sig"] / 100)),
+    )
+    return ex
+
+
+def _level_num(x):
+    if isinstance(x, bool) or not isinstance(x, (str, int, float)):
+        return None
+    try:
+        v = float(str(x).replace(",", "").replace("$", "").strip())
+        return v if v > 0 and v == v and v != float("inf") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def etf_levels(ex: dict, model_lv, index_lv) -> dict:
+    """Whole-number resistance/support for an ETF panel.
+
+    First choice: the model's own round numbers for the ETF, accepted only if
+    they are sane — two resistances above the price, two supports below it, all
+    whole numbers inside a band around the price. Otherwise the index's levels
+    are converted at the live index/ETF ratio and rounded to the dollar, and the
+    panel says so. A bad or missing ETF level never fails the run."""
+    px = ex["lvl"]
+    band = max(3 * ex["wk_sig"], 6.0) / 100.0          # how far a level may sit
+    lo, hi = px * (1 - band), px * (1 + band)
+
+    def seq(vals):
+        # the model's JSON can hold anything here: only a real list is a list
+        return vals if isinstance(vals, (list, tuple)) else []
+
+    def clean(vals, above):
+        out = []
+        for v in seq(vals):
+            n = _level_num(v)
+            if n is None or abs(n - round(n)) > 1e-9 or not (lo <= n <= hi):
+                continue
+            if (n > px) if above else (n < px):
+                out.append(int(round(n)))
+        out = sorted(set(out), reverse=not above)       # nearest the price first
+        return out[:2]
+
+    m = model_lv if isinstance(model_lv, dict) else {}
+    res, sup = clean(m.get("res"), True), clean(m.get("sup"), False)
+    if len(res) == 2 and len(sup) == 2:
+        return {"res": [f"{v:,}" for v in res], "sup": [f"{v:,}" for v in sup],
+                "source": "model"}
+    ratio = px / ex["index_lvl"] if ex.get("index_lvl") else None
+    i = index_lv if isinstance(index_lv, dict) else {}
+
+    def conv(vals, above):
+        out = []
+        for v in seq(vals):
+            n = _level_num(v)
+            if n is None or not ratio:
+                continue
+            c = int(round(n * ratio))
+            if (c > px) if above else (c < px):
+                out.append(c)
+        out = sorted(set(out), reverse=not above)
+        return [f"{v:,}" for v in out[:2]]
+
+    return {"res": conv(i.get("res"), True), "sup": conv(i.get("sup"), False),
+            "source": "converted"}
 
 
 def leans(IX: dict) -> dict:
@@ -321,6 +446,13 @@ def data_packet(IX: dict, ctx: dict) -> str:
             "one_sd_range_overnight": f'{ix["on_lo"]} - {ix["on_hi"]}',
             "one_sd_range_week": f'{ix["wk_lo"]} - {ix["wk_hi"]}',
         }
+        ex = etf_view(ix)
+        if ex:
+            pkt["indices"][k]["etf"] = {
+                "symbol": ex["nm"], "key_for_etf_levels": ex["key"], "price": ex["lvl"],
+                "one_sd_range_overnight": f'{ex["on_lo"]} - {ex["on_hi"]}',
+                "one_sd_range_week": f'{ex["wk_lo"]} - {ex["wk_hi"]}',
+            }
     return json.dumps(pkt, indent=1)
 
 
@@ -344,7 +476,7 @@ def _vol_disp(ix):
     v1 = f' &middot; 1-day {ix["vol1d"]:.1f}' if ix.get("vol1d") else ""
     vx = (f' &middot; {ix["vn"]} {ix["vx_spot"]:.2f}'
           if ix.get("vx_spot") is not None else "")
-    return f'Vol: {ix["nm"]} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
+    return f'Vol: {ix.get("index_nm", ix["nm"])} 30D IV <b>{ix["vol"]:.2f}</b>{est}{v1}{vx}'
 
 
 def _derived(IX: dict, content: dict) -> dict:
@@ -801,33 +933,58 @@ def _cushion(ix, levels, lean_pct):
 
 
 def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
+    """One panel. `ix` is an index, or an ETF view of one (etf_view): same
+    layout and the same odds, with every price in the ETF's own dollars."""
+    is_etf = bool(ix.get("is_etf"))
     res = (levels.get("res") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     sup = (levels.get("sup") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
-    cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix["key"]])
+    cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix.get("index_key", ix["key"])])
     special = ""
-    if ix.get("gamma", "thin") != "thin":
+    if ix.get("gamma", "thin") != "thin" and sup[0] != "&mdash;":
         special = (f'<div class="lvrow"><span class="lab">Cushion line</span>'
                    f'<span class="chip f">~{sup[0]}</span></div>')
     est_tag = ", est." if ix["est"] else ""
-    pts = f'{ix["on_pts"]:,.1f}' if ix["lvl"] < 1000 else f'{ix["on_pts"]:,.0f}'
+    if is_etf:
+        on_move = f'&plusmn;${ix["on_pts"]:,.2f}'
+        wk_move = f'&plusmn;${ix["wk_pts"]:,.2f}'
+        noun = ix["nm"]
+        cardnav = (f'<a href="#board">&uarr; Gap Board</a> &nbsp;&middot;&nbsp; '
+                   f'<a href="#{ix["index_key"]}">&uarr; {ix["index_nm"]} panel</a>')
+        etf_note = (f'<div class="etfnote">Same odds as the <a href="#{ix["index_key"]}">'
+                    f'{ix["index_nm"]} panel</a> &mdash; {ix["nm"]} tracks {ix["index_nm"]}, so every '
+                    f'probability is identical. Only the prices change: they are in '
+                    f'<b>{ix["nm"]} dollars</b>.</div>')
+        lv_note = ('Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
+                   if levels.get("source") != "converted" else
+                   f'Converted from the {ix["index_nm"]} levels at today&rsquo;s {ix["index_nm"]}/{ix["nm"]} '
+                   'ratio and rounded to the dollar &mdash; approximate, not true round-number magnets. '
+                   'Re-verify live.')
+    else:
+        pts = f'{ix["on_pts"]:,.1f}' if ix["lvl"] < 1000 else f'{ix["on_pts"]:,.0f}'
+        on_move = f'&plusmn;{pts} pts'
+        wk_move = f'&plusmn;{ix["wk_pts"]:,.0f} pts'
+        noun = "the index"
+        cardnav = '<a href="#board">&uarr; Gap Board</a>'
+        etf_note = ""
+        lv_note = 'Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
     dsub = (f'Live <b>{ix["disp"]}</b> {_day_span(ix)}{est_tag} &nbsp;&middot;&nbsp; '
-            f'overnight 1SD <b>&plusmn;{ix["on_sig"]:.2f}%</b> (&plusmn;{pts} pts) &nbsp;&middot;&nbsp; '
+            f'overnight 1SD <b>&plusmn;{ix["on_sig"]:.2f}%</b> ({on_move}) &nbsp;&middot;&nbsp; '
             f'1-week 1SD <b>&plusmn;{ix["wk_sig"]:.2f}%</b> &nbsp;&middot;&nbsp; '
             f'{story_ix.get("tail", "")}')
     on_block = _odds_table(
         f'{ctx["gap_word"]} gap &mdash; odds {ctx["next_day"]} opens DOWN vs UP (from {ix["disp"]})',
         ix["on"]["lean_dn"], ix["on"], on_note.replace("{vol}", _vol_disp(ix)))
     wk_block = _odds_table(
-        f'1-Week move &mdash; odds the index closes DOWN vs UP over the next ~5 sessions (from {ix["disp"]})',
+        f'1-Week move &mdash; odds {noun} closes DOWN vs UP over the next ~5 sessions (from {ix["disp"]})',
         ix["wk"]["lean_dn"], ix["wk"], wk_note_html)
     return f'''
   <section id="{ix['key']}">
-    <div class="cardnav"><a href="#board">&uarr; Gap Board</a></div>
+    <div class="cardnav">{cardnav}</div>
     <div class="drill" style="border-top-color:{ix['bar']}">
       <div class="dhead" style="margin-bottom:2px">
         <div>
           <div class="dtitle">{ix['nm']} <small>{ix['co']}</small></div>
-          <div class="dsub">{dsub}</div>
+          <div class="dsub">{dsub}</div>{etf_note}
         </div>
       </div>
       <div class="cardgrid">
@@ -852,10 +1009,10 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html):
               <div class="lvrow"><span class="lab">Support</span><span class="chip s">{sup[0]}</span><span class="chip s">{sup[1]}</span></div>
               {special}
             </div>
-            <div class="note" style="margin-top:8px">Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.</div>
+            <div class="note" style="margin-top:8px">{lv_note}</div>
           </div>
           <div class="railbox">
-            <div class="rsum">1-week move <b>&plusmn;{ix['wk_sig']:.2f}%</b> (&plusmn;{ix['wk_pts']:,.0f} pts)<br>chance of a &gt;3% week: <b>{round(ix['p_big']*100)}%</b><br>range {ix['wk_lo']} &ndash; {ix['wk_hi']}</div>
+            <div class="rsum">1-week move <b>&plusmn;{ix['wk_sig']:.2f}%</b> ({wk_move})<br>chance of a &gt;3% week: <b>{round(ix['p_big']*100)}%</b><br>range {ix['wk_lo']} &ndash; {ix['wk_hi']}</div>
             {_gauge(ix["wk_dial"], "1-week move risk")}
           </div>
         </div>
@@ -927,6 +1084,44 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
                           on_note, wk_note_html) for k in BOARD_ORDER)
     be_section, be_script = _be_calc(IX, ctx)
 
+    # ── ETF panels: the same four reads in SPY/QQQ/IWM/DIA prices ───────────
+    etf_model = content.get("etf_levels")
+    if not isinstance(etf_model, dict):       # optional and model-authored:
+        etf_model = {}                        # any other shape means "none"
+    views = [(k, etf_view(IX[k])) for k in BOARD_ORDER]
+    views = [(k, ex) for k, ex in views if ex]
+    etf_cards = "".join(
+        _card(ex, story.get(k) or {},
+              etf_levels(ex, etf_model.get(ex["key"]), levels_all.get(k)),
+              ln, ctx, on_note, wk_note_html)
+        for k, ex in views)
+    # One nav link, not four: the nav is sticky, and on a phone every extra row
+    # of pills is screen the reader never gets back. The per-ETF links live in
+    # the section itself.
+    etf_nav = '<a href="#etfs">ETFs</a>' if views else ""
+    etf_jump = " ".join(f'<a href="#{ex["key"]}">{ex["nm"]}</a>' for _, ex in views)
+    missing_etf = [IX[k]["etf"] for k in BOARD_ORDER if k not in dict(views)]
+    etf_section = ""
+    etf_legend = ""
+    if views:
+        etf_legend = ('        <dt>ETF panels</dt><dd>SPY, QQQ, IWM and DIA track SPX, NDX, RUT and DJX, '
+                      'so an ETF panel carries the <b>same odds, lean, implied move and dial</b> as its '
+                      'index panel &mdash; only the prices are restated in the ETF&rsquo;s dollars. The ETF '
+                      'price is the regular-session price at generation (before the open, the prior close), '
+                      'not an after-hours print. Small tracking differences and dividends mean an '
+                      'ETF&rsquo;s day % can differ slightly from its index&rsquo;s.</dd>\n')
+        pairs = ", ".join(f'{ex["nm"]} for {ex["index_nm"]}' for _, ex in views)
+        gone = (f' No price was available for {", ".join(missing_etf)} at generation, so '
+                f'{"that panel is" if len(missing_etf) == 1 else "those panels are"} omitted.'
+                if missing_etf else "")
+        etf_section = f'''
+  <section id="etfs">
+    <h2 class="sec-h"><span class="num">&#36;</span> ETF Panels &mdash; The Same Read In ETF Prices</h2>
+    <div class="breadth"><b>How these relate to the index panels:</b> each ETF tracks its index ({pairs}), so the <b>odds, lean, implied move and risk dial are the same numbers</b> shown in the index panel &mdash; nothing is re-estimated. What changes is the <b>price</b>: every level here is in the ETF&rsquo;s own dollars, taken from the same regular-session price as the index level. Whole-number levels are the ETF&rsquo;s own round numbers.{gone}</div>
+    <div class="etfjump"><span class="lab">Jump to</span> {etf_jump}</div>
+  </section>
+{etf_cards}'''
+
     # ── composed narrative (numbers computed, words from STORY) ─────────────
     wix, bix = IX[D["worst"]], IX[D["best"]]
     widest, calmest = IX[D["widest"]], IX[D["calmest"]]
@@ -996,7 +1191,9 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         vol_bits.append(f'{IX[k]["nm"]} ' + ("own ATM chain IV" if src.startswith("uw") else
                                              (f'{IX[k]["vn"]} index quote' if src.startswith("yf")
                                               else "estimated")))
-    footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). Band vols: '
+    footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). '
+                   + ('ETF prices are regular-session prints of the ETFs themselves. '
+                      if views else '') + 'Band vols: '
                    + ", ".join(vol_bits) + '. Where shown, VIX/VXN/VXD spots are reference readings '
                    'only — they price a wider options strip and sit a few points above the ATM IV '
                    'that sizes the bands. The dealer-gamma regime is computed from live options '
@@ -1018,7 +1215,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="head-text">
       <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Scout &middot; {ctx["label"].title()}</div>
       <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>
-      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT &mdash; gap into the next open + 1-week outlook</div>
+      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{" &middot; with " + " &middot; ".join(ex["nm"] for _, ex in views) + " panels" if views else ""} &mdash; gap into the next open + 1-week outlook</div>
       <div class="stamp">{ctx["long_date"]} &middot; {ctx["time_str"]} &nbsp;|&nbsp; <b style="color:var(--accent)">{ctx["label"]}</b> &middot; {ctx["phrase"]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
     </div>
     <img class="brand-mw" alt="Michael Wade Trade Coaching" src="{mw_logo}">
@@ -1027,7 +1224,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
   <div class="nav">
     <span class="lab">Jump to</span>
     <a class="board" href="#board">Gap Board</a>
-    <a href="#ndx">NDX</a><a href="#rut">RUT</a><a href="#spx">SPX</a><a href="#djx">DJX</a>
+    <a href="#ndx">NDX</a><a href="#rut">RUT</a><a href="#spx">SPX</a><a href="#djx">DJX</a>{etf_nav}
     <a href="#becalc">Breakevens</a><a href="#bigmove">Big Move</a><a href="#clock">Clock</a><a href="#calendar">Calendar</a><a href="#playbook">Playbook</a>
   </div>
 
@@ -1052,7 +1249,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="breadth"><b>Breadth read:</b> {breadth_read}</div>
   </section>
 {be_section}
-{cards}
+{cards}{etf_section}
 
   <section id="bigmove">
     <h2 class="sec-h"><span class="num">2</span> Big Move Ranking with Probabilities &mdash; 1-Week Horizon</h2>
@@ -1119,7 +1316,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         <dt>Current price / Current vol</dt><dd>The calculator starts from the price baked in at generation, but you can type the <b>live price</b> from your platform and everything re-computes around it. The <b>current-vol</b> box does the same for volatility, and it takes an <b>actual value, not a point change</b>. On <b>overnight/1-week</b> it&rsquo;s pre-filled with the run&rsquo;s vol-index spot (VIX for SPX) &mdash; overwrite it with the current reading. On <b>rest of day</b> it asks for the 1-day reading; where no live VIX1D was captured it starts empty &mdash; chart it and type it, and it sizes the intraday bands directly (the index&rsquo;s own 1-day IV is used until you do). Both are manual on purpose: the report never calls out to the internet.</dd>
         <dt>Risk dials</dt><dd>Calm / Elevated / High / Extreme &mdash; computed from the implied move size, with matching thresholds at both horizons so &ldquo;Elevated&rdquo; means the same vol regime on the overnight and 1-week rows.</dd>
         <dt>The Cushion (gamma)</dt><dd><b>Positive</b> = dealers buy dips/sell rips, moves fade. <b>Negative</b> = dealers amplify moves; pushes extend. <b>Thin</b> = no reliable positioning read. Computed from live options data where available.</dd>
-        <dt>Whole-number levels</dt><dd>Round numbers act as magnets (option open-interest clusters there). Approximate &mdash; re-verify live.</dd>
+{etf_legend}        <dt>Whole-number levels</dt><dd>Round numbers act as magnets (option open-interest clusters there). Approximate &mdash; re-verify live.</dd>
         <dt>Breadth read</dt><dd>The spread between the four indices is a signal: a narrow tech move is positioning; a broad one is real risk-on/off.</dd>
       </dl>
     </div>

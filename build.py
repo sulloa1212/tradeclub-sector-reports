@@ -1815,7 +1815,10 @@ def main():
     # let a notification problem fail the build — the reports are published.
     if have_site:
         try:
-            notify(records, cost, today_str())
+            if os.environ.get("PREVIEW", "").lower() in ("1", "true"):
+                print("PREVIEW run — no notification sent.")
+            else:
+                notify(records, cost, today_str())
         except Exception as e:
             print(f"  !! notification failed (non-fatal) — {e}")
 

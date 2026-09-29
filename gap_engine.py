@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -326,7 +327,7 @@ def etf_view(ix: dict):
     and dials ARE the index's — nothing is re-estimated, which is what keeps
     the SPY panel from ever disagreeing with the SPX panel above it."""
     px = _pos(ix.get("etf_spot"))
-    if px is None:
+    if px is None or _pos(ix.get("lvl")) is None:
         return None
     sym = ix["etf"]
     ex = dict(ix)
@@ -783,7 +784,7 @@ def _be_calc(IX, ctx):
     var b=document.getElementById('beEtfBtn');
     if(b){b.textContent=(d.esym||'ETF')+' $'; b.disabled=!d.es;
       b.title=d.es?'':'No '+(d.esym||'ETF')+' price was captured at this run';}
-    if(!d.es&&unit==='etf'){unit='ix';}
+    if(!d.es&&unit==='etf'){unit='ix'; spotTouched=false; loI.value=''; hiI.value='';}
     Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(x){x.classList.toggle('on',x.getAttribute('data-u')===unit);});
     var c=baseC(d);
     loI.placeholder='e.g. '+fnum(c*0.985); hiI.placeholder='e.g. '+fnum(c*1.015);
@@ -1039,11 +1040,14 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
         on_move = f'{nw}&plusmn;${ix["on_pts"]:,.2f}</span>'
         wk_move = f'{nw}&plusmn;${ix["wk_pts"]:,.2f}</span>'
         noun = enm
-        if ctx.get("premarket"):
-            # ETFs trade before the open; the index does not. What this panel
-            # prices from is yesterday's close, and it must say so.
-            live_lab = "Prior close"
-            frm = f'the prior close, {ix["disp"]}'
+        # The ETF price is the daily bar's regular-session close whenever the
+        # session is shut, and ETFs keep trading around it (pre-market, after
+        # hours, 24/5 venues). Only a mid-session run holds a live print.
+        if ctx.get("label") != "LIVE MID-SESSION RUN":
+            live_lab, word = (("Prior close", "the prior close") if ctx.get("premarket") else
+                              ("Close", "the close") if ctx.get("label") == "POST-MARKET RUN" else
+                              ("Last close", "the last close"))
+            frm = f'{word}, {ix["disp"]}'
         cardnav = '<a href="#board">&uarr; Gap Board</a>'
         etf_note = (f'<div class="etfnote">Same odds as the {inm} view, restated at {enm}&rsquo;s '
                     f'price &mdash; copied from the index, not re-estimated for {enm}. The price, '
@@ -1132,6 +1136,32 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
   </section>'''
 
 
+_TAG_RE = re.compile(r'<(/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>')
+_VOID = {"br", "hr", "img", "wbr"}
+
+
+def _balanced(s):
+    """Model HTML, unchanged when its tags balance; otherwise flattened to text.
+    A switch panel embeds the story twice, so one unclosed <div> would swallow
+    the other view."""
+    if not isinstance(s, str) or "<" not in s:
+        return s
+    stack, ok = [], "<!" not in s
+    for m in _TAG_RE.finditer(s):
+        name = m.group(2).lower()
+        if not ok or name in _VOID or m.group(0).endswith("/>"):
+            continue
+        if not m.group(1):
+            stack.append(name)
+        elif stack and stack[-1] == name:
+            stack.pop()
+        else:
+            ok = False
+    if ok and not stack:
+        return s
+    return re.sub(r"<[^>]*>", "", s).replace("<", "&lt;")
+
+
 def _view_switch(inm, enm, active, aria):
     """Two buttons, index | ETF. Each view of a panel carries its own copy with
     its own button pressed, so the markup is never out of step with what is
@@ -1150,6 +1180,7 @@ def _switch_card(ix, ex, story_ix, levels, etf_lv, ln, ctx, on_note, wk_note_htm
     CSS shows one at a time off the section's data-view."""
     inm, enm = ix["nm"], ex["nm"]
     aria = f"Show this panel in {inm} or {enm} prices"
+    story_ix = {k: _balanced(v) for k, v in story_ix.items()}
     cardnav, d_ix = _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html,
                           switch=_view_switch(inm, enm, "ix", aria), parts=True)
     _, d_etf = _card(ex, story_ix, etf_lv, ln, ctx, on_note, wk_note_html,
@@ -1182,28 +1213,39 @@ def _view_script():
     sec.setAttribute('data-view',v);
     var a=navLink(sec); if(a) a.textContent=sec.getAttribute(v==='etf'?'data-etf':'data-ix');
   }
-  function syncBar(){
-    if(!bar) return;
-    var all=panels.every(function(s){return s.getAttribute('data-view')==='etf';})?'etf':
-            panels.every(function(s){return s.getAttribute('data-view')==='ix';})?'ix':'';
-    Array.prototype.forEach.call(bar.querySelectorAll('.vsw-b'),function(b){
-      var on=b.getAttribute('data-all')===all;
-      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
-    });
+  function uniform(){
+    return panels.every(function(s){return s.getAttribute('data-view')==='etf';})?'etf':
+           panels.every(function(s){return s.getAttribute('data-view')==='ix';})?'ix':'';
   }
+  /* remember=true after a reader's click: the saved view is always what the
+     bar shows ('' = mixed, forget it) */
+  function syncBar(remember){
+    var all=uniform();
+    if(bar){
+      Array.prototype.forEach.call(bar.querySelectorAll('.vsw-b'),function(b){
+        var on=b.getAttribute('data-all')===all;
+        b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+      });
+    }
+    if(remember){try{if(all) localStorage.setItem(KEY,all); else localStorage.removeItem(KEY);}catch(e){}}
+  }
+  /* the calculator follows the bar only while it holds no typed levels:
+     its own Units switch clears them, and a reader's work is not ours to wipe */
   function calcUnit(v){
     var b=document.querySelector('#becalc .beu[data-u="'+v+'"]');
+    var lo=document.getElementById('beLo'), hi=document.getElementById('beHi');
+    if((lo&&lo.value)||(hi&&hi.value)) return;
     if(b&&!b.disabled&&!b.classList.contains('on')) b.click();
   }
   function setAll(v,remember){
-    panels.forEach(function(s){show(s,v);}); syncBar(); calcUnit(v);
-    if(remember){try{localStorage.setItem(KEY,v);}catch(e){}}
+    if(uniform()===v) return;
+    panels.forEach(function(s){show(s,v);}); syncBar(remember); calcUnit(v);
   }
   panels.forEach(function(sec){
     Array.prototype.forEach.call(sec.querySelectorAll('.vsw-b'),function(b){
       b.addEventListener('click',function(){
         var v=b.getAttribute('data-v'); if(sec.getAttribute('data-view')===v) return;
-        show(sec,v); syncBar();
+        show(sec,v); syncBar(true);
         var t=sec.querySelector('.vw-'+v+' .vsw-b[data-v="'+v+'"]'); if(t) t.focus();
       });
     });

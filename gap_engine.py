@@ -641,12 +641,12 @@ def _be_calc(IX, ctx):
     section = f'''
   <section id="becalc">
     <h2 class="sec-h"><span class="num" style="background:var(--accent);color:#08121e">&#x1F3AF;</span> Breakeven Calculator</h2>
-    <p style="color:var(--muted);font-size:13.5px;margin:0 0 10px">Enter <b>any two price levels</b> &mdash; your expiration breakevens, T+0 breakevens, or the support/resistance you&rsquo;d adjust at &mdash; and this returns the odds price stays between them. Work in index points or, with the <b>Units</b> switch, in the ETF&rsquo;s dollars.</p>
+    <p style="color:var(--muted);font-size:13.5px;margin:0 0 10px">Enter <b>any two price levels</b> &mdash; your expiration breakevens, T+0 breakevens, or the support/resistance you&rsquo;d adjust at &mdash; and this returns the odds price stays between them. Work in the index or, with the <b>Instrument</b> switch, in its ETF&rsquo;s price.</p>
 
     <div class="panel becalc">
       <div class="berow">
         <label>Index<select id="beIx">{opts}</select></label>
-        <label>Units<span class="beseg"><button type="button" class="beh beu on" data-u="ix">Index pts</button><button type="button" class="beh beu" data-u="etf" id="beEtfBtn">ETF $</button></span></label>
+        <label>Instrument<span class="beseg"><button type="button" class="beh beu on" data-u="ix" id="beIxBtn">{IX[BE_ORDER[0]]["nm"]}</button><button type="button" class="beh beu" data-u="etf" id="beEtfBtn">{IX[BE_ORDER[0]].get("etf") or "ETF"}</button></span></label>
         <label>Horizon<span class="beseg"><button type="button" class="beh on" data-h="rd">Rest of day</button><button type="button" class="beh" data-h="on">Overnight</button><button type="button" class="beh" data-h="wk">1-Week</button><button type="button" class="beh" data-h="exit">Expiration</button></span></label>
         <label class="behrs">Hours (override)<input id="beHrs" type="number" step="any" min="0.25" max="6.5" inputmode="decimal" placeholder="auto"></label>
         <label class="beexp">Expiration<input id="beExp" type="date"></label>
@@ -781,8 +781,9 @@ def _be_calc(IX, ctx):
   function baseC(d){return (unit==='etf'&&d.es)?d.es:d.C;}
   function pxName(d){return (unit==='etf'&&d.es)?d.esym:d.nm;}
   function syncUnitUI(){var d=BE[ixSel.value];
+    var bi=document.getElementById('beIxBtn'); if(bi){bi.textContent=d.nm;}
     var b=document.getElementById('beEtfBtn');
-    if(b){b.textContent=(d.esym||'ETF')+' $'; b.disabled=!d.es;
+    if(b){b.textContent=d.esym||'ETF'; b.disabled=!d.es;
       b.title=d.es?'':'No '+(d.esym||'ETF')+' price was captured at this run';}
     if(!d.es&&unit==='etf'){unit='ix'; spotTouched=false; loI.value=''; hiI.value='';}
     Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(x){x.classList.toggle('on',x.getAttribute('data-u')===unit);});
@@ -910,9 +911,9 @@ def _be_calc(IX, ctx):
        is the signature of that mistake: stop and say so. */
     if(d.es&&Math.abs(d.es/d.C-1)>0.30&&Math.abs(lo/C-1)>0.30&&Math.abs(hi/C-1)>0.30){
       dash();
-      hint.innerHTML='<b>Check the Units switch.</b> Both levels are more than 30% from the reference price '
+      hint.innerHTML='<b>Check the Instrument switch.</b> Both levels are more than 30% from the reference price '
         +fnum(C)+', so they look like '+(unit==='etf'?d.nm+' index points':d.esym+' dollars')
-        +'. Units is set to <b>'+(unit==='etf'?d.esym+' $':'Index pts')+'</b>.';
+        +'. Instrument is set to <b>'+(unit==='etf'?d.esym:d.nm)+'</b>.';
       return;
     }
     if(lo>=hi){dash();hint.innerHTML='<b style="color:#f87171">Lower level must be below the upper.</b>';return;}
@@ -940,7 +941,7 @@ def _be_calc(IX, ctx):
   ixSel.addEventListener('change',function(){syncUnitUI();syncSpot();ivTouched=false;syncIvField();calc();});
   [spotI,loI,hiI,ivI,hrsI,expI].forEach(function(e){e.addEventListener('input',calc);});
   Array.prototype.forEach.call(document.querySelectorAll('.beh[data-h]'),function(b){b.addEventListener('click',function(){pick(b.getAttribute('data-h'));});});
-  /* Units toggle: switching scale invalidates typed levels/spot — clear them
+  /* Instrument toggle: switching scale invalidates typed levels/spot — clear them
      and re-prefill from the baked spot of the new unit. */
   Array.prototype.forEach.call(document.querySelectorAll('.beu'),function(b){b.addEventListener('click',function(){
     var u=b.getAttribute('data-u'); if(u===unit||b.disabled) return;
@@ -1061,7 +1062,7 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
         on_note = on_note.replace(
             'use the <b>Breakeven Calculator</b> up top.',
             f'use the <b>Breakeven Calculator</b> up top &mdash; pick {inm} there and switch '
-            f'Units to <b>{enm} $</b> first.')
+            f'Instrument to <b>{enm}</b> first.')
     else:
         cclass, chead, ctext = _cushion(ix, levels, ln["on"][ix["key"]])
         special = ""
@@ -1230,7 +1231,7 @@ def _view_script():
     if(remember){try{if(all) localStorage.setItem(KEY,all); else localStorage.removeItem(KEY);}catch(e){}}
   }
   /* the calculator follows the bar only while it holds no typed levels:
-     its own Units switch clears them, and a reader's work is not ours to wipe */
+     its own Instrument switch clears them, and a reader's work is not ours to wipe */
   function calcUnit(v){
     var b=document.querySelector('#becalc .beu[data-u="'+v+'"]');
     var lo=document.getElementById('beLo'), hi=document.getElementById('beHi');

@@ -1018,9 +1018,12 @@ def _cushion_etf(ex, index_levels, lean_pct):
             f'{watch} Tonight&rsquo;s lean sits at ~{lean_pct}% down.', conv)
 
 
-def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=None):
+def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=None,
+          switch="", parts=False):
     """One panel. `ix` is an index, or an ETF view of one (etf_view): same
-    layout and the same odds, with every price in the ETF's own dollars."""
+    layout and the same odds, with every price in the ETF's own dollars.
+    `switch` goes in the title row; `parts` returns (cardnav, drill) so a
+    panel can hold both views. With neither, the output is the classic card."""
     is_etf = bool(ix.get("is_etf"))
     res = (levels.get("res") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     sup = (levels.get("sup") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
@@ -1041,13 +1044,11 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
             # prices from is yesterday's close, and it must say so.
             live_lab = "Prior close"
             frm = f'the prior close, {ix["disp"]}'
-        cardnav = (f'<a href="#board">&uarr; Gap Board</a> &nbsp;&middot;&nbsp; '
-                   f'<a href="#{ix["index_key"]}">&uarr; {inm} panel</a>')
-        etf_note = (f'<div class="etfnote">These are the <a href="#{ix["index_key"]}">{inm} panel</a>'
-                    f'&rsquo;s odds restated at {enm}&rsquo;s price &mdash; copied from the index, not '
-                    f're-estimated for {enm}. The price, day % and whole-number levels are '
-                    f'<b>{enm}&rsquo;s own</b>. Dividends are not modelled: on an ex-dividend date '
-                    f'{enm} opens lower by about the dividend.</div>')
+        cardnav = '<a href="#board">&uarr; Gap Board</a>'
+        etf_note = (f'<div class="etfnote">Same odds as the {inm} view, restated at {enm}&rsquo;s '
+                    f'price &mdash; copied from the index, not re-estimated for {enm}. The price, '
+                    f'day % and whole-number levels are <b>{enm}&rsquo;s own</b>. Dividends are not '
+                    f'modelled: on an ex-dividend date {enm} opens lower by about the dividend.</div>')
         lv_note = ('Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
                    if levels.get("source") != "converted" else
                    f'Converted from the {inm} levels at today&rsquo;s {inm}/{enm} '
@@ -1080,16 +1081,13 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
     wk_block = _odds_table(
         f'1-Week move &mdash; odds {noun} closes DOWN vs UP over the next ~5 sessions (from {frm})',
         ix["wk"]["lean_dn"], ix["wk"], wk_note_html)
-    return f'''
-  <section id="{ix['key']}">
-    <div class="cardnav">{cardnav}</div>
-    <div class="drill" style="border-top-color:{ix['bar']}">
+    drill = f'''    <div class="drill" style="border-top-color:{ix['bar']}">
       <div class="dhead" style="margin-bottom:2px">
         <div>
           <div class="dtitle">{ix['nm']} <small>{ix['co']}</small></div>
-          <div class="dsub">{dsub}</div>{etf_note}
-        </div>
-      </div>
+          <div class="dsub">{dsub}</div>
+        </div>{switch}
+      </div>{etf_note}
       <div class="cardgrid">
         <div class="cmain">
           {on_block}
@@ -1124,8 +1122,111 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
         <div>{story_ix.get("driver", "")}</div>
         <div>{story_ix.get("gapfill", "")}</div>
       </div>
+    </div>'''
+    if parts:
+        return cardnav, drill
+    return f'''
+  <section id="{ix['key']}">
+    <div class="cardnav">{cardnav}</div>
+{drill}
+  </section>'''
+
+
+def _view_switch(inm, enm, active, aria):
+    """Two buttons, index | ETF. Each view of a panel carries its own copy with
+    its own button pressed, so the markup is never out of step with what is
+    shown and the page needs no script to label it."""
+    def btn(v, label):
+        on = v == active
+        return (f'<button type="button" class="vsw-b{" on" if on else ""}" data-v="{v}" '
+                f'aria-pressed="{"true" if on else "false"}">{label}</button>')
+    return (f'\n        <div class="vsw" role="group" aria-label="{aria}">'
+            f'{btn("ix", inm)}{btn("etf", enm)}</div>')
+
+
+def _switch_card(ix, ex, story_ix, levels, etf_lv, ln, ctx, on_note, wk_note_html):
+    """An index panel that also holds its ETF view. Index view shows first and
+    is exactly the classic card plus the switch; the ETF view is the ETF card.
+    CSS shows one at a time off the section's data-view."""
+    inm, enm = ix["nm"], ex["nm"]
+    aria = f"Show this panel in {inm} or {enm} prices"
+    cardnav, d_ix = _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html,
+                          switch=_view_switch(inm, enm, "ix", aria), parts=True)
+    _, d_etf = _card(ex, story_ix, etf_lv, ln, ctx, on_note, wk_note_html,
+                     index_levels=levels, switch=_view_switch(inm, enm, "etf", aria),
+                     parts=True)
+    return f'''
+  <section id="{ix['key']}" class="vpanel" data-view="ix" data-ix="{inm}" data-etf="{enm}">
+    <div class="cardnav">{cardnav}</div>
+    <div class="vw vw-ix">
+{d_ix}
+    </div>
+    <div class="vw vw-etf">
+{d_etf}
     </div>
   </section>'''
+
+
+def _view_script():
+    """Panel switches. Per panel: flip that panel. The top bar: flip all four,
+    set the calculator's units to match, and remember the choice on this
+    device (a convenience only; the page is correct without it)."""
+    return '''<script>
+(function(){
+  var KEY='gapscout.view';
+  var panels=Array.prototype.slice.call(document.querySelectorAll('section.vpanel'));
+  var bar=document.getElementById('vbar');
+  if(!panels.length) return;
+  function navLink(sec){return document.querySelector('.nav a[href="#'+sec.id+'"]');}
+  function show(sec,v){
+    sec.setAttribute('data-view',v);
+    var a=navLink(sec); if(a) a.textContent=sec.getAttribute(v==='etf'?'data-etf':'data-ix');
+  }
+  function syncBar(){
+    if(!bar) return;
+    var all=panels.every(function(s){return s.getAttribute('data-view')==='etf';})?'etf':
+            panels.every(function(s){return s.getAttribute('data-view')==='ix';})?'ix':'';
+    Array.prototype.forEach.call(bar.querySelectorAll('.vsw-b'),function(b){
+      var on=b.getAttribute('data-all')===all;
+      b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+    });
+  }
+  function calcUnit(v){
+    var b=document.querySelector('#becalc .beu[data-u="'+v+'"]');
+    if(b&&!b.disabled&&!b.classList.contains('on')) b.click();
+  }
+  function setAll(v,remember){
+    panels.forEach(function(s){show(s,v);}); syncBar(); calcUnit(v);
+    if(remember){try{localStorage.setItem(KEY,v);}catch(e){}}
+  }
+  panels.forEach(function(sec){
+    Array.prototype.forEach.call(sec.querySelectorAll('.vsw-b'),function(b){
+      b.addEventListener('click',function(){
+        var v=b.getAttribute('data-v'); if(sec.getAttribute('data-view')===v) return;
+        show(sec,v); syncBar();
+        var t=sec.querySelector('.vw-'+v+' .vsw-b[data-v="'+v+'"]'); if(t) t.focus();
+      });
+    });
+  });
+  if(bar){
+    Array.prototype.forEach.call(bar.querySelectorAll('.vsw-b'),function(b){
+      b.addEventListener('click',function(){setAll(b.getAttribute('data-all'),true);});
+    });
+  }
+  var saved=null; try{saved=localStorage.getItem(KEY);}catch(e){}
+  if(saved==='etf') setAll('etf',false);
+  /* old links to an ETF panel (#spy) open that panel in its ETF view */
+  var h=(location.hash||'').slice(1).toUpperCase();
+  panels.forEach(function(sec){
+    if(!h||sec.getAttribute('data-etf')!==h) return;
+    show(sec,'etf'); syncBar();
+    /* the browser's own fragment scroll (to an id that no longer exists)
+       runs after this script, so scroll once the page has loaded */
+    var go=function(){sec.scrollIntoView();};
+    if(document.readyState==='complete') go(); else window.addEventListener('load',go);
+  });
+})();
+</script>'''
 
 
 def render(IX: dict, content: dict, ctx: dict, style: str,
@@ -1183,58 +1284,47 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         <td><span class="dialpill {DIALPILL[ix['wk_dial']]}">{ix['wk_dial']}</span></td>
       </tr>''' for i, ix in enumerate(ranked))
 
-    cards = "".join(_card(IX[k], story.get(k) or {}, levels_all.get(k) or {}, ln, ctx,
-                          on_note, wk_note_html) for k in BOARD_ORDER)
     be_section, be_script = _be_calc(IX, ctx)
 
-    # ── ETF panels: the same four reads in SPY/QQQ/IWM/DIA prices ───────────
+    # ── ETF view: each index panel can flip to its ETF (QQQ/IWM/SPY/DIA) ────
     panels = etf_panels(IX, content)
     views = [(k, ex) for k, ex, _ in panels]
-    etf_cards = "".join(
-        _card(ex, story.get(k) or {}, lv, ln, ctx, on_note, wk_note_html,
-              index_levels=levels_all.get(k))
-        for k, ex, lv in panels)
-    # One nav link, not four: the nav is sticky, and on a phone every extra row
-    # of pills is screen the reader never gets back. The per-ETF links live in
-    # the section itself.
-    etf_nav = '<a href="#etfs">ETFs</a>' if views else ""
-    etf_jump = " ".join(f'<a href="#{ex["key"]}">{ex["nm"]}</a>' for _, ex in views)
-    missing_etf = [IX[k]["etf"] for k in BOARD_ORDER if k not in dict(views)]
-    etf_section = ""
+    by_key = {k: (ex, lv) for k, ex, lv in panels}
+    cards = "".join(
+        (_switch_card(IX[k], by_key[k][0], story.get(k) or {}, levels_all.get(k) or {},
+                      by_key[k][1], ln, ctx, on_note, wk_note_html) if k in by_key else
+         _card(IX[k], story.get(k) or {}, levels_all.get(k) or {}, ln, ctx,
+               on_note, wk_note_html))
+        for k in BOARD_ORDER)
+    missing_etf = [IX[k]["etf"] for k in BOARD_ORDER if k not in by_key and IX[k].get("etf")]
+    view_bar = ""
+    view_script = ""
     etf_legend = ""
     if views:
         price_clock = ("before the open that is the prior close, not a pre-market or "
                        "after-hours quote")
-        etf_legend = ('        <dt>ETF panels</dt><dd>SPY, QQQ, IWM and DIA track SPX, NDX, RUT and DJX. '
-                      'An ETF panel repeats its index panel&rsquo;s <b>odds, lean, implied move (%) '
-                      'and dial</b> &mdash; the index&rsquo;s numbers, not re-estimated for the ETF '
-                      '&mdash; with every price restated in the ETF&rsquo;s dollars. The ETF price is '
-                      f'its regular-session price at generation: {price_clock}. <b>Dividends are not '
-                      'modelled</b>: on its ex-dividend date an ETF opens lower by about the dividend, '
-                      'which the index odds do not include, so on that day the panel understates the '
-                      'chance of a lower open. The cushion line is the index&rsquo;s line converted to '
-                      'the ETF&rsquo;s price.</dd>\n')
-        pairs = ", ".join(f'{ex["nm"]} for {ex["index_nm"]}' for _, ex in views)
+        etf_legend = ('        <dt>ETF view</dt><dd>SPY, QQQ, IWM and DIA track SPX, NDX, RUT and DJX. '
+                      'Each index panel has a switch to its ETF. The ETF view repeats the index&rsquo;s '
+                      '<b>odds, lean, implied move (%) and dial</b> &mdash; the index&rsquo;s numbers, '
+                      'not re-estimated for the ETF &mdash; with every price restated in the '
+                      'ETF&rsquo;s dollars. The ETF price is its regular-session price at generation: '
+                      f'{price_clock}. <b>Dividends are not modelled</b>: on its ex-dividend date an '
+                      'ETF opens lower by about the dividend, which the index odds do not include, so '
+                      'on that day the ETF view understates the chance of a lower open. The cushion '
+                      'line is the index&rsquo;s line converted to the ETF&rsquo;s price.</dd>\n')
         conv = [ex["nm"] for _, ex, lv in panels if lv.get("source") == "converted"]
-        if not conv:
-            lv_line = "Whole-number levels are each ETF&rsquo;s own round numbers."
-        elif len(conv) == len(panels):
-            lv_line = ("Whole-number levels on this run were converted from the index levels and "
-                       "rounded to the dollar (each panel says so).")
-        else:
-            lv_line = ("Whole-number levels are each ETF&rsquo;s own round numbers, except in "
-                       f'{", ".join(conv)}, where they were converted from the index levels '
-                       "(that panel says so).")
-        gone = (f' No usable price was available for {", ".join(missing_etf)} at generation, so '
-                f'{"that panel is" if len(missing_etf) == 1 else "those panels are"} omitted.'
-                if missing_etf else "")
-        etf_section = f'''
-  <section id="etfs">
-    <h2 class="sec-h"><span class="num">&#36;</span> ETF Panels &mdash; The Same Read In ETF Prices</h2>
-    <div class="breadth"><b>How these relate to the index panels:</b> each ETF tracks its index ({pairs}). An ETF panel repeats its index panel&rsquo;s <b>odds, lean, implied move and risk dial</b> &mdash; the index&rsquo;s numbers, not re-estimated. What changes is the <b>price</b>: every level is in the ETF&rsquo;s own dollars, anchored to the ETF&rsquo;s regular-session price at generation ({price_clock}). {lv_line} Dividends are not modelled. The Gap Board, 60-second read, Big Move ranking and closing banner quote index levels; each ETF&rsquo;s own prices are in its panel below.{gone}</div>
-    <div class="etfjump"><span class="lab">Jump to</span> {etf_jump}</div>
-  </section>
-{etf_cards}'''
+        conv_line = (f' {", ".join(conv)} levels were converted from the index levels this run '
+                     '(the panel says so).' if conv else "")
+        gone = (f' No usable {", ".join(missing_etf)} price at generation, so '
+                f'{"that panel stays" if len(missing_etf) == 1 else "those panels stay"} '
+                'in index prices.' if missing_etf else "")
+        view_bar = f'''
+  <div class="vbar" id="vbar">
+    <span class="lab">Panels show</span>
+    <div class="vsw" role="group" aria-label="Show every panel in index or ETF prices"><button type="button" class="vsw-b on" data-all="ix" aria-pressed="true">Indices</button><button type="button" class="vsw-b" data-all="etf" aria-pressed="false">ETFs</button></div>
+    <span class="vnote">Each panel also has its own switch. The ETF view keeps the index&rsquo;s odds and restates every price in {" &middot; ".join(ex["nm"] for _, ex in views)} dollars; the Gap Board, 60-second read and Big Move ranking stay in index terms.{conv_line}{gone}</span>
+  </div>'''
+        view_script = "\n" + _view_script()
 
     # ── composed narrative (numbers computed, words from STORY) ─────────────
     wix, bix = IX[D["worst"]], IX[D["best"]]
@@ -1329,7 +1419,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="head-text">
       <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Scout &middot; {ctx["label"].title()}</div>
       <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>
-      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{", plus ETF panels for " + " &middot; ".join(ex["nm"] for _, ex in views) if views else ""} &mdash; gap into the next open + 1-week outlook</div>
+      <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{" (each switchable to its ETF: " + " &middot; ".join(by_key[k][0]["nm"] for k in ("spx", "ndx", "djx", "rut") if k in by_key) + ")" if views else ""} &mdash; gap into the next open + 1-week outlook</div>
       <div class="stamp">{ctx["long_date"]} &middot; {ctx["time_str"]} &nbsp;|&nbsp; <b style="color:var(--accent)">{ctx["label"]}</b> &middot; {ctx["phrase"]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
     </div>
     <img class="brand-mw" alt="Michael Wade Trade Coaching" src="{mw_logo}">
@@ -1338,7 +1428,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
   <div class="nav">
     <span class="lab">Jump to</span>
     <a class="board" href="#board">Gap Board</a>
-    <a href="#ndx">NDX</a><a href="#rut">RUT</a><a href="#spx">SPX</a><a href="#djx">DJX</a>{etf_nav}
+    <a href="#ndx">NDX</a><a href="#rut">RUT</a><a href="#spx">SPX</a><a href="#djx">DJX</a>
     <a href="#becalc">Breakevens</a><a href="#bigmove">Big Move</a><a href="#clock">Clock</a><a href="#calendar">Calendar</a><a href="#playbook">Playbook</a>
   </div>
 
@@ -1363,7 +1453,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="breadth"><b>Breadth read:</b> {breadth_read}</div>
   </section>
 {be_section}
-{cards}{etf_section}
+{view_bar}{cards}
 
   <section id="bigmove">
     <h2 class="sec-h"><span class="num">2</span> Big Move Ranking with Probabilities &mdash; 1-Week Horizon</h2>
@@ -1446,6 +1536,6 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <p style="margin-top:10px;color:var(--faint)">Daily AI {ctx["gap_word"]} Gap Scout Report &middot; deterministic engine v2 &middot; drift+skew lean &middot; disjoint bands &middot; breakeven calculator (touch odds + intraday clock) &middot; Trade Club AI &middot; Generated {ctx["gen_date"]} ({ctx["label"].lower()}) &middot; mwtradecoach.com</p>
   </div>
 
-{be_script}
+{be_script}{view_script}
 </div></body></html>'''
     return toks(html)

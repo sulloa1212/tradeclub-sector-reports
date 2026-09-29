@@ -1617,6 +1617,17 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
     # would otherwise go unnoticed, because the fallback cannot fail a run.
     print(f"  [engine] etf levels: {gap_engine.etf_level_sources(IX, content)}")
     body = gap_engine.render(IX, content, ctx, style_path.read_text(encoding="utf-8"))
+    if is_preview():
+        # Everything the page was rendered from, next to the preview page in the
+        # artifact: a later layout change can be re-rendered from these exact
+        # inputs for $0 instead of paying for a new model call.
+        out = ROOT / "preview_out"
+        out.mkdir(exist_ok=True)
+        (out / f"{slug}.inputs.json").write_text(json.dumps(
+            {"run_et": ctx["dt"].isoformat(), "feed": feed, "judgment": judgment,
+             "content": content},
+            default=lambda o: o.item() if hasattr(o, "item") else str(o), indent=1),
+            encoding="utf-8")
 
     # Sidecar derived from the computed stats (not model-authored numbers).
     top = max(IX.values(), key=lambda x: (_DIAL_SEV[x["on_dial"]], x["on_sig"]))

@@ -28,7 +28,11 @@ CSS = (
     'border-radius:999px;background:rgba(78,161,255,.14);color:#4ea1ff;'
     'border:1px solid rgba(78,161,255,.45);white-space:nowrap}'
     '@media(max-width:640px){.tc-datebar{gap:6px 12px;padding:9px 12px}'
-    '.tc-datebar .tc-db-date{font-size:17px}}'
+    '.tc-datebar .tc-db-date{font-size:17px}'
+    # On a phone the header stacks the logo above the title, as the Gap Scout
+    # and MWTC headers already do; the house report.css has no such rule and
+    # left the title (and so the bar) a ~100px column beside the logo.
+    '.header{flex-direction:column;align-items:flex-start}.head-text{padding-right:54px}}'
     '</style>')
 
 _CAL = ('<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/>'

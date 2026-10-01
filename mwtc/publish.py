@@ -31,6 +31,7 @@ KEEP = 5  # dated copies kept per slug (matches the rest of the site)
 
 SLUG = {"premarket": "pre-market", "postmarket": "market-wrap"}
 NAME = {"premarket": "Pre-Market Report", "postmarket": "Market Wrap Report"}
+EDITION = {"premarket": "PRE-MARKET EDITION", "postmarket": "CLOSING BELL EDITION"}
 
 # The same fixed "All Reports" hub button the other reports carry (links to "/").
 HUB_BUTTON = (
@@ -282,6 +283,15 @@ def publish_html(html: str, data: dict, mode: str) -> Path:
     body = inject_dash_button(body)
     body = inject_disclaimer_gate(body)
     body = inject_release_badge(body, slug)
+    # Date bar under the title (since 2026-10-02): day, time and edition from
+    # the clock at publish time, never from the model. Non-fatal by design.
+    try:
+        import datebar
+        now = dt.datetime.now(ZoneInfo("America/New_York"))
+        body = datebar.inject(body, datebar.long_date(now), datebar.clock(now),
+                              EDITION[mode])
+    except Exception as e:
+        print(f"  !! date bar skipped (non-fatal) — {e}")
     (d / f"{date}.html").write_text(body, encoding="utf-8")
 
     index_path = d / "index.json"

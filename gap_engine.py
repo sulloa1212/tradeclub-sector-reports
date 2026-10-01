@@ -37,6 +37,8 @@ import re
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+import datebar
+
 ET = ZoneInfo("America/New_York")
 
 # ── tunables (identical to the standalone v11 builder) ──────────────────────
@@ -1454,6 +1456,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily AI {ctx["gap_word"]} Gap Scout Report &mdash; {ctx["label"].title()} &mdash; {ctx["long_date"]} &middot; Trade Club AI</title>
 {style}
+{datebar.CSS}
 </head>
 <body><div class="wrap">
 
@@ -1461,9 +1464,9 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <img class="brand-tc" alt="Trade Club AI" src="{tc_logo}">
     <div class="head-text">
       <div class="eyebrow">Trade Club AI &middot; {ctx["gap_word"]} Gap Scout &middot; {ctx["label"].title()}</div>
-      <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>
+      <h1>Daily AI {ctx["gap_word"]} Gap Scout Report</h1>{datebar.bar(ctx["long_date"], ctx["time_str"], ctx["label"])}
       <div class="sub">SPX &middot; NDX &middot; DJX &middot; RUT{" (each switchable to its ETF: " + " &middot; ".join(by_key[k][0]["nm"] for k in ("spx", "ndx", "djx", "rut") if k in by_key) + ")" if views else ""} &mdash; gap into the next open + 1-week outlook</div>
-      <div class="stamp">{ctx["long_date"]} &middot; {ctx["time_str"]} &nbsp;|&nbsp; <b style="color:var(--accent)">{ctx["label"]}</b> &middot; {ctx["phrase"]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
+      <div class="stamp">{ctx["phrase"][:1].upper() + ctx["phrase"][1:]}{(" &middot; " + content["risk_phrase"]) if content.get("risk_phrase") else ""}</div>
     </div>
     <img class="brand-mw" alt="Michael Wade Trade Coaching" src="{mw_logo}">
   </div>

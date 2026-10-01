@@ -38,6 +38,8 @@ import urllib.request
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
+import datebar
+
 import pandas_market_calendars as mcal
 from anthropic import Anthropic
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -1320,6 +1322,16 @@ def _finalize_report(report: dict, body: str, sidecar: dict,
     body = inject_dash_button(body)
     body = inject_disclaimer_gate(body)
     body = inject_release_badge(body, report.get("run_time_et", ""))
+    # Date bar under the title (since 2026-10-02): day, time and run from the
+    # clock at write time, never from the model. The engine draws its own;
+    # inject() leaves a page that already has one unchanged.
+    try:
+        import gap_engine
+        now = datetime.datetime.now(ZoneInfo("America/New_York"))
+        body = datebar.inject(body, datebar.long_date(now), datebar.clock(now),
+                              gap_engine._session_label(now))
+    except Exception as e:
+        print(f"  !! date bar skipped (non-fatal) — {e}")
     (d / f"{date}.html").write_text(body, encoding="utf-8")
     # Two-run gap days (since 2026-09-15): the 9:00 AM edition also survives as
     # <date>-am.html so the 2:00 PM edition can overwrite the canonical daily

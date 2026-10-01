@@ -66,15 +66,23 @@ _STAMP_HOUSE = re.compile(
     r'(?:&middot;|·)\s*~?\d{1,2}:\d{2}\s*[AP]M ET'
     r'(?:\s*(?:&middot;|·)\s*[A-Za-z][A-Za-z /-]{0,40})?'
     r'\s*(?:<span class="run-badge">[^<]{0,40}</span>)?\s*')
+_SP = r'(?:\s|&nbsp;)*'
 _STAMP_MWTC = re.compile(
-    r'(<div class="stamp">)\s*Generated\s+[^<|]{0,40}?\bET\b\s*(?:&nbsp;)?\s*\|\s*(?:&nbsp;)?\s*')
+    r'(<div class="stamp">)\s*(?:(?:[A-Z][a-z]+day,\s*)?[A-Z][a-z]+ \d{1,2}, \d{4}' + _SP + r'\|' + _SP + r')?'
+    r'Generated\s+(?=(?:[^<|\u00b7&]|&nbsp;){0,48}?\d{4}|(?:[^<|\u00b7&]|&nbsp;){0,20}?\bET\b)'
+    r'(?:[^<|\u00b7&]|&nbsp;){0,48}?' + _SP +
+    r'(?:\||&middot;|\u00b7)' + _SP)
+_STAMP_GEN_ONLY = re.compile(r'(<div class="stamp">)\s*Generated\s+(?=[^<]{0,48}?\d{4})[^<]{0,48}?\s*(?=</div>)')
 _EMPTY_STAMP = re.compile(r'<div class="stamp">\s*</div>\s*')
 _DATE = r'(?:[A-Z][a-z]+day,\s*)?[A-Z][a-z]+ \d{1,2}, \d{4}'
-_SEP = r'\s*(?:&middot;|\u00b7|&mdash;|\u2014|\|)\s*'
+_SEP = _SP + r'(?:&middot;|\u00b7|&mdash;|\u2014|\|)' + _SP
 _SUB = re.compile(r'(<div class="sub">)(.*?)(</div>)', re.S)
 _SUB_LEAD = re.compile(r'^\s*' + _DATE + _SEP)
 _SUB_TAIL = re.compile(_SEP + _DATE + r'\s*$')
 _SUB_ONLY = re.compile(r'^\s*' + _DATE + r'\s*$')
+_H1_TAIL = re.compile(_SP + r'(?:&mdash;|\u2014|&ndash;|\u2013|-|&middot;|\u00b7|\||:)' + _SP
+                      + r'(?:[A-Z][a-z]+day,\s*)?[A-Z][a-z]{2,}\.? \d{1,2},? \d{4}'
+                      + r'(\s*<span class="tag[^"]*">[^<]{0,40}</span>)?\s*$')
 
 
 def _tidy_stamp(head: str) -> str:
@@ -82,7 +90,7 @@ def _tidy_stamp(head: str) -> str:
     bar now shows. Drop that leading part when it is in a known shape, keep
     the rest (badges, freshness notes); drop the line if nothing is left. An
     unfamiliar stamp is left exactly as it was."""
-    for rx in (_STAMP_HOUSE, _STAMP_MWTC):
+    for rx in (_STAMP_HOUSE, _STAMP_MWTC, _STAMP_GEN_ONLY):
         head, n = rx.subn(r'\1', head, count=1)
         if n:
             break
@@ -113,6 +121,15 @@ def inject(html: str, date_text: str, time_text: str, run_label: str) -> str:
     j = html.find("</h1>", i)
     if j < 0 or j - i > 6000:
         return html
+    # a title that ends with the date ('Post-Market Report — Monday, September
+    # 28, 2026') loses that tail; a title with anything after the date keeps it
+    h = html.rfind("<h1", i, j)
+    a = html.find(">", h) + 1 if h >= 0 else -1
+    if 0 < a <= j:
+        t = _H1_TAIL.sub(lambda m: m.group(1) or "", html[a:j], count=1)
+        if t.strip() and t != html[a:j]:
+            html = html[:a] + t + html[j:]
+            j = a + len(t)
     j += len("</h1>")
     u = html.find('<div class="sub">', j)
     if 0 <= u - j <= 400:

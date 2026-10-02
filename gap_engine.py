@@ -1443,7 +1443,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     footer_note = (f'Index levels and % moves are live index prints ({D["close_line"]}). '
                    + ('ETF prices are the ETFs&rsquo; own regular-session prices at generation '
                       '(the prior close on a pre-market run). ' if views else '') + 'Band vols: '
-                   + ", ".join(vol_bits) + '. Where shown, VIX/VXN/VXD spots are reference readings '
+                   + ", ".join(vol_bits) + '. Where shown, VIX/VXN/VXD/RVX spots are reference readings '
                    'only — they price a wider options strip and sit a few points above the ATM IV '
                    'that sizes the bands. The dealer-gamma regime is computed from live options '
                    'positioning data where available. The per-index directional <b>signal</b> is '

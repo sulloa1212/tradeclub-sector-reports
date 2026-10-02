@@ -134,6 +134,51 @@ def _history(sym: str, period: str = "4mo"):
     return h["Close"]
 
 
+# Cboe's own delayed (~15 min) quote for its volatility indices. Yahoo stopped
+# carrying ^RVX, so RVX comes from Cboe first; the others keep Yahoo and fall
+# back to Cboe. Display/anchor only, like every vol-index spot here.
+CBOE_QUOTE = "https://cdn-api.cboe.com/api/global/delayed_quotes/quotes/_{sym}.json"
+CBOE_FIRST = {"RVX"}
+
+
+def _cboe_vol_index(vn: str):
+    """Latest Cboe quote for a vol index ('RVX'), or None on any failure."""
+    import requests
+    try:
+        r = requests.get(CBOE_QUOTE.format(sym=vn), timeout=20,
+                         headers={"User-Agent": "Mozilla/5.0 (mwtc-gap-scout)",
+                                  "Accept": "application/json"})
+        r.raise_for_status()
+        d = (r.json() or {}).get("data") or {}
+        for k in ("current_price", "close", "prev_day_close"):
+            try:
+                p = float(d.get(k) or 0)
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(p) and 3.0 <= p <= 200.0:
+                return round(p, 2)
+        print(f"  [feed] Cboe {vn} quote had no usable price")
+    except Exception as e:
+        print(f"  [feed] Cboe {vn} quote failed: {type(e).__name__}: {e}")
+    return None
+
+
+def _vol_index(meta: dict):
+    """(spot, source) for an index's Cboe vol index, or (None, None)."""
+    order = ("cboe", "yf") if meta["vn"] in CBOE_FIRST else ("yf", "cboe")
+    for src in order:
+        if src == "cboe":
+            p = _cboe_vol_index(meta["vn"])
+            if p is not None:
+                return p, "cboe"
+        else:
+            try:
+                return round(_last_price(meta["vol_sym"]), 2), "yf"
+            except Exception as e:
+                print(f"  [feed] {meta['vol_sym']} vol failed: {e}")
+    return None, None
+
+
 def _last_price(sym: str):
     import yfinance as yf
     t = yf.Ticker(sym)
@@ -200,11 +245,11 @@ def fetch_index(key: str, premarket: bool) -> dict:
             out["etf_day"] = round((epx / eprev - 1.0) * 100.0, 2)
     except Exception as e:
         print(f"  [feed] {ETF.get(key)} ETF price failed: {e}")
-    try:
-        out["vol"] = round(_last_price(meta["vol_sym"]), 2)
-        out["vol_live"] = True
-    except Exception as e:
-        print(f"  [feed] {meta['vol_sym']} vol failed: {e}")
+    vx, vx_src = _vol_index(meta)
+    if vx is not None:
+        out["vol"], out["vol_live"] = vx, True
+        if vx_src == "cboe":
+            print(f"  [feed] {meta['vn']} {vx} (Cboe delayed quote)")
     if premarket:
         try:
             import yfinance as yf

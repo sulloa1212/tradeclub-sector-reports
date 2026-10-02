@@ -33,6 +33,10 @@ INDEXES = {
     "rut": {"nm": "RUT", "sym": "^RUT", "vol_sym": "^RVX", "vn": "RVX", "fut": "RTY=F", "div": 1.0},
 }
 
+# Tradeable ETF twin per index — its price feeds the report's ETF panels and
+# the breakeven calculator's "ETF $" mode (index and ETF have no fixed ratio).
+ETF = {"spx": "SPY", "ndx": "QQQ", "djx": "DIA", "rut": "IWM"}
+
 # When a vol index can't be fetched, estimate it from VIX by the typical ratio
 # (marked "est." downstream — the model may override with a searched value).
 VOL_RATIO_VS_VIX = {"ndx": 1.25, "rut": 1.30, "djx": 0.92, "spx": 1.0}
@@ -156,8 +160,10 @@ def fetch_index(key: str, premarket: bool) -> dict:
         "above_sma20": None, "above_sma50": None, "ma_rising": None,
         "mom5_pct": None,
     }
+    bar_date = None
     try:
         closes = _history(meta["sym"])
+        bar_date = closes.index[-1].date()
         px = float(closes.iloc[-1]) / meta["div"]
         prev = float(closes.iloc[-2]) / meta["div"]
         out["lvl"] = round(px, 2)
@@ -172,6 +178,28 @@ def fetch_index(key: str, premarket: bool) -> dict:
         out["mom5_pct"] = round((px / (float(closes.iloc[-6]) / meta["div"]) - 1.0) * 100.0, 2)
     except Exception as e:
         print(f"  [feed] {meta['sym']} level/trend failed: {e}")
+    # ETF twin (SPY/QQQ/IWM/DIA) for the ETF panels and the calculator's ETF-$
+    # mode. Display only — it never feeds the band math. Read straight after the
+    # index so the two are seconds apart, from the REGULAR-SESSION daily bar:
+    # before the open that is the prior close, never an extended-hours print.
+    # The ETF is used only if its bar is from the SAME SESSION as the index's;
+    # otherwise the panel would pair one day's odds with another day's price.
+    # Fail-safe: None drops that ETF's panel and disables the calculator toggle.
+    out["etf_sym"], out["etf_spot"], out["etf_day"] = ETF.get(key), None, None
+    try:
+        ec = _history(ETF[key])
+        etf_date = ec.index[-1].date()
+        epx, eprev = float(ec.iloc[-1]), float(ec.iloc[-2])
+        if bar_date is None:
+            print(f"  [feed] {ETF[key]} skipped: no {meta['sym']} bar to match it to")
+        elif etf_date != bar_date:
+            print(f"  [feed] {ETF[key]} skipped: its last bar is {etf_date}, "
+                  f"{meta['sym']}'s is {bar_date} — different sessions")
+        elif epx > 0 and eprev > 0:
+            out["etf_spot"] = round(epx, 2)
+            out["etf_day"] = round((epx / eprev - 1.0) * 100.0, 2)
+    except Exception as e:
+        print(f"  [feed] {ETF.get(key)} ETF price failed: {e}")
     try:
         out["vol"] = round(_last_price(meta["vol_sym"]), 2)
         out["vol_live"] = True
@@ -222,6 +250,9 @@ def fetch_all(premarket: bool = False) -> dict:
         if d["vol"] is None and vix is not None:
             d["vol"] = round(vix * VOL_RATIO_VS_VIX[k], 1)
             d["vol_src"] = "est:VIX-ratio"
+    print("[feed] ETF prices: " + ", ".join(
+        f"{d.get('etf_sym')} {d['etf_spot']}" if d.get("etf_spot") else f"{d.get('etf_sym')} MISSING"
+        for d in data.values()))
     ok = sum(1 for d in data.values() if d["lvl"] is not None)
     print(f"[feed] levels ok for {ok}/4; "
           + ", ".join(f"{d['nm']} vol={d['vol_src'] or 'MISSING'}"

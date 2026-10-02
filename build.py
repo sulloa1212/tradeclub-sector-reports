@@ -759,9 +759,17 @@ def send_telegram(token: str, chat_id: str, text: str):
         r.read()
 
 
+def is_preview() -> bool:
+    """A preview build publishes nothing, so it must announce nothing."""
+    return os.environ.get("PREVIEW", "").strip().lower() in ("1", "true", "yes")
+
+
 def notify(records: list, cost: dict, date: str):
     """Send ONE notification that the reports are live, with today's cost.
     Channel is chosen by which credentials are configured (Telegram preferred)."""
+    if is_preview():
+        print("  .. PREVIEW run — no notification sent.")
+        return
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("TELEGRAM_CHAT_ID")
     if token and chat:
@@ -813,6 +821,9 @@ def build_reports_telegram_message(records: list, cost: dict, date: str) -> str:
 def notify_reports(records: list, cost: dict, date: str):
     """Notify that the registry reports are live (report-shaped). Telegram
     preferred, then Resend email; skips cleanly if neither is configured."""
+    if is_preview():
+        print("  .. PREVIEW run — no notification sent.")
+        return
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     chat = os.environ.get("TELEGRAM_CHAT_ID")
     if token and chat:
@@ -1613,7 +1624,22 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
     ln = gap_engine.leans(IX)
     print(f"  [engine] leans {ln['lo']}-{ln['hi']}% down | "
           + " ".join(f"{k}:{IX[k]['on_dial']}" for k in gap_engine.BOARD_ORDER))
+    # 'model' = the model's own round numbers were usable; 'converted' = the
+    # engine fell back to the index levels. A contract the model never honours
+    # would otherwise go unnoticed, because the fallback cannot fail a run.
+    print(f"  [engine] etf levels: {gap_engine.etf_level_sources(IX, content)}")
     body = gap_engine.render(IX, content, ctx, style_path.read_text(encoding="utf-8"))
+    if is_preview():
+        # Everything the page was rendered from, next to the preview page in the
+        # artifact: a later layout change can be re-rendered from these exact
+        # inputs for $0 instead of paying for a new model call.
+        out = ROOT / "preview_out"
+        out.mkdir(exist_ok=True)
+        (out / f"{slug}.inputs.json").write_text(json.dumps(
+            {"run_et": ctx["dt"].isoformat(), "feed": feed, "judgment": judgment,
+             "content": content},
+            default=lambda o: o.item() if hasattr(o, "item") else str(o), indent=1),
+            encoding="utf-8")
 
     # Sidecar derived from the computed stats (not model-authored numbers).
     top = max(IX.values(), key=lambda x: (_DIAL_SEV[x["on_dial"]], x["on_sig"]))

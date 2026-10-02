@@ -14,6 +14,8 @@ blob = json.loads(re.search(r'var BLOB=(\{.*?\}), BE=BLOB\.ix', html, re.S).grou
 IX = {k: {"nm": d["nm"], "co": d["co"], "lvl": d["C"], "vol": d["vol"], "r": d["r"],
           "sig": d["sg"], "vn": d["vn"], "vol1d": d["v1"],
           "vx_spot": d["vx"], "vx1d_spot": d["vx1"],
+          # ETF twin for the calculator's ETF-$ mode (absent on older pages)
+          "etf_spot": d.get("es"), "etf": d.get("esym"),
           "on": d["on"], "wk": d["wk"],
           "on_sig": d["on"]["sd1"], "wk_sig": d["wk"]["sd1"]}
       for k, d in blob['ix'].items()}

@@ -115,10 +115,15 @@ jobs:
             # scan the whole file.
             if [ "$s" = "gap-risk" ] && [ "$WINDOW" = "pm" ]; then
               STAMP=$(grep -m1 -oE '~[0-9]{1,2}:[0-9]{2} [AP]M ET' "site/$s/$TODAY.html" || true)
-              case "$STAMP" in
-                *"PM ET") echo "gap-risk PM edition already built ($STAMP) — skipping." ;;
-                *) missing=1 ;;
-              esac
+              # Only an edition stamped 2:00 PM or later is "the PM edition". A
+              # page stamped 12:xx or 1:xx PM came from an extra midday run
+              # (2026-10-02) and must not cancel the scheduled 2:00 PM build.
+              H=$(printf '%s' "$STAMP" | sed -nE 's/^~([0-9]{1,2}):[0-9]{2} PM ET$/\1/p')
+              if [ -n "$H" ] && [ "$H" -ge 2 ] && [ "$H" -ne 12 ]; then
+                echo "gap-risk PM edition already built ($STAMP) — skipping."
+              else
+                missing=1
+              fi
             fi
           done
           if [ "$missing" = "0" ]; then

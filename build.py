@@ -1506,6 +1506,55 @@ def _parse_json_reply(text: str) -> dict:
     return json.loads(t[i:j + 1])
 
 
+def _json_objects(text: str) -> list:
+    """Every complete top-level JSON object in a model reply, in order.
+
+    The reply is every text block joined, and with web search the model can
+    write a draft, search again, then write the final answer: two objects in
+    one string, which json.loads rejects as 'Extra data' (2026-10-09: four
+    replies in a row, no Gap Scout all morning)."""
+    dec, out, i = json.JSONDecoder(), [], text.find("{")
+    while i >= 0:
+        try:
+            obj, end = dec.raw_decode(text, i)
+        except ValueError:
+            i = text.find("{", i + 1)
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+        i = text.find("{", end)
+    return out
+
+
+def _pick_gap_content(text: str, missing: list) -> dict:
+    """The gap content from a reply: the LAST object that satisfies the
+    contract (the model's final answer). If none does, the error is the one
+    from the fullest object, so the retry reminder stays meaningful."""
+    cands = _json_objects(text)
+    if not cands:
+        raise ValueError("no JSON object in reply")
+    worst = None
+    for n in range(len(cands) - 1, -1, -1):
+        c = cands[n]
+        # the hub-card one-liner is the only field code can supply itself
+        head = (c.get("story") or {}).get("headline") if isinstance(c.get("story"), dict) else None
+        if not c.get("sidecar_headline") and head:
+            c["sidecar_headline"] = re.sub(r"<[^>]+>", "", str(head)).strip()
+            print("  .. sidecar_headline missing — using the story headline")
+        try:
+            _validate_gap_content(c, missing)
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            if worst is None or len(c) > worst[0]:
+                worst = (len(c), e)
+            continue
+        if len(cands) > 1:
+            print(f"  .. reply held {len(cands)} JSON objects — using #{n + 1}, "
+                  "the last one that meets the contract")
+        return c
+    e = worst[1]
+    raise e if isinstance(e, ValueError) else ValueError(f"gap content malformed — {e}")
+
+
 def _validate_gap_content(c: dict, missing: list):
     """Fail loudly (-> retry) if the v2 STORY contract is incomplete."""
     for k in ("story", "levels", "clock", "playbook", "sidecar_headline"):
@@ -1594,9 +1643,7 @@ def build_report_gap_engine(client: Anthropic, report: dict) -> dict:
             raise ValueError("model returned no text")
         if stop == "max_tokens":
             raise ValueError(f"content truncated at MAX_TOKENS={MAX_TOKENS}")
-        c = _parse_json_reply(text)
-        _validate_gap_content(c, missing)
-        return c
+        return _pick_gap_content(text, missing)
 
     try:
         content = attempt()

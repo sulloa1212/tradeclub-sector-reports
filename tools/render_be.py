@@ -19,7 +19,7 @@ IX = {k: {"nm": d["nm"], "co": d["co"], "lvl": d["C"], "vol": d["vol"], "r": d["
           "on": d["on"], "wk": d["wk"],
           "on_sig": d["on"]["sd1"], "wk_sig": d["wk"]["sd1"]}
       for k, d in blob['ix'].items()}
-section, script = G._be_calc(IX, G.run_context())
+section, script = G._be_calc(IX, G.be_ctx_from_blob(blob['cfg']))
 pathlib.Path('/tmp/be.js').write_text(re.sub(r'^\s*<script>|</script>\s*$', '', script.strip()))
 pathlib.Path('/tmp/be_section.html').write_text(section)
 print(f"rendered from {src} -> /tmp/be.js, /tmp/be_section.html")

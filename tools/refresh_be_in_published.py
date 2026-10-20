@@ -33,11 +33,7 @@ for arg in sys.argv[1:]:
           for k, d in blob['ix'].items()}
     # The calculator's staleness copy quotes the ORIGINAL run time, so rebuild
     # the context from the report itself rather than from now.
-    ctx = G.run_context()
-    ctx["genlbl"] = blob['cfg']['genlbl']
-    section, script = G._be_calc(IX, {**ctx, "gen_iso": blob['cfg']['gen'],
-                                      "time_str": blob['cfg']['genlbl'],
-                                      "gen_date": blob['cfg']['gday']})
+    section, script = G._be_calc(IX, G.be_ctx_from_blob(blob['cfg']))
     # _be_calc returns both blocks with a leading newline, because the page
     # template supplies its own surrounding whitespace. Substituting them raw
     # here would add a blank line each — harmless, but it trips the guard below,

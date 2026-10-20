@@ -23,7 +23,7 @@ IX = {k: {"nm": d["nm"], "co": d["co"], "lvl": d["C"], "vol": d["vol"], "r": d["
           "on_sig": d["on"]["sd1"], "wk_sig": d["wk"]["sd1"]}
       for k, d in blob['ix'].items()}
 
-section, script = G._be_calc(IX, G.run_context())
+section, script = G._be_calc(IX, G.be_ctx_from_blob(blob['cfg']))
 out = re.sub(r'<section id="becalc">.*?</section>', lambda _: section, html, flags=re.S)
 out = re.sub(r'<script>\s*\(function\(\)\{\s*var BLOB=.*?</script>', lambda _: script, out, flags=re.S)
 

@@ -112,7 +112,14 @@ HOLIDAYS = {
     (2027, 1, 1), (2027, 1, 18), (2027, 2, 15), (2027, 3, 26), (2027, 5, 31), (2027, 6, 18),
     (2027, 7, 5), (2027, 9, 6), (2027, 11, 25), (2027, 12, 24),
 }
+# NYSE 1:00 PM early closes (from pandas_market_calendars; maintain yearly).
+EARLY_CLOSE = {(2026, 11, 27), (2026, 12, 24), (2027, 11, 26)}
 OPEN_T, CLOSE_T = time(9, 30), time(16, 0)
+EARLY_CLOSE_T = time(13, 0)
+
+
+def _close_time(d) -> time:
+    return EARLY_CLOSE_T if (d.year, d.month, d.day) in EARLY_CLOSE else CLOSE_T
 
 
 def Phi(z):
@@ -134,7 +141,7 @@ def _session_label(dt):
     t = dt.time()
     if t < OPEN_T:
         return "PRE-MARKET RUN"
-    if t < CLOSE_T:
+    if t < _close_time(dt.date()):
         return "LIVE MID-SESSION RUN"
     return "POST-MARKET RUN"
 
@@ -167,8 +174,9 @@ def run_context(now_et: datetime | None = None) -> dict:
     h12 = dt.hour % 12 or 12
     hrs_left = 0.0
     if label == "LIVE MID-SESSION RUN":
-        close = datetime.combine(dt.date(), CLOSE_T, ET)
-        hrs_left = max(0.0, (close - dt).total_seconds() / 3600)
+        now = dt if dt.tzinfo else dt.replace(tzinfo=ET)
+        close = datetime.combine(now.date(), _close_time(now.date()), ET)
+        hrs_left = max(0.0, (close - now).total_seconds() / 3600)
     return dict(
         dt=dt, label=label, next_day=next_day, phrase=phrase,
         hrs_left=hrs_left, on_mult=pm_spread_mult(hrs_left),
@@ -629,6 +637,22 @@ def _odds_table(h4, lean_dn, stats, note_html):
         </div>'''
 
 
+def be_ctx_from_blob(cfg: dict) -> dict:
+    """Context for rebuilding a published page's calculator: the page's own run
+    time, rest-of-session factor and weekend factor, never the tool's clock (the
+    baked bands already carry the run's factors). Pages from before these keys
+    existed were never widened (factor 1.0); their weekend factor follows from
+    their run time."""
+    try:
+        ctx = run_context(datetime.fromisoformat(cfg["gen"]).replace(tzinfo=ET))
+    except (KeyError, TypeError, ValueError):
+        ctx = run_context()
+    ctx.update(gen_iso=cfg.get("gen", ctx["gen_iso"]), time_str=cfg.get("genlbl", ctx["time_str"]),
+               gen_date=cfg.get("gday", ctx["gen_date"]), on_mult=float(cfg.get("onm", 1.0)),
+               weekend=float(cfg["wkd"]) if "wkd" in cfg else ctx["weekend"])
+    return ctx
+
+
 def _be_calc(IX, ctx):
     """Breakeven calculator v2: rest-of-day horizon (local clock, 1-day IV,
     U-shaped intraday variance), touch odds (first-passage), spot re-anchor,
@@ -658,6 +682,8 @@ def _be_calc(IX, ctx):
            # Overnight horizon = now -> next open: rescale the baked band from the
            # run's rest-of-session factor to the one at the reader's clock.
            "pmvr": [list(x) for x in PM_VAR_RATIO], "onm": round(ctx.get("on_mult", 1.0), 4),
+           "wkd": ctx.get("weekend", 1.0),
+           "early": sorted(f"{y:04d}-{m:02d}-{d:02d}" for (y, m, d) in EARLY_CLOSE),
            "vbeta": VOL_BETA, "gen": ctx["gen_iso"], "genlbl": ctx["time_str"],
            "gday": ctx["gen_date"],
            # Expiration horizon: the tenor anchors the interpolation runs through,
@@ -725,8 +751,9 @@ def _be_calc(IX, ctx):
   }
   function W(t,k){return t + k*(Math.pow(2*t-1,3)+1)/6;}
   function varRemain(){
-    var n=etNow(), mins=n.h*60+n.m, o=9*60+30, c=16*60, k=CFG.uk;
-    if(mins<=o) return {f:1,hrs:6.5,pre:true};
+    var n=etNow(), mins=n.h*60+n.m, o=9*60+30, c=closeMin(todayET()), k=CFG.uk;
+    if(!isSession(todayET())) return {f:0,hrs:0,pre:false,post:true};
+    if(mins<=o) return {f:1,hrs:(c-o)/60,pre:true};
     if(mins>=c) return {f:0,hrs:0,pre:false,post:true};
     var t=(mins-o)/(c-o), tot=W(1,k);
     return {f:(tot-W(t,k))/tot, hrs:(c-mins)/60, pre:false};
@@ -768,9 +795,19 @@ def _be_calc(IX, ctx):
   }
   /* Rest-of-session spread factor at the reader's clock (1 outside the session),
      same calibrated table as the engine. */
+  function todayET(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return iso(new Date());}}
+  function closeMin(k){return (CFG.early||[]).indexOf(k)>=0?13*60:16*60;}
+  /* Weekend/holiday factor for "next open" at the reader's clock, the engine's
+     rule: 1.25 when the next open is 2+ calendar days away. */
+  function wkNow(){
+    var t=todayET(), n=etNow(), mins=n.h*60+n.m;
+    if(isSession(t)&&mins<9*60+30) return 1;
+    var p=t.split('-'), cur=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));
+    for(var g=1;g<15;g++){cur.setUTCDate(cur.getUTCDate()+1); if(isSession(iso(cur))) return g>=2?1.25:1;}
+    return 1;
+  }
   function pmMult(){
-    var tbl=CFG.pmvr||[[0,1]], n=etNow(), mins=n.h*60+n.m, o=9*60+30, c=16*60, t;
-    try{t=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){t=iso(new Date());}
+    var tbl=CFG.pmvr||[[0,1]], n=etNow(), mins=n.h*60+n.m, o=9*60+30, t=todayET(), c=closeMin(t);
     if(!isSession(t)||mins<o||mins>=c) return 1;
     var h=Math.min((c-mins)/60,tbl[tbl.length-1][0]);
     for(var i=1;i<tbl.length;i++){if(h<=tbl[i][0]){var a=tbl[i-1],b=tbl[i];return Math.sqrt(a[1]+(b[1]-a[1])*(h-a[0])/(b[0]-a[0]));}}
@@ -808,7 +845,7 @@ def _be_calc(IX, ctx):
       return {sd:sde,su:sue,mu:CFG.dk*(d.sg*driftTenorN(N))*Se,sd1:Se,vsrc:base,n:N};
     }
     var p=d[h];
-    if(h==='on') sc*=pmMult()/(CFG.onm||1);
+    if(h==='on') sc*=(wkNow()*pmMult())/((CFG.wkd||1)*(CFG.onm||1));
     return {sd:p.sd*sc,su:p.su*sc,mu:p.mu*sc,sd1:p.sd1*sc,vsrc:base};
   }
   var $=function(id){return document.getElementById(id);};
@@ -1336,8 +1373,9 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     span = (f'now, {ctx["time_str"]} &rarr; {ctx["next_day"]} open' if mid else
             f'this session&rsquo;s close &rarr; {ctx["next_day"]} open')
     if mid:
+        wider = round((ctx["on_mult"] - 1) * 100)
         bump_note += (' because this edition runs mid-session, each band also covers <b>the rest of '
-                      f'today&rsquo;s session</b> &mdash; about {round((ctx["on_mult"] - 1) * 100)}% '
+                      f'today&rsquo;s session</b> &mdash; {f"about {wider}%" if wider >= 1 else "slightly"} '
                       'wider than a close-to-open gap (measured on two years of mid-session to '
                       'next-open moves);')
     on_word = "to next open" if mid else "overnight"

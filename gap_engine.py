@@ -105,7 +105,7 @@ DIALCOLOR = {"Extreme": "#ef4444", "High": "#f97316", "Elevated": "#f59e0b", "Ca
 DIALPILL = {"Extreme": "d-ext", "High": "d-high", "Elevated": "d-elev", "Calm": "d-calm"}
 NEEDLE = {"Calm": (70, 40), "Elevated": (122, 26), "High": (160, 40), "Extreme": (190, 70)}
 
-# US market full-closure holidays (maintain yearly; half-days not modelled).
+# US market full-closure holidays (maintain yearly, together with EARLY_CLOSE below).
 HOLIDAYS = {
     (2026, 1, 1), (2026, 1, 19), (2026, 2, 16), (2026, 4, 3), (2026, 5, 25), (2026, 6, 19),
     (2026, 7, 3), (2026, 9, 7), (2026, 11, 26), (2026, 12, 25),

@@ -56,6 +56,25 @@ RD_DRIFT = 0.35                  # over a few hours drift is mostly noise
 UVOL_K = 1.50                    # intraday variance U-shape (open/close heavy)
 VOL_BETA = 1.0                   # spot-down ≈ +1 vol pt per −1% (suggestion only)
 
+# Mid-session runs price "next open" from the live price, so the spread must
+# cover the rest of today's session too. Measured, not modelled: variance of
+# log(next open / price with h hours left) over variance of log(next open /
+# close), averaged over SPY/QQQ/IWM/DIA hourly bars, 2024-10 to 2026-10
+# (tools/calibrate_pm_gap.py). Late-day moves are partly reversed overnight,
+# so this is far smaller than the intraday U-shape alone would give.
+PM_VAR_RATIO = ((0, 1.00), (0.5, 1.09), (1.5, 1.16), (2.5, 1.32), (3.5, 1.66),
+                (4.5, 1.82), (5.5, 2.05), (6.5, 2.28))
+
+
+def pm_spread_mult(hours_left: float) -> float:
+    """Spread multiplier for a band from now to the next open, given the hours
+    left in today's session (0 outside the session)."""
+    h = max(0.0, min(float(hours_left), PM_VAR_RATIO[-1][0]))
+    for (h0, r0), (h1, r1) in zip(PM_VAR_RATIO, PM_VAR_RATIO[1:]):
+        if h <= h1:
+            return math.sqrt(r0 + (r1 - r0) * (h - h0) / (h1 - h0))
+    return math.sqrt(PM_VAR_RATIO[-1][1])
+
 SIG_W_PREOPEN = dict(fut=0.45, day=0.15, trend=0.22, mom=0.10, gamma=0.08)
 SIG_W_NOFUT = dict(fut=0.00, day=0.50, trend=0.22, mom=0.12, gamma=0.16)
 
@@ -146,8 +165,13 @@ def run_context(now_et: datetime | None = None) -> dict:
         phrase = f"holiday gap into {next_day}"
     gap_word = ("Weekend" if next_day == "Monday" else "Holiday") if closed >= 2 else "Overnight"
     h12 = dt.hour % 12 or 12
+    hrs_left = 0.0
+    if label == "LIVE MID-SESSION RUN":
+        close = datetime.combine(dt.date(), CLOSE_T, ET)
+        hrs_left = max(0.0, (close - dt).total_seconds() / 3600)
     return dict(
         dt=dt, label=label, next_day=next_day, phrase=phrase,
+        hrs_left=hrs_left, on_mult=pm_spread_mult(hrs_left),
         weekend=1.25 if closed >= 2 else 1.0, gap_word=gap_word,
         premarket=(label == "PRE-MARKET RUN"),
         long_date=f'{dt.strftime("%A, %B")} {dt.day}, {dt.year}',
@@ -264,7 +288,8 @@ def compute(feed: dict, ctx: dict, judgment: dict | None = None,
             bool(f["ma_rising"]) if f["ma_rising"] is not None else True,
             f["mom5_pct"] or 0.0, gamma, adj)
         lvl, vol = f["lvl"], f["vol"]
-        on_sig = vol / 100 * math.sqrt(1 / 252) * OVN * ctx["weekend"] * 100
+        on_sig = (vol / 100 * math.sqrt(1 / 252) * OVN * ctx["weekend"] * 100
+                  * ctx.get("on_mult", 1.0))
         wk_sig = vol / 100 * math.sqrt(5 / 252) * 100
         r_wk = 1 + (r - 1) * SKEW_TENOR
         ix = dict(
@@ -630,6 +655,9 @@ def _be_calc(IX, ctx):
                          "mu": round(IX[k]["wk"]["mu"], 4), "sd1": round(IX[k]["wk_sig"], 3)}}
               for k in IX}
     cfg = {"dk": DRIFT_K, "rdskew": RD_SKEW_TENOR, "rddrift": RD_DRIFT, "uk": UVOL_K,
+           # Overnight horizon = now -> next open: rescale the baked band from the
+           # run's rest-of-session factor to the one at the reader's clock.
+           "pmvr": [list(x) for x in PM_VAR_RATIO], "onm": round(ctx.get("on_mult", 1.0), 4),
            "vbeta": VOL_BETA, "gen": ctx["gen_iso"], "genlbl": ctx["time_str"],
            "gday": ctx["gen_date"],
            # Expiration horizon: the tenor anchors the interpolation runs through,
@@ -738,6 +766,16 @@ def _be_calc(IX, ctx):
     var p=k.split('-'), wd=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay();
     return wd>=1&&wd<=5&&!HOL[k];
   }
+  /* Rest-of-session spread factor at the reader's clock (1 outside the session),
+     same calibrated table as the engine. */
+  function pmMult(){
+    var tbl=CFG.pmvr||[[0,1]], n=etNow(), mins=n.h*60+n.m, o=9*60+30, c=16*60, t;
+    try{t=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){t=iso(new Date());}
+    if(!isSession(t)||mins<o||mins>=c) return 1;
+    var h=Math.min((c-mins)/60,tbl[tbl.length-1][0]);
+    for(var i=1;i<tbl.length;i++){if(h<=tbl[i][0]){var a=tbl[i-1],b=tbl[i];return Math.sqrt(a[1]+(b[1]-a[1])*(h-a[0])/(b[0]-a[0]));}}
+    return Math.sqrt(tbl[tbl.length-1][1]);
+  }
   /* Sessions strictly after today, up to and including the chosen date. */
   function sessionsUntil(endISO){
     var todayISO=(function(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}catch(e){return iso(new Date());}})();
@@ -770,6 +808,7 @@ def _be_calc(IX, ctx):
       return {sd:sde,su:sue,mu:CFG.dk*(d.sg*driftTenorN(N))*Se,sd1:Se,vsrc:base,n:N};
     }
     var p=d[h];
+    if(h==='on') sc*=pmMult()/(CFG.onm||1);
     return {sd:p.sd*sc,su:p.su*sc,mu:p.mu*sc,sd1:p.sd1*sc,vsrc:base};
   }
   var $=function(id){return document.getElementById(id);};
@@ -796,7 +835,7 @@ def _be_calc(IX, ctx):
   /* ETF prices are quoted to the cent; index levels keep their old format. */
   function fnum(n){if(unit==='etf')return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
     return Math.abs(n)>=1000?Math.round(n).toLocaleString():n.toFixed(1);}
-  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?'overnight':(h==='wk'?'1-week':'expiration'));}
+  function HNAME(h,n){return h==='rd'?'rest of day':(h==='on'?(pmMult()>1?'to next open':'overnight'):(h==='wk'?'1-week':'expiration'));}
   function dash(){[elSafe,elTLo,elTHi,elTouch].forEach(function(e){e.textContent='\\u2014';});elZ.innerHTML='';elTerm.innerHTML='';}
   spotI.addEventListener('input',function(){spotTouched=true;});
   ivI.addEventListener('input',function(){ivTouched=true;});
@@ -1029,6 +1068,7 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
     `switch` goes in the title row; `parts` returns (cardnav, drill) so a
     panel can hold both views. With neither, the output is the classic card."""
     is_etf = bool(ix.get("is_etf"))
+    mid = ctx.get("label") == "LIVE MID-SESSION RUN"
     res = (levels.get("res") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     sup = (levels.get("sup") or ["&mdash;", "&mdash;"]) + ["&mdash;"] * 2
     est_tag = ", est." if ix["est"] else ""
@@ -1079,11 +1119,12 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
         etf_note = ""
         lv_note = 'Round numbers act as magnets &mdash; option open-interest clusters there. Re-verify live.'
     dsub = (f'{live_lab} <b>{ix["disp"]}</b> {_day_span(ix)}{est_tag} &nbsp;&middot;&nbsp; '
-            f'overnight 1SD <b>&plusmn;{ix["on_sig"]:.2f}%</b> ({on_move}) &nbsp;&middot;&nbsp; '
+            f'{"to next open" if mid else "overnight"} 1SD <b>&plusmn;{ix["on_sig"]:.2f}%</b> ({on_move}) &nbsp;&middot;&nbsp; '
             f'1-week 1SD <b>&plusmn;{ix["wk_sig"]:.2f}%</b> &nbsp;&middot;&nbsp; '
             f'{story_ix.get("tail", "")}')
     on_block = _odds_table(
-        f'{ctx["gap_word"]} gap &mdash; odds {ctx["next_day"]} opens DOWN vs UP (from {frm})',
+        f'{ctx["gap_word"]} gap &mdash; odds {ctx["next_day"]} opens DOWN vs UP (from {frm}'
+        + (f' at {ctx["time_str"]})' if mid else ')'),
         ix["on"]["lean_dn"], ix["on"], on_note.replace("{vol}", _vol_disp(ix)))
     wk_block = _odds_table(
         f'1-Week move &mdash; odds {noun} closes DOWN vs UP over the next ~5 sessions (from {frm})',
@@ -1112,7 +1153,7 @@ def _card(ix, story_ix, levels, ln, ctx, on_note, wk_note_html, index_levels=Non
             <div class="lvls">
               <div class="lvrow"><span class="lab">Resistance</span><span class="chip r">{res[0]}</span><span class="chip r">{res[1]}</span></div>
               <div class="lvrow"><span class="lab">{live_lab}</span><span class="chip ">{ix['disp']}</span></div>
-              <div class="lvrow"><span class="lab">Overnight 1SD</span><span class="chip f">{ix['on_lo']} &ndash; {ix['on_hi']}</span></div>
+              <div class="lvrow"><span class="lab">{"To next open 1SD" if mid else "Overnight 1SD"}</span><span class="chip f">{ix['on_lo']} &ndash; {ix['on_hi']}</span></div>
               <div class="lvrow"><span class="lab">1-week 1SD</span><span class="chip f">{ix['wk_lo']} &ndash; {ix['wk_hi']}</span></div>
               <div class="lvrow"><span class="lab">Support</span><span class="chip s">{sup[0]}</span><span class="chip s">{sup[1]}</span></div>
               {special}
@@ -1291,8 +1332,17 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
         return s.replace("{LEAN_LO}", str(ln["lo"])).replace("{LEAN_HI}", str(ln["hi"]))
 
     bump_note = " the band is bumped ~25% for the extra closed-market days;" if ctx["weekend"] > 1 else ""
+    mid = ctx.get("label") == "LIVE MID-SESSION RUN"
+    span = (f'now, {ctx["time_str"]} &rarr; {ctx["next_day"]} open' if mid else
+            f'this session&rsquo;s close &rarr; {ctx["next_day"]} open')
+    if mid:
+        bump_note += (' because this edition runs mid-session, each band also covers <b>the rest of '
+                      f'today&rsquo;s session</b> &mdash; about {round((ctx["on_mult"] - 1) * 100)}% '
+                      'wider than a close-to-open gap (measured on two years of mid-session to '
+                      'next-open moves);')
+    on_word = "to next open" if mid else "overnight"
     on_note = (f'This is a <b>{ctx["label"].lower()}</b> into a <b>{ctx["phrase"]}</b> '
-               f'(this session&rsquo;s close &rarr; {ctx["next_day"]} open) &mdash;{bump_note} '
+               f'({span}) &mdash;{bump_note} '
                'the lean blends the directional read (overnight futures + short-term trend + gamma regime) '
                'with the options put-skew that shapes the tails. Each row is a <b>band</b> (a slice of where '
                f'{ctx["next_day"]}&rsquo;s open could land) and the <b>odds it lands in that slice</b>; '
@@ -1381,9 +1431,9 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     tldr_items = [
         f'<span class="lead">How the four closed.</span> {wix["nm"]} was weakest at {_day_plain(wix)}; '
         f'{bix["nm"]} was strongest at {_day_plain(bix)}. This was a <b>{D["breadth"]}</b> session.',
-        f'<span class="lead neg">Highest gap risk: {widest["nm"]}</span> (overnight '
+        f'<span class="lead neg">Highest gap risk: {widest["nm"]}</span> ({on_word} '
         f'&plusmn;{widest["on_sig"]:.2f}%, 1-week &plusmn;{widest["wk_sig"]:.2f}%). '
-        f'<span class="lead pos">Calmest: {calmest["nm"]}</span> (overnight &plusmn;{calmest["on_sig"]:.2f}%).',
+        f'<span class="lead pos">Calmest: {calmest["nm"]}</span> ({on_word} &plusmn;{calmest["on_sig"]:.2f}%).',
         f'<span class="lead">The lean moves with the tape.</span> The drift+skew engine spreads the '
         f'overnight lean from <b>~{ln["lo"]}% down ({IX[min(IX, key=lambda k: ln["on"][k])]["nm"]})</b> to '
         f'<b>~{ln["hi"]}% down ({IX[max(IX, key=lambda k: ln["on"][k])]["nm"]})</b> &mdash; each index&rsquo;s '
@@ -1493,7 +1543,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
   <section id="board">
     <h2 class="sec-h"><span class="num">1</span> The Gap Board &mdash; Tap An Index To Jump To Its Card</h2>
     <table class="board">
-      <tr><th class="inst">Index (ETF)</th><th>Live</th><th>Day %</th><th>Impl. Overnight Move</th><th>Lean</th><th>Overnight Gap Dial</th><th class="lvls" style="text-align:left">Key Whole-# Levels</th></tr>
+      <tr><th class="inst">Index (ETF)</th><th>Live</th><th>Day %</th><th>{"Impl. Move to Next Open" if mid else "Impl. Overnight Move"}</th><th>Lean</th><th>Overnight Gap Dial</th><th class="lvls" style="text-align:left">Key Whole-# Levels</th></tr>
 {board}
     </table>
     <div class="breadth"><b>Breadth read:</b> {breadth_read}</div>
@@ -1555,7 +1605,7 @@ def render(IX: dict, content: dict, ctx: dict, style: str,
     <div class="legend">
       <dl style="margin:0">
         <dt>Run type</dt><dd><b>Pre-market</b>: overnight futures already trading &mdash; the direction read is sharpest. <b>Mid-session / post-market</b>: the direction read is driven by the <b>drift signal</b> (short-term trend + today&rsquo;s tape + gamma) plus skew; it sharpens as overnight futures trade.</dd>
-        <dt>{ctx["gap_word"]} gap</dt><dd>This session&rsquo;s close &rarr; the next session&rsquo;s open{" &mdash; the band is bumped ~25% for the extra closed-market days" if ctx["weekend"] > 1 else " (~1 closed night), so the implied band is the plain overnight 1SD"}.</dd>
+        <dt>{ctx["gap_word"]} gap</dt><dd>This session&rsquo;s close &rarr; the next session&rsquo;s open{" &mdash; the band is bumped ~25% for the extra closed-market days" if ctx["weekend"] > 1 else " (~1 closed night), so the implied band is the plain overnight 1SD"}.{" A mid-session run measures from the live price instead, so its band also covers the rest of today&rsquo;s session (widened by a factor measured on two years of mid-session to next-open moves)." if mid else ""}</dd>
         <dt>1-Week implied move</dt><dd>The one-standard-deviation band over the <b>next ~5 trading sessions</b>, from each index&rsquo;s own option-implied vol (full-session variance, no weekend bump). A size, not a direction.</dd>
         <dt>Odds bands</dt><dd>Each row is a <b>slice</b> of where the open could land and the <b>odds it lands in that slice</b>. The <b>worst lvl</b> is the far (outer) edge of the slice; the near edge is the row above it. The slices don&rsquo;t overlap, so the <b>odds add up</b> &mdash; all down bands sum to the down lean, all up bands to the up lean, everything to 100%. For a level <i>between</i> the marks (like your actual breakeven), use the Breakeven Calculator.</dd>
         <dt>Direction Split</dt><dd>The band sliced into a down leg and an up leg by a model with two inputs: a <i>directional drift</i> (overnight futures + short-term trend + gamma regime) that sets which way it leans, and a <i>downside skew</i> that keeps the down tail fatter. The legs sum back to the band total. It&rsquo;s a modest, conditional lean &mdash; not a forecast of what will happen.</dd>

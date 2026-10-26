@@ -221,11 +221,14 @@ def _enrich_earnings(r: dict, today_iso: str, prev_iso: Optional[str] = None) ->
     # before yesterday's open already moved the stock yesterday (CLF/FITB shown
     # as overnight news on 2026-10-20); on a Monday the previous session is
     # Friday, not Sunday (NVDA 2026-08-26 is why the window starts a day back).
+    # Anything dated BETWEEN the two sessions (a weekend or holiday — Berkshire
+    # reports on Saturdays) is after the last close whatever its hour.
     if prev_iso is None:
         prev_iso = sessions.previous_trading_day(dt.date.fromisoformat(today_iso)).isoformat()
     date = r.get("date")
     overnight = reported and ((date == prev_iso and hour == "amc") or
-                              (date == today_iso and hour in ("bmo", "")))
+                              (date == today_iso and hour in ("bmo", "")) or
+                              bool(date and prev_iso < date < today_iso))
     timing_unconfirmed = reported and date == prev_iso and hour not in ("amc", "bmo")
     return {**r, "reported": reported, "eps_surprise_pct": surprise,
             "beat_miss": beat, "revenue_surprise_pct": rev_surprise,

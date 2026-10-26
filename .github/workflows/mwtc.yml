@@ -157,17 +157,6 @@ jobs:
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
         run: python -m mwtc.publish --mode "${MODE_IN:-premarket}" --preview
 
-      # Earnings + movers trace (and the preview page). The repo is public, so
-      # this artifact is too: mwtc/publish.py keeps paid-feed data out of it.
-      - name: Keep this run's trace (artifact, 14 days)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: mwtc-${{ inputs.mode }}-packet
-          path: mwtc_out/
-          retention-days: 14
-          if-no-files-found: ignore
-
       - name: Commit & push the rebuilt site (race-safe)
         if: steps.guard.outputs.go == 'true' && inputs.preview != true
         run: |
@@ -208,3 +197,17 @@ jobs:
             -d "{\"run\":\"${{ github.run_id }}\",\"mode\":\"${{ inputs.mode }}\"}" \
             https://mwtc-health.green-paper-667a.workers.dev/checkin/tradeclub-${{ inputs.mode }}
           echo "Checked in as tradeclub-${{ inputs.mode }}."
+
+      # Earnings + movers trace (and the preview page). LAST and best-effort: a
+      # failed upload must never skip the commit or the Health check-in of a
+      # report that is already built and announced. The repo is public, so this
+      # artifact is too: mwtc/publish.py keeps the UW/CME payloads out of it.
+      - name: Keep this run's trace (artifact, 14 days)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwtc-${{ inputs.mode }}-packet
+          path: mwtc_out/
+          retention-days: 14
+          if-no-files-found: ignore

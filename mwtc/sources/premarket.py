@@ -22,6 +22,9 @@ ET = ZoneInfo("America/New_York")
 PRE_OPEN, OPEN, CLOSE = dt.time(4, 0), dt.time(9, 30), dt.time(16, 0)
 MIN_TRADE_WINDOWS = 6   # 5-minute windows with a trade since 4:00 AM ET
 MAX_AGE_MIN = 30        # the last trade must be this fresh
+MIN_DISTINCT_RECENT = 3  # distinct prices among the last 6 traded windows
+REF_TOL = 0.005         # $: a print this close to the prior close may be a reference print...
+REF_AWAY = 0.005        # ...when the print before it traded more than 0.5% away
 BAR = dt.timedelta(minutes=5)
 
 
@@ -94,11 +97,21 @@ def summarize(bars, now_et: dt.datetime, official: Optional[dict] = None) -> Opt
         return None
     pre = b[(dates == today) & (times >= PRE_OPEN) & (times < OPEN) & (b.index < ref)]
     base = {"prev_close": round(prev_close, 2), "last": None, "pct_change": None,
-            "last_print_et": None, "age_min": None, "trade_windows": len(pre)}
+            "last_print_et": None, "age_min": None, "trade_windows": len(pre),
+            "distinct_recent": 0}
     if pre.empty or prev_close <= 0:
         return base
-    last = float(pre["Close"].iloc[-1])
-    printed = min(pre.index[-1].to_pydatetime() + BAR, ref)   # end of the last traded bar
+    closes = [float(c) for c in pre["Close"]]
+    # Yahoo's tape carries prints at EXACTLY the prior close while the stock
+    # trades elsewhere (RTX 2026-10-19: ~190.5 all morning, one 193.92 print at
+    # 8:38), which would read as +0.0%. Step back over such prints.
+    k = len(closes) - 1
+    while (k > 0 and abs(closes[k] - prev_close) <= REF_TOL
+           and abs(closes[k - 1] / prev_close - 1) > REF_AWAY):
+        k -= 1
+    last = closes[k]
+    base["distinct_recent"] = len({round(c, 4) for c in closes[max(0, k - 5):k + 1]})
+    printed = min(pre.index[k].to_pydatetime() + BAR, ref)   # end of the last traded bar
     base.update(last=round(last, 2), pct_change=(last / prev_close - 1) * 100,
                 last_print_et=_fmt(printed),
                 age_min=(ref - printed).total_seconds() / 60)
@@ -149,8 +162,10 @@ def movers(universe: list, now_et: Optional[dt.datetime] = None, n: int = 10,
         return None
     rows = []
     for s, v in snap.items():
+        # Activity AND price variation: one stuck price printed in every window
+        # is not trading (LYV 2026-10-14: #1 "gainer" +3.7%, opened -1.3%).
         if (v["pct_change"] is None or v["trade_windows"] < MIN_TRADE_WINDOWS
-                or v["age_min"] > MAX_AGE_MIN):
+                or v["age_min"] > MAX_AGE_MIN or v["distinct_recent"] < MIN_DISTINCT_RECENT):
             continue
         rows.append({"ticker": s, "name": names.get(s), "pct_change": round(v["pct_change"], 2),
                      "price": v["last"], "prev_close": v["prev_close"],

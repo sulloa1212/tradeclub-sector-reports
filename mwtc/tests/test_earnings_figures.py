@@ -47,5 +47,37 @@ class Figures(unittest.TestCase):
         self.assertIn("revenue actual differs", out["verify_note"])
 
 
+
+class ReconciledLines(unittest.TestCase):
+    """The quoted line must not assert what the two-source check withheld."""
+
+    def reconciled(self, primary, fmp_rows):
+        p = macro._enrich_earnings(primary, "2026-10-22", "2026-10-21")
+        return earnings.reconcile([p], fmp_rows)[0]
+
+    def test_sources_disagree_metric_gets_no_verdict(self):
+        # A feed-side swap (META 2026-10-22): Finnhub revenue 63.1B/est 64.6B, FMP 64.6B.
+        row = self.reconciled(dict(META, revenueActual=63_100_000_000, revenueEstimate=64_601_000_000),
+                              [{"symbol": "META", "date": "2026-10-21", "eps_actual": 7.40,
+                                "revenue_actual": 64_601_000_000, "reported": True}])
+        line = earnings.result_line(row, include_reaction=False)
+        self.assertIn("revenue $63.1B vs est. $64.6B: sources disagree — verify", line)
+        self.assertIn("BEAT +27.8%", line)        # EPS agreed across sources: verdict kept
+        self.assertNotIn("MISS", line)
+
+    def test_unverified_row_gets_no_figures(self):
+        # The Nike case: Finnhub says reported, FMP says a different date.
+        row = self.reconciled(dict(META, symbol="NKE", date="2026-10-21", epsActual=0.02, epsEstimate=0.12),
+                              [{"symbol": "NKE", "date": "2026-12-18", "eps_actual": None, "reported": False}])
+        line = earnings.result_line(row, include_reaction=False)
+        self.assertTrue(line.startswith("NKE — unconfirmed — verify (report-date conflict"), line)
+        self.assertNotIn("$", line)
+        self.assertNotIn("MISS", line)
+
+    def test_non_numeric_figures_do_not_raise(self):
+        r = macro._enrich_earnings(dict(META, epsActual="n/a", epsEstimate=5.79), "2026-10-22", "2026-10-21")
+        self.assertTrue(earnings.result_line(r, include_reaction=False).startswith("META — "))
+
+
 if __name__ == "__main__":
     unittest.main()

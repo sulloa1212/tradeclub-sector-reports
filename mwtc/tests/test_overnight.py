@@ -52,6 +52,16 @@ class OvernightWindow(unittest.TestCase):
         # reporters are Friday's overnight news.
         self.assertTrue(self.enrich(row("XYZ", "2026-11-25", "amc"), "2026-11-27")["is_overnight_result"])
 
+    def test_weekend_dated_report_is_overnight(self):
+        # Berkshire reports on a Saturday morning: Monday's overnight news.
+        for hour in ("", "bmo", "amc"):
+            r = self.enrich(row("BRK.B", "2026-10-31", hour), "2026-11-02")
+            self.assertTrue(r["is_overnight_result"], hour)
+            self.assertFalse(r["timing_unconfirmed"], hour)
+
+    def test_holiday_dated_report_is_overnight(self):
+        self.assertTrue(self.enrich(row("XYZ", "2026-11-26", ""), "2026-11-27")["is_overnight_result"])
+
     def test_today_before_open_and_untimed(self):
         self.assertTrue(self.enrich(row("A", "2026-10-20", "bmo"), "2026-10-20")["is_overnight_result"])
         self.assertTrue(self.enrich(row("B", "2026-10-20", ""), "2026-10-20")["is_overnight_result"])

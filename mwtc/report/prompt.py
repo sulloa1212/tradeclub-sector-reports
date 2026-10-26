@@ -62,6 +62,13 @@ listed in the wrong week with a number is the worst failure — when sources dis
 withhold, don't guess.
 4. Don't restate the same metric with different numbers in different sections.
 5. Carry packet source/url values into a short Sources line at the end.
+6. NO DIRECTION WITHOUT DATA, in every section (Mike's Morning Take, Executive \
+Summary, Stocks to Watch, Trading Plan included): never say a stock will gap up/down, \
+open higher/lower, or rally/fall at the open unless the packet carries its real \
+pre-market move (its earnings result_line, movers, or premarket_reactions). If its \
+result_line says "pre-market reaction not available — verify live", say exactly that. \
+When the move is present, the call follows the move — a beat trading down is a \
+negative catalyst.
 
 OUTPUT: return ONE self-contained HTML file in the Trade Club AI house style and \
 nothing else (no markdown fences, no text before <!DOCTYPE html>). Keep the \
@@ -88,7 +95,7 @@ _GEO = ("World &amp; Geopolitical Backdrop [institutional.news_headlines] — su
 SECTIONS_PREMARKET = f"""\
 1. Mike's Morning Take [SYNTHESIS] — THIS OPENS THE PAGE (reader's first read; synthesize it from the FULL packet even though the detail sections come after): 2–3 short paragraphs in the Michael Wade voice — what actually matters today, the mindset/risk message, and the one setup or trap to watch. End with the sign-off.
 2. Bottom Line — Morning Playbook [SYNTHESIS] — bias · best/weak sectors · opportunity · risk · 3 levels · 3 takeaways. End: "Trade smart. Manage risk. Let the probabilities work for you."
-3. Executive Summary (30-sec) [SYNTHESIS] — bias (Bull/Bear/Neutral), confidence 1–10, primary catalysts, biggest opportunity, biggest risk. LEAD-CATALYST RULE: if earnings.overnight_results contains a mega-cap or focus-ticker result from last night, THAT is the primary catalyst — name it first with its beat/miss and surprise %. A trillion-dollar company's after-close print outranks this morning's smaller reporters (on 2026-08-27 the summary led with BBY/DG beats while NVDA's blowout from the prior evening went unmentioned — never repeat that). Absent an overnight earnings result, lead with the biggest overnight story from the news feeds [institutional.news_headlines + overnight_news]. PAIR THE PRINT WITH ITS REACTION: each overnight_results row has a result_line (figures and beat/miss computed by code — quote it, never restate EPS or revenue from raw fields) ending in the stock's real pre-market move or "pre-market reaction not available — verify live"; report the result AND that move together. NO DIRECTION WITHOUT DATA: if a row has no pre-market move, do not say it will gap, open higher/lower, rally or fall — say the reaction is not available — a beat trading DOWN (usually guidance or margins) is a NEGATIVE catalyst; never call it constructive because the EPS line beat (on 2026-09-03 AVGO beat by 8c but fell ~5% overnight on soft guidance, and the summary called it "constructive" risk-on — never repeat that).
+3. Executive Summary (30-sec) [SYNTHESIS] — bias (Bull/Bear/Neutral), confidence 1–10, primary catalysts, biggest opportunity, biggest risk. LEAD-CATALYST RULE: if earnings.overnight_results contains a mega-cap or focus-ticker result from last night, THAT is the primary catalyst — name it first with its beat/miss and surprise %. A trillion-dollar company's after-close print outranks this morning's smaller reporters (on 2026-08-27 the summary led with BBY/DG beats while NVDA's blowout from the prior evening went unmentioned — never repeat that). Absent an overnight earnings result, lead with the biggest overnight story from the news feeds [institutional.news_headlines + overnight_news]. PAIR THE PRINT WITH ITS REACTION: each overnight_results row has a result_line (figures and beat/miss computed by code — quote it, never restate EPS or revenue from raw fields) ending in the stock's real pre-market move or "pre-market reaction not available — verify live"; report the result AND that move together — a beat trading DOWN (usually guidance or margins) is a NEGATIVE catalyst; never call it constructive because the EPS line beat (on 2026-09-03 AVGO beat by 8c but fell ~5% overnight on soft guidance, and the summary called it "constructive" risk-on — never repeat that).
 <!--DASHBOARD--> goes here (injected — do not draw).
 4. Overnight Markets [macro.futures + macro.global_indices] — S&P/Nasdaq/Dow/Russell futures; Asia; Europe. Explain why from packet news.
 5. {_GEO}

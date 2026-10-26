@@ -73,7 +73,11 @@ def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict,
         if live and sym in reactions:
             r["premarket_reaction_pct"] = reactions[sym]["pct"]
             r["premarket_as_of_et"] = reactions[sym]["as_of_et"]
-        r["result_line"] = earnings.result_line(r, include_reaction=live)
+        try:
+            r["result_line"] = earnings.result_line(r, include_reaction=live)
+        except Exception as e:  # noqa: BLE001 — one odd row must not cost the report
+            log.warning("result_line failed for %s: %s", sym, e)
+            r["result_line"] = None
     return {
         "calendar": verified.get("calendar"),
         "overnight_results": overnight[:6] or None,
@@ -111,15 +115,20 @@ def collect_data(mode: str = "premarket") -> dict:
     premarket_mode = mode != "postmarket"
     reactions = focus_reactions = None
     if premarket_mode:
-        log.info("Collecting pre-market prices (yfinance, S&P 500 + Nasdaq-100)...")
-        movers = premarket.movers(fmp.index_universe(), report_dt) or {
-            "gainers": None, "losers": None,
-            "unavailable": "pre-market prices could not be fetched this run"}
-        ov_syms = [str(r.get("symbol") or "").upper()
-                   for r in (macro_packet.get("earnings_calendar") or [])
-                   if r.get("is_overnight_result")]
-        reactions = premarket.reactions(ov_syms + list(config.UW_FOCUS_TICKERS), report_dt)
-        focus_reactions = {t: reactions[t] for t in config.UW_FOCUS_TICKERS if t in reactions} or None
+        unavailable = {"gainers": None, "losers": None,
+                       "unavailable": "pre-market prices could not be fetched this run"}
+        try:  # new data must never cost the report: any failure -> "unavailable"
+            log.info("Collecting pre-market prices (yfinance, S&P 500 + Nasdaq-100)...")
+            movers = premarket.movers(fmp.index_universe(), report_dt) or unavailable
+            cal = macro_packet.get("earnings_calendar")
+            ov_syms = [str(r.get("symbol") or "").upper()
+                       for r in (cal if isinstance(cal, list) else [])
+                       if isinstance(r, dict) and r.get("is_overnight_result")]
+            reactions = premarket.reactions(ov_syms + list(config.UW_FOCUS_TICKERS), report_dt)
+            focus_reactions = {t: reactions[t] for t in config.UW_FOCUS_TICKERS if t in reactions} or None
+        except Exception as e:  # noqa: BLE001
+            log.warning("pre-market collection failed (report continues without it): %s", e)
+            movers, reactions, focus_reactions = unavailable, {}, None
     else:
         movers = {"gainers": fmp_packet.get("gainers"), "losers": fmp_packet.get("losers"),
                   "source": "FMP — today's regular session"}

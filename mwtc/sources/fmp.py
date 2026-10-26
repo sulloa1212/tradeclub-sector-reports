@@ -214,7 +214,7 @@ def _universe_from_file(path: Optional[Path] = None) -> list:
             if sym.strip():
                 out.append({"symbol": sym.strip().upper(), "name": name.strip() or None})
         return out
-    except OSError as e:
+    except (OSError, ValueError) as e:  # ValueError: undecodable bytes
         log.warning("universe fallback file unreadable (%s)", e)
         return []
 

@@ -30,9 +30,11 @@ def bars(prev_day, prev_close, today, prints):
 
 
 def run_of(end, n, price):
-    """n consecutive 5-minute bars ending at `end` (HH:MM), all at `price`."""
+    """n consecutive 5-minute bars ending at `end` (HH:MM) and at `price`, each
+    earlier bar a cent lower — real two-way trading, not one stuck print."""
     t = dt.datetime.strptime(end, "%H:%M")
-    return [((t - dt.timedelta(minutes=5 * i)).strftime("%H:%M"), price) for i in reversed(range(n))]
+    return [((t - dt.timedelta(minutes=5 * i)).strftime("%H:%M"), round(price - 0.01 * i, 2))
+            for i in reversed(range(n))]
 
 
 class Summarize(unittest.TestCase):
@@ -63,6 +65,20 @@ class Summarize(unittest.TestCase):
                          dt.datetime(2026, 10, 19, 8, 40, tzinfo=ET))
         self.assertEqual(s["prev_close"], 50.0)
         self.assertAlmostEqual(s["pct_change"], -2.0)
+
+    def test_print_at_prior_close_is_not_the_last_price(self):
+        # RTX 2026-10-19: trading ~190.5 pre-market, then one print at exactly
+        # the prior close (193.92) at 8:38 turned a -1.7% move into +0.0%.
+        b = bars(MON, 193.92, TUE, [("08:15", 190.54), ("08:20", 190.60), ("08:35", 193.92)])
+        s = pm.summarize(b, AT_840)
+        self.assertEqual(s["last"], 190.60)
+        self.assertEqual(s["last_print_et"], "8:25 AM ET")
+        self.assertAlmostEqual(s["pct_change"], (190.60 / 193.92 - 1) * 100)
+
+    def test_flat_stock_still_reads_flat(self):
+        s = pm.summarize(bars(MON, 100.0, TUE, [("08:25", 100.0), ("08:35", 100.0)]), AT_840)
+        self.assertEqual(s["last"], 100.0)
+        self.assertAlmostEqual(s["pct_change"], 0.0)
 
     def test_official_close_preferred(self):
         # META 2026-10-21: official close $697.52, last regular bar $698.43.
@@ -99,6 +115,17 @@ class MoversAndReactions(unittest.TestCase):
         self.assertEqual(m["universe_size"], 5)
         self.assertEqual(m["as_of_et"], "8:40 AM ET")
         self.assertIsNone(m["unavailable"])
+
+    def test_stuck_repeated_price_is_not_a_mover(self):
+        # LYV 2026-10-14: one price printed in every window from 5:55 (O=H=L=C)
+        # ranked #1 gainer at +3.7%; it opened -1.3%.
+        stuck = bars(MON, 100.0, TUE, [(t, 103.7) for t, _ in run_of("08:30", 12, 0)])
+        two_prices = bars(MON, 100.0, TUE, [(t, 103.7 if i % 2 else 100.2)
+                                            for i, (t, _) in enumerate(run_of("08:30", 10, 0))])
+        m = pm.movers([{"symbol": "STUCK"}, {"symbol": "TWO"}, {"symbol": "UP"}], AT_840,
+                      download=stub({"STUCK": stuck, "TWO": two_prices, "UP": self.table["UP"]}),
+                      closes=no_closes)
+        self.assertEqual([r["ticker"] for r in m["gainers"]], ["UP"])
 
     def test_no_qualifiers_says_why(self):
         m = pm.movers(self.uni, AT_840, download=stub({k: self.table[k] for k in ("THIN", "FLAT")}),

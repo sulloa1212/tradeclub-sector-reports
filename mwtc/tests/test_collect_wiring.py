@@ -70,7 +70,54 @@ class Wiring(unittest.TestCase):
         self.assertNotIn("pre-market", d["earnings"]["overnight_results"][0]["result_line"])
 
 
+class FailureIsolation(unittest.TestCase):
+    def test_finnhub_error_body_does_not_kill_the_report(self):
+        # A 200 reply without 'earningsCalendar' comes back as the raw dict.
+        macro_p, fmp_p = fake_packets()
+        macro_p["earnings_calendar"] = {"error": "You don't have access to this resource."}
+        with mock.patch.object(main.macro, "collect", return_value=macro_p), \
+             mock.patch.object(main.macro, "sector_breadth", return_value=None), \
+             mock.patch.object(main.unusual_whales, "collect", return_value={"available": True}), \
+             mock.patch.object(main.unusual_whales, "earnings", return_value=None), \
+             mock.patch.object(main.fmp, "collect", return_value=fmp_p), \
+             mock.patch.object(main.fmp, "index_universe", return_value=[]), \
+             mock.patch.object(main.sentiment, "collect", return_value={}), \
+             mock.patch.object(main.fedwatch, "probabilities", return_value=None), \
+             mock.patch.object(main.kalshi, "fed_odds", return_value=None), \
+             mock.patch.object(main.premarket, "movers", return_value=None), \
+             mock.patch.object(main.premarket, "reactions", return_value={}):
+            d = main.collect_data(mode="premarket")
+        self.assertTrue(d["movers"]["unavailable"])
+
+    def test_premarket_step_exception_falls_back(self):
+        with mock.patch.object(main.premarket, "reactions", side_effect=RuntimeError("boom")):
+            d = self.run_collect_raw("premarket")
+        self.assertTrue(d["movers"]["unavailable"])
+        self.assertIn("reaction not available", d["earnings"]["overnight_results"][0]["result_line"])
+
+    def run_collect_raw(self, mode):
+        macro_p, fmp_p = fake_packets()
+        with mock.patch.object(main.macro, "collect", return_value=macro_p), \
+             mock.patch.object(main.macro, "sector_breadth", return_value=None), \
+             mock.patch.object(main.unusual_whales, "collect", return_value={"available": True}), \
+             mock.patch.object(main.unusual_whales, "earnings", return_value=None), \
+             mock.patch.object(main.fmp, "collect", return_value=fmp_p), \
+             mock.patch.object(main.fmp, "index_universe", return_value=[]), \
+             mock.patch.object(main.sentiment, "collect", return_value={}), \
+             mock.patch.object(main.fedwatch, "probabilities", return_value=None), \
+             mock.patch.object(main.kalshi, "fed_odds", return_value=None), \
+             mock.patch.object(main.premarket, "movers", return_value=None):
+            return main.collect_data(mode=mode)
+
+
 class Universe(unittest.TestCase):
+    def test_undecodable_file_is_not_fatal(self):
+        f = Path(tempfile.mkdtemp()) / "universe.txt"
+        f.write_bytes(b"\xff\xfe\x00garbage")
+        with mock.patch.object(fmp, "UNIVERSE_FILE", f), \
+             mock.patch.object(fmp, "_constituents", return_value=None):
+            self.assertEqual(fmp.index_universe(), [])
+
     def test_universe_dedupes(self):
         with mock.patch.object(fmp, "_constituents", side_effect=[
                 [{"symbol": "AAPL", "name": "Apple"}, {"symbol": "BRK.B", "name": "Berkshire"}],

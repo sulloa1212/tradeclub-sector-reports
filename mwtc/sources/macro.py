@@ -203,6 +203,15 @@ def _enrich_earnings(r: dict, today_iso: str, prev_iso: Optional[str] = None) ->
             beat = "beat" if eps_act > eps_est else ("miss" if eps_act < eps_est else "inline")
         except (TypeError, ZeroDivisionError):
             pass
+    rev_est, rev_act = r.get("revenueEstimate"), r.get("revenueActual")
+    rev_surprise = rev_beat = None
+    if rev_act is not None and rev_est not in (None, 0):
+        try:
+            rev_surprise = round((rev_act - rev_est) / abs(rev_est) * 100, 1)
+            rev_beat = ("beat" if rev_act > rev_est else
+                        "miss" if rev_act < rev_est else "inline")
+        except (TypeError, ZeroDivisionError):
+            pass
     hour = (r.get("hour") or "").lower()
     when = ("reported" if reported else
             "before open" if hour == "bmo" else
@@ -219,7 +228,8 @@ def _enrich_earnings(r: dict, today_iso: str, prev_iso: Optional[str] = None) ->
                               (date == today_iso and hour in ("bmo", "")))
     timing_unconfirmed = reported and date == prev_iso and hour not in ("amc", "bmo")
     return {**r, "reported": reported, "eps_surprise_pct": surprise,
-            "beat_miss": beat, "when": when, "is_today": date == today_iso,
+            "beat_miss": beat, "revenue_surprise_pct": rev_surprise,
+            "revenue_beat_miss": rev_beat, "when": when, "is_today": date == today_iso,
             "is_overnight_result": overnight, "timing_unconfirmed": timing_unconfirmed}
 
 

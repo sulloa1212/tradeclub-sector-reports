@@ -315,7 +315,10 @@ def _coverage_gaps(html: str, data: dict) -> list:
                     gaps.append(f"top pre-market {grp[:-1]} {sym} ({pct:.0f}%) never mentioned")
         # Reaction contradiction (2026-09-03 AVGO lesson): an overnight reporter
         # trading hard DOWN must be covered as down — a report that mentions the
-        # ticker only in bullish beat language gets one targeted retry.
+        # ticker only in bullish beat language gets one targeted retry. The
+        # ticker is found case-sensitively in the original-case text: as a
+        # substring of upper-cased text, T matched the T in "DON'T".
+        vis = " ".join(" ".join(b) for b in _visible_blocks(html))
         for r in ov:
             sym = str(r.get("symbol") or "").upper()
             try:
@@ -324,10 +327,11 @@ def _coverage_gaps(html: str, data: dict) -> list:
                 continue
             if not sym or pct >= -3:
                 continue
-            i = up.find(sym)
-            if i < 0:
+            hit = re.search(rf"(?<![A-Za-z0-9&.\-]){re.escape(sym)}(?![A-Za-z0-9&\-])", vis)
+            if not hit:
                 continue
-            ctx = up[max(0, i - 400): i + 400]
+            i = hit.start()
+            ctx = vis[max(0, i - 400): i + 400].upper()
             neg = ("DOWN", "DROP", "FALL", "FELL", "SLID", "SLIP", "LOWER", "WEAK",
                    "SANK", "TUMBL", "DECLIN", "SELL", "SOLD", "GUID", "MISS",
                    "DISAPPOINT", "NEGATIVE", "RED")

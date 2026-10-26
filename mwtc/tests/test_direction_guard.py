@@ -135,6 +135,19 @@ class RealReportText(unittest.TestCase):
             g.generate(data, "Monday", mode="postmarket")
         self.assertEqual(len(calls), 1)   # no coverage retry
 
+    def test_reaction_check_finds_the_real_mention(self):
+        # The -3% "cover the actual reaction" check used to look for the ticker
+        # as a substring of upper-cased text: T matched the T in "DON'T".
+        data = {"movers": {}, "earnings": {"overnight_results": [
+            {"symbol": "T", "premarket_reaction_pct": -4.0, "result_line": "T — ..."}]}}
+        filler = "<p>" + "Don't chase it at the bell, wait for the first range to set. " * 12 + "</p>"
+        covered = filler + "<p>AT&amp;T (T) fell 4% pre-market on weak guidance.</p>"
+        missing = filler + "<p>T beat on EPS with a strong quarter.</p>"
+        cover = lambda page: [x for x in g._coverage_gaps(f"<html><body>{page}</body></html>", data)
+                              if "cover the actual reaction" in x]
+        self.assertEqual(cover(covered), [])
+        self.assertTrue(cover(missing))
+
     def test_level_statement_is_not_an_open_call(self):
         self.assertEqual(flagged("<p>If MSFT loses $500, it will drop toward $480.</p>", MSFT=2.1), set())
 

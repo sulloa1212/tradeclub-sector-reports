@@ -29,6 +29,25 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SITE = REPO_ROOT / "site"
 KEEP = 5  # dated copies kept per slug (matches the rest of the site)
 
+# Each run's trace file (+ the preview page): uploaded as a GitHub artifact,
+# never published or committed. The repo is PUBLIC, so its artifacts are too:
+# only the earnings + movers slice is kept (enough to tell whether a wrong
+# figure came from the feed or from the model) — no Unusual Whales, CME
+# FedWatch, analyst or insider payloads.
+OUT = REPO_ROOT / "mwtc_out"
+TRACE_KEYS = ("generated_at_et", "report_date", "mode", "movers",
+              "premarket_reactions", "earnings", "notes")
+
+
+def dump_trace(data: dict, mode: str) -> Path:
+    trace = {k: data.get(k) for k in TRACE_KEYS}
+    trace["earnings"] = {k: v for k, v in (data.get("earnings") or {}).items()
+                         if k != "focus_detail"}   # focus_detail is UW data
+    OUT.mkdir(parents=True, exist_ok=True)
+    p = OUT / f"{mode}-{utc_date()}.json"
+    p.write_text(json.dumps(trace, default=str, indent=1), encoding="utf-8")
+    return p
+
 SLUG = {"premarket": "pre-market", "postmarket": "market-wrap"}
 NAME = {"premarket": "Pre-Market Report", "postmarket": "Market Wrap Report"}
 EDITION = {"premarket": "PRE-MARKET EDITION", "postmarket": "CLOSING BELL EDITION"}
@@ -430,6 +449,24 @@ def _packet_probe(data: dict) -> None:
             if isinstance(tide, list) and tide:
                 print(f"  market_tide: {len(tide)} rows, first={json.dumps(tide[0], default=str)[:160]} "
                       f"last={json.dumps(tide[-1], default=str)[:160]}")
+        mv = data.get("movers") or {}
+        print(f"pre-market movers: as of {mv.get('as_of_et')}, universe {mv.get('universe_size')}, "
+              f"priced {mv.get('priced')}, qualified {mv.get('qualified')}, "
+              f"unavailable={mv.get('unavailable')!r}")
+        for grp in ("gainers", "losers"):
+            print(f"  {grp}: " + ", ".join(
+                f"{r.get('ticker')} {r.get('pct_change'):+.1f}% ({r.get('last_print_et')}, "
+                f"{r.get('trade_windows')} windows)" for r in (mv.get(grp) or [])[:10]))
+        print(f"focus reactions: {data.get('premarket_reactions')}")
+        for r in ((data.get("earnings") or {}).get("overnight_results") or []):
+            print(f"  overnight: {r.get('result_line')}")
+        try:
+            from .sources import fmp as _fmp
+            u = _fmp.index_universe()
+            _fmp.write_universe(u, OUT / "universe.txt")
+            print(f"universe: {len(u)} symbols -> {OUT / 'universe.txt'}")
+        except Exception as e:  # noqa: BLE001
+            print(f"universe dump failed (non-fatal): {e}")
         governed = generator._cap_packet(json.loads(json.dumps(data, default=str)))
         total = size(governed)
         print(f"packet probe — after governor: {total:,} compact chars, "
@@ -439,9 +476,13 @@ def _packet_probe(data: dict) -> None:
         print(f"packet probe failed (non-fatal): {e}")
 
 
-def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
+def run(mode: str, dry_run: bool = False, stub: bool = False, preview: bool = False) -> int:
     data = mwtc_main.collect_data(mode=mode)
     data["mode"] = mode
+    try:
+        print(f"trace saved -> {dump_trace(data, mode)}")
+    except Exception as e:  # noqa: BLE001 — the trace must never cost the report
+        print(f"  !! trace not saved (non-fatal) — {e}")
     sidecar = derive_sidecar(data, mode)
     print("sidecar:", json.dumps(sidecar, ensure_ascii=False))
 
@@ -454,6 +495,13 @@ def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
         html = STUB_HTML
     else:
         html = generator.generate(data, data["report_date"], mode=mode)
+
+    if preview:
+        OUT.mkdir(parents=True, exist_ok=True)
+        p = OUT / f"{mode}-{utc_date()}.html"
+        p.write_text(html, encoding="utf-8")
+        print(f"PREVIEW — report written to {p}; nothing published, nobody notified.")
+        return 0
 
     out = publish_html(html, data, mode)
     print(f"Published {NAME[mode]} -> {out}")
@@ -473,8 +521,10 @@ def main(argv=None) -> int:
                     help="Collect data + print the sidecar; write nothing (no Anthropic call).")
     ap.add_argument("--stub", action="store_true",
                     help="Use placeholder HTML instead of calling Anthropic (publish-path test).")
+    ap.add_argument("--preview", action="store_true",
+                    help="Generate the report into mwtc_out/ only: no publish, no notification.")
     a = ap.parse_args(argv)
-    return run(a.mode, dry_run=a.dry_run, stub=a.stub)
+    return run(a.mode, dry_run=a.dry_run, stub=a.stub, preview=a.preview)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@
   - Measured replay: META at 8:40 AM on 2026-10-22 = −2.38%.
 - **Movers universe.** S&P 500 ∪ Nasdaq-100, about 520 unique symbols (the two lists overlap heavily). Source: FMP `/sp500-constituent` + `/nasdaq-constituent`. The committed `mwtc/data/universe.txt` is added when either list is missing.
 - **Mover thresholds.** Trades in at least **6 separate 5-minute windows** since 4:00 AM ET, and a trade within the last 30 minutes. Top 10 up and top 10 down.
-  - This replaces the spec's "$1M traded pre-market", which Yahoo data can't support. **Pending the owner's OK.**
+  - This replaces the spec's "$1M traded pre-market", which Yahoo data can't support. **Owner approved 2026-10-26.**
   - Measured at 8:40 AM on 503 S&P names, it keeps the real movers: SNA −9.8%, LRCX −8.8%, IBM −6.9% (10/22); CCI +11.9%, DECK −8.5% (10/23); FICO −9.6%, EQT −8.3% (10/26).
   - It drops 2–3-print names such as EFX −3.5% (3 windows).
 - **Overnight window.**
@@ -37,7 +37,7 @@
 - **Run data.**
   - The repo `sulloa1212/tradeclub-sector-reports` is **public**, so its Actions artifacts can be downloaded by any signed-in GitHub user.
   - The saved file therefore holds only the earnings and movers slice. No Unusual Whales, CME FedWatch, analyst or insider data.
-  - Artifact `mwtc-<mode>-packet`, kept 14 days. This narrows the spec's "full packet". **Pending the owner's OK.**
+  - Artifact `mwtc-<mode>-packet`, kept 14 days. This narrows the spec's "full packet". **Owner approved 2026-10-26.**
 - **Failure must never kill a run.** Every new data step degrades to `None`/`{}` and a stated "unavailable".
 - **Compatibility.** Code must run on Python 3.9 and 3.11, and on pandas 2.3 and 3.0. Keep `from __future__ import annotations` in every new module.
 - **Commits.** Messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -1775,7 +1775,7 @@ On the next scheduled Pre-Market run:
   | 7. Preview mode | Tasks 6–8 |
   | Testing | each task, plus Task 8 (historical replay in Task 1's tests and Task 3, Step 5) |
 
-- **Changes from the spec found while planning.** The first two need the owner's OK:
+- **Changes from the spec found while planning.** The first two were approved by the owner on 2026-10-26:
   1. **Liquidity filter.** Yahoo has no pre-market volume (every bar is 0), so "$1M traded" is replaced by "trades in at least 6 separate 5-minute windows". The measurements behind this are in Global Constraints.
   2. **Run data.** The repo is public, so the artifact keeps only the earnings and movers slice, not the full packet.
   3. **Smaller fixes, no decision needed:**

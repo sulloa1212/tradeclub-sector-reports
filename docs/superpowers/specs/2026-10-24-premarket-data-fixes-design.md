@@ -1,7 +1,8 @@
 # Pre-Market report: real pre-market data and earnings that can't be misread — design
 
-Date: 2026-10-24. Status: draft for the owner's review. Nothing in this
-document is built yet.
+Date: 2026-10-24. Status: approved by the owner; two decisions revised on
+2026-10-26 after measuring the data (mover thresholds, run data — see the
+table). Implementation plan: `docs/superpowers/plans/2026-10-26-premarket-data-fixes.md`.
 
 ## Goal
 
@@ -44,13 +45,14 @@ never get an earnings result backwards:
 | Decision | Value | Why |
 |---|---|---|
 | Pre-market price source | yfinance 5-minute bars with pre/post-market (`prepost=True`) | Free, already a dependency, verified: META $680.90 at 8:35 AM on 2026-10-22, −2.5% vs the $698.43 close |
-| Pre-Market Movers universe | S&P 500 ∪ Nasdaq-100 (about 600 names) — option A, chosen by the owner 2026-10-24 | Real, liquid, optionable names; drops thin micro-caps with "no catalyst" |
-| Mover thresholds | at least $1M traded pre-market and a print within the last 30 minutes; top 10 up, top 10 down | Keeps out stale or one-print moves |
+| Pre-Market Movers universe | S&P 500 ∪ Nasdaq-100 (about 520 unique names; the lists overlap) — option A, chosen by the owner 2026-10-24 | Real, liquid, optionable names; drops thin micro-caps with "no catalyst" |
+| Mover thresholds | trades in at least 6 separate 5-minute windows since 4:00 AM and a print within the last 30 minutes; top 10 up, top 10 down — revised 2026-10-26, owner approved | Keeps out stale or one-print moves. Yahoo reports volume 0 on every pre-market bar (measured on 503 S&P names), so trade activity replaces the original $1M dollar-volume floor |
+| Prior close | the official close from daily bars; the last regular 5-minute bar only as a fallback | The closing auction can differ from the 15:55 bar (META 10/21: $697.52 vs $698.43) |
 | Overnight window | previous NYSE trading day after-close + today before-open (and today's prints with no time) | The real "since last close"; Monday includes Friday after-close; holidays handled |
 | Trading calendar | `pandas_market_calendars` (NYSE) — already installed on the runner | Correct holidays and early closes without a hand-kept list |
 | EPS label | "EPS (provider figure — may be adjusted)" | Data feeds often report adjusted EPS; GAAP can differ widely |
 | Direction rule | no "will gap up/down" for a name without pre-market data; enforced by the existing output check | Prompt asks, code guarantees |
-| Run data | saved as a private GitHub Actions artifact, kept 14 days | Traceability without publishing anything |
+| Run data | the earnings + movers slice of each run, saved as a GitHub Actions artifact, kept 14 days — revised 2026-10-26, owner approved | Traceability. The repo is public, so its artifacts can be downloaded by any signed-in GitHub user: paid-feed data (Unusual Whales, CME FedWatch, analyst/insider) stays out |
 
 ## Components
 
@@ -58,15 +60,17 @@ never get an earnings result backwards:
 
 One function does the download and is used twice:
 
-- `snapshot(symbols)` downloads two days of 5-minute bars with pre/post
-  market in a single `yf.download` call. For each symbol it returns:
-  - prior regular-session close;
+- `snapshot(symbols)` downloads five days of 5-minute bars with pre/post
+  market (plus daily bars for the official close) in one `yf.download`
+  call each. For each symbol it returns:
+  - prior official close;
   - last pre-market print and its ET time;
   - % change;
-  - dollar volume traded pre-market.
+  - how many 5-minute windows traded pre-market.
 - `movers(universe)` = `snapshot` over the universe, filtered by the
   thresholds above, top 10 gainers and losers. Each row has ticker, company
-  (when known), %, last price, time of the print and pre-market dollar volume.
+  (when known), %, last price, time of the print and the number of 5-minute
+  windows that traded.
 - `reactions(symbols)` = `snapshot` for the overnight earnings names plus the
   focus tickers.
 
@@ -80,7 +84,7 @@ Failure is non-fatal. If the download fails, the packet carries
 unavailable this run (see component 4). It never falls back to yesterday's
 list under a "pre-market" heading.
 
-Runtime: measured 7 s for 113 names, so about 40 s for 600.
+Runtime: measured 32 s for 503 names (5-minute bars).
 
 ### 2. Overnight earnings window — `mwtc/sources/macro.py`
 
@@ -143,8 +147,10 @@ from the raw fields:
 
 ### 6. Keep each run's input data — `mwtc/publish.py`, `.github/workflows/mwtc.yml`
 
-- `publish.run` writes the collected data packet (before the size governor)
-  to `mwtc_out/<mode>-<date>.json`.
+- `publish.run` writes the earnings and movers slice of the collected packet
+  (movers, pre-market reactions, the reconciled earnings calendar with its
+  result lines, notes) to `mwtc_out/<mode>-<date>.json`. No Unusual Whales,
+  CME FedWatch, analyst or insider payloads: the repo is public.
 - A new workflow step uploads `mwtc_out/` as an artifact named
   `mwtc-<mode>-packet`, kept 14 days, `if: always()`. A failed run keeps its
   data too.

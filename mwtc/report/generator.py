@@ -173,6 +173,19 @@ def _inject_section_nav(html: str) -> str:
     return html
 
 
+# Direction calls on upper-cased visible text: "gap up", "gap-up", "gapping
+# higher", "will open lower", "will rally"...
+_DIR_UP = re.compile(r"\bGAP(?:S|PED|PING)?[\s-]+(?:UP|HIGHER)\b|\bWILL (?:OPEN|TRADE) "
+                     r"(?:HIGHER|UP)\b|\bWILL (?:RALLY|SURGE|POP|JUMP)\b")
+_DIR_DOWN = re.compile(r"\bGAP(?:S|PED|PING)?[\s-]+(?:DOWN|LOWER)\b|\bWILL (?:OPEN|TRADE) "
+                       r"(?:LOWER|DOWN)\b|\bWILL (?:FALL|DROP|SINK|SLIDE|TUMBLE)\b")
+
+
+def _sentences_with(text: str, sym: str) -> list:
+    pat = re.compile(rf"\b{re.escape(sym)}\b")
+    return [s for s in re.split(r"(?<=[.!?;])\s+", text) if pat.search(s)]
+
+
 def _coverage_gaps(html: str, data: dict) -> list:
     """Deterministic must-cover check against the packet: the top overnight
     earnings result must appear early in the report, and every large pre-market
@@ -224,6 +237,29 @@ def _coverage_gaps(html: str, data: dict) -> list:
             if not any(w in ctx for w in neg):
                 gaps.append(f"{sym} trades {pct:.1f}% pre-market after its print — "
                             "cover the actual reaction and its driver, not just the headline beat")
+        # No direction without data (META 2026-10-22: "will gap up" while it
+        # traded -2.5% pre-market). A name with no pre-market figure gets no gap
+        # call; a name with one (beyond ±1%) must not be called the other way.
+        for r in ov:
+            sym = str(r.get("symbol") or "").upper()
+            if not sym:
+                continue
+            sents = _sentences_with(up, sym)
+            try:
+                pct = float(r.get("premarket_reaction_pct"))
+            except (TypeError, ValueError):
+                pct = None
+            if pct is None:
+                if any(_DIR_UP.search(s) or _DIR_DOWN.search(s) for s in sents):
+                    gaps.append(f"{sym} has no pre-market data in the packet — remove the "
+                                "gap/direction call and write 'pre-market reaction not "
+                                "available — verify live'")
+            elif pct <= -1 and any(_DIR_UP.search(s) for s in sents):
+                gaps.append(f"{sym} trades {pct:+.1f}% pre-market — it is not gapping up; "
+                            "describe the actual move")
+            elif pct >= 1 and any(_DIR_DOWN.search(s) for s in sents):
+                gaps.append(f"{sym} trades {pct:+.1f}% pre-market — it is not gapping down; "
+                            "describe the actual move")
     except Exception as e:  # noqa: BLE001 — the check must never kill a run
         log.warning("coverage check skipped: %s", e)
     return gaps

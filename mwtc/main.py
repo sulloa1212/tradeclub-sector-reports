@@ -14,8 +14,10 @@ import argparse
 import datetime as dt
 from zoneinfo import ZoneInfo
 
+from typing import Optional
+
 from . import config, checks
-from .sources import macro, unusual_whales, fmp, sentiment, fedwatch, kalshi, earnings
+from .sources import macro, unusual_whales, fmp, sentiment, fedwatch, kalshi, earnings, premarket
 from .report import generator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -43,10 +45,12 @@ def _fed_view(uw_packet: dict) -> dict:
     }
 
 
-def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dict:
+def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict,
+                   reactions: Optional[dict] = None) -> dict:
     """Two-source earnings calendar (Finnhub primary x FMP cross-check) + per-focus
     UW detail. The reconciler flags any report-date / reported-status disagreement
-    so the report never asserts an unverified earnings date or actual."""
+    so the report never asserts an unverified earnings date or actual. Every
+    reported row carries a code-built result_line the report quotes."""
     per_focus = {}
     for t in config.UW_FOCUS_TICKERS:
         per_focus[t] = unusual_whales.earnings(t)
@@ -54,27 +58,22 @@ def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dic
         macro_packet.get("earnings_calendar"),
         fmp_packet.get("earnings_calendar"),
     )
-    # Results since the last close (yesterday AMC / today BMO): the freshest
-    # prints, usually the morning's biggest story when a mega-cap is among them.
+    # Results since the last close (previous session AMC / today BMO): the
+    # freshest prints, usually the morning's biggest story.
     cal = verified.get("calendar") or []
     overnight = [r for r in cal if r.get("is_overnight_result")]
-    # Attach the live pre-market reaction (FMP movers) to each overnight print:
-    # the reaction — not the headline EPS line — is the tradeable fact. On
-    # 2026-09-03 AVGO beat but fell ~5% overnight on soft guidance; nothing in
-    # the packet said "down", so the report spun the beat as constructive.
-    react = {}
-    for m in (fmp_packet.get("gainers") or []) + (fmp_packet.get("losers") or []):
-        if isinstance(m, dict):
-            sym = str(m.get("ticker") or m.get("symbol") or "").upper()
-            try:
-                if sym:
-                    react[sym] = float(m.get("pct_change"))
-            except (TypeError, ValueError):
-                pass
-    for r in overnight:
-        pct = react.get(str(r.get("symbol") or "").upper())
-        if pct is not None:
-            r["premarket_reaction_pct"] = pct
+    # The reaction is this morning's real pre-market print (premarket.reactions),
+    # never the previous session's movers list: on 2026-10-22 the report said
+    # META "will gap up" while it traded -2.5% pre-market. Only overnight rows
+    # get one (an older print already moved the stock); reactions=None
+    # (postmarket) means no reaction part at all.
+    for r in cal:
+        live = reactions is not None and bool(r.get("is_overnight_result"))
+        sym = str(r.get("symbol") or "").upper()
+        if live and sym in reactions:
+            r["premarket_reaction_pct"] = reactions[sym]["pct"]
+            r["premarket_as_of_et"] = reactions[sym]["as_of_et"]
+        r["result_line"] = earnings.result_line(r, include_reaction=live)
     return {
         "calendar": verified.get("calendar"),
         "overnight_results": overnight[:6] or None,
@@ -84,7 +83,7 @@ def _earnings_view(macro_packet: dict, uw_packet: dict, fmp_packet: dict) -> dic
     }
 
 
-def collect_data() -> dict:
+def collect_data(mode: str = "premarket") -> dict:
     report_dt = dt.datetime.now(ET)
     log.info("Collecting macro data (yfinance, free)...")
     macro_packet = macro.collect()
@@ -106,7 +105,26 @@ def collect_data() -> dict:
     # sector-ETF proxy from macro.
     breadth = fmp_packet.get("breadth") or macro.sector_breadth()
 
-    earnings_view = _earnings_view(macro_packet, uw_packet, fmp_packet)
+    # Pre-Market report: movers and earnings reactions are THIS MORNING's real
+    # pre-market prints. FMP's lists rank the last regular session, so on
+    # 2026-10-20 they showed Monday's CLF/IRON/SLN moves as "pre-market".
+    premarket_mode = mode != "postmarket"
+    reactions = focus_reactions = None
+    if premarket_mode:
+        log.info("Collecting pre-market prices (yfinance, S&P 500 + Nasdaq-100)...")
+        movers = premarket.movers(fmp.index_universe(), report_dt) or {
+            "gainers": None, "losers": None,
+            "unavailable": "pre-market prices could not be fetched this run"}
+        ov_syms = [str(r.get("symbol") or "").upper()
+                   for r in (macro_packet.get("earnings_calendar") or [])
+                   if r.get("is_overnight_result")]
+        reactions = premarket.reactions(ov_syms + list(config.UW_FOCUS_TICKERS), report_dt)
+        focus_reactions = {t: reactions[t] for t in config.UW_FOCUS_TICKERS if t in reactions} or None
+    else:
+        movers = {"gainers": fmp_packet.get("gainers"), "losers": fmp_packet.get("losers"),
+                  "source": "FMP — today's regular session"}
+
+    earnings_view = _earnings_view(macro_packet, uw_packet, fmp_packet, reactions)
     ev = earnings_view.get("verification") or {}
     if ev.get("conflicts"):
         log.warning("Earnings cross-check conflicts (withheld as unverified): %s",
@@ -118,8 +136,8 @@ def collect_data() -> dict:
         not_wired.append("earnings_second_source(FMP)")
     if not breadth:
         not_wired.append("market_breadth")
-    if not (fmp_packet.get("gainers") or fmp_packet.get("losers")):
-        not_wired.append("premarket_movers")
+    if not (movers.get("gainers") or movers.get("losers")):
+        not_wired.append("premarket_movers" if premarket_mode else "session_movers")
     if not fmp_packet.get("analyst_actions"):
         not_wired.append("analyst_actions")
     if not sentiment_packet.get("fear_greed"):
@@ -133,7 +151,8 @@ def collect_data() -> dict:
         "is_monday": report_dt.weekday() == 0,
         "macro": macro_packet,
         "institutional": uw_packet,
-        "movers": {"gainers": fmp_packet.get("gainers"), "losers": fmp_packet.get("losers")},
+        "movers": movers,
+        "premarket_reactions": focus_reactions,
         "analyst_actions": fmp_packet.get("analyst_actions"),
         "insider": fmp_packet.get("insider") or uw_packet.get("insider"),
         "breadth": breadth,
@@ -144,7 +163,8 @@ def collect_data() -> dict:
         # either alone can be thin; together the overnight story can't vanish.
         "overnight_news": macro_packet.get("market_news"),
         "notes": {
-            "price_levels": "yfinance values are prior-session closes, not live premarket.",
+            "price_levels": ("yfinance index/ETF levels are prior-session closes; this morning's "
+                             "pre-market prints are in movers and premarket_reactions."),
             "uw_available": uw_packet.get("available", False),
             "fmp_available": fmp_packet.get("available", False),
             "not_wired": not_wired or None,
@@ -166,7 +186,7 @@ def main(argv=None) -> int:
         return checks.run()
 
     mode = (args.mode or config.REPORT_MODE or "premarket").lower()
-    data = collect_data()
+    data = collect_data(mode=mode)
     data["mode"] = mode
     date_iso = dt.datetime.now(ET).strftime("%Y-%m-%d")
 

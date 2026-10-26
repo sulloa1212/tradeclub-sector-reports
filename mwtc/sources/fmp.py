@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import datetime as dt
+from pathlib import Path
 from typing import Any, Optional
 
 import requests
@@ -191,6 +192,60 @@ def _sp500_symbols() -> Optional[list]:
     if not isinstance(rows, list):
         return None
     return [r.get("symbol") for r in rows if r.get("symbol")]
+
+
+UNIVERSE_FILE = Path(__file__).resolve().parent.parent / "data" / "universe.txt"
+
+
+def _constituents(path: str) -> Optional[list]:
+    rows = _get(path)
+    if not isinstance(rows, list):
+        return None
+    return [{"symbol": r.get("symbol"), "name": r.get("name")}
+            for r in rows if isinstance(r, dict) and r.get("symbol")]
+
+
+def _universe_from_file(path: Optional[Path] = None) -> list:
+    path = path or UNIVERSE_FILE
+    try:
+        out = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            sym, _, name = line.partition("\t")
+            if sym.strip():
+                out.append({"symbol": sym.strip().upper(), "name": name.strip() or None})
+        return out
+    except OSError as e:
+        log.warning("universe fallback file unreadable (%s)", e)
+        return []
+
+
+def write_universe(rows: list, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(f"{r['symbol']}\t{r.get('name') or ''}\n" for r in rows),
+                    encoding="utf-8")
+
+
+def index_universe() -> list:
+    """S&P 500 ∪ Nasdaq-100 as [{symbol, name}], deduplicated, from FMP. The
+    committed list is added whenever either FMP list is missing, so the
+    pre-market movers never depend on one feed."""
+    sp = _constituents("/sp500-constituent")
+    nd = _constituents("/nasdaq-constituent")
+    rows = (sp or []) + (nd or [])
+    if sp is None or nd is None:
+        log.warning("FMP index list missing (S&P 500 %s, Nasdaq-100 %s) — adding %s",
+                    "ok" if sp is not None else "MISSING",
+                    "ok" if nd is not None else "MISSING", UNIVERSE_FILE.name)
+        rows += _universe_from_file()
+    seen, out = set(), []
+    for r in rows:
+        s = str(r.get("symbol") or "").strip().upper()
+        if s and s not in seen:
+            seen.add(s)
+            out.append({"symbol": s, "name": r.get("name")})
+    log.info("movers universe: %d symbols (S&P 500 %d, Nasdaq-100 %d from FMP)",
+             len(out), len(sp or []), len(nd or []))
+    return out
 
 
 def market_breadth() -> Optional[dict]:

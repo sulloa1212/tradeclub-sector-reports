@@ -440,7 +440,7 @@ def _packet_probe(data: dict) -> None:
 
 
 def run(mode: str, dry_run: bool = False, stub: bool = False) -> int:
-    data = mwtc_main.collect_data()
+    data = mwtc_main.collect_data(mode=mode)
     data["mode"] = mode
     sidecar = derive_sidecar(data, mode)
     print("sidecar:", json.dumps(sidecar, ensure_ascii=False))

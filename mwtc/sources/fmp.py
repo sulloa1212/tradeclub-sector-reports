@@ -21,6 +21,7 @@ from typing import Any, Optional
 import requests
 
 from .. import config
+from . import sessions
 
 log = logging.getLogger("fmp")
 
@@ -148,7 +149,7 @@ def insider_trading(limit: int = 50) -> Optional[list]:
     return out
 
 
-def earnings_calendar(days: int = 7) -> Optional[list]:
+def earnings_calendar(days: int = 7, today: Optional[dt.date] = None) -> Optional[list]:
     """SECOND SOURCE for earnings (cross-check against Finnhub in sources/earnings.py).
 
     FMP /stable/earnings-calendar returns one row per company per report date with
@@ -158,11 +159,11 @@ def earnings_calendar(days: int = 7) -> Optional[list]:
     stable shape so the reconciler can compare apples to apples. Fails safe to None
     (key absent or plan-gated), in which case earnings stay single-source and every
     row is flagged unverified rather than asserted."""
-    today = dt.date.today()
-    # From YESTERDAY, matching the Finnhub window: last night's after-close
+    today = today or dt.date.today()
+    # From the PREVIOUS TRADING DAY, matching the Finnhub window: its after-close
     # reporters must exist in BOTH sources or the reconciler withholds them.
     rows = _get("/earnings-calendar",
-                {"from": (today - dt.timedelta(days=1)).isoformat(),
+                {"from": sessions.previous_trading_day(today).isoformat(),
                  "to": (today + dt.timedelta(days=days)).isoformat()})
     if not isinstance(rows, list):
         return None

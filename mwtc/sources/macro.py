@@ -232,6 +232,19 @@ def earnings_calendar() -> Optional[list]:
          "to": (today + dt.timedelta(days=7)).isoformat()},
         "earningsCalendar",
     )
+    # In peak season Finnhub truncates a wide window and the EARLIEST days
+    # (last night's and this morning's reporters) are the ones dropped
+    # (2026-10-29: no 10/28 or 10/29 rows at all). Fetch yesterday+today on
+    # their own and put them first.
+    recent = _finnhub_calendar(
+        "/calendar/earnings",
+        {"from": (today - dt.timedelta(days=1)).isoformat(), "to": today_iso},
+        "earningsCalendar",
+    )
+    if isinstance(recent, list):
+        seen = {(r.get("symbol"), r.get("date")) for r in recent}
+        rows = recent + [r for r in (rows if isinstance(rows, list) else [])
+                         if (r.get("symbol"), r.get("date")) not in seen]
     if not isinstance(rows, list):
         return rows
     named = [r for r in rows if r.get("epsEstimate") is not None

@@ -56,6 +56,76 @@ def _eps_matches(a: Any, b: Any) -> bool:
     return abs(a - b) <= tol
 
 
+_REV_REL_TOL = 0.01   # revenue actuals more than 1% apart across providers
+
+
+def _rev_matches(a: Any, b: Any) -> bool:
+    try:
+        a, b = float(a), float(b)
+    except (TypeError, ValueError):
+        return True  # can't compare -> don't manufacture a conflict
+    return abs(a - b) <= _REV_REL_TOL * max(abs(a), abs(b))
+
+
+def _money(v: Any) -> str:
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return "n/a"
+    for div, unit in ((1e12, "T"), (1e9, "B"), (1e6, "M")):
+        if abs(v) >= div:
+            return f"${v / div:.1f}{unit}"
+    return f"${v:,.0f}"
+
+
+def _num(v: Any) -> Optional[float]:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def result_line(r: dict, include_reaction: bool = True) -> Optional[str]:
+    """The one line the report quotes for a reported result: figures and
+    beat/miss computed here, never restated by the model from raw fields
+    (META 2026-10-22: revenue actual and estimate came out swapped).
+
+    It never asserts what the two-source check withheld: an unverified row
+    gets its reason instead of figures, and a metric the sources disagree on
+    gets no BEAT/MISS verdict."""
+    if not r.get("reported"):
+        return None
+    if r.get("verified") is False:
+        parts = [f"unconfirmed — verify ({r.get('verify_note') or 'sources disagree'})"]
+    else:
+        parts = []
+        eps_a, eps_e = _num(r.get("epsActual")), _num(r.get("epsEstimate"))
+        if eps_a is not None:
+            s = f"EPS (provider figure, may be adjusted) ${eps_a:.2f}"
+            if eps_e is not None:
+                s += f" vs est. ${eps_e:.2f}"
+            if r.get("eps_sources_disagree"):
+                s += ": sources disagree — verify"
+            elif r.get("beat_miss") and r.get("eps_surprise_pct") is not None:
+                s += f": {r['beat_miss'].upper()} {r['eps_surprise_pct']:+.1f}%"
+            parts.append(s)
+        rev_a, rev_e = _num(r.get("revenueActual")), _num(r.get("revenueEstimate"))
+        if rev_a is not None:
+            s = f"revenue {_money(rev_a)}"
+            if rev_e is not None:
+                s += f" vs est. {_money(rev_e)}"
+            if r.get("revenue_sources_disagree"):
+                s += ": sources disagree — verify"
+            elif r.get("revenue_beat_miss") and r.get("revenue_surprise_pct") is not None:
+                s += f": {r['revenue_beat_miss'].upper()} {r['revenue_surprise_pct']:+.1f}%"
+            parts.append(s)
+    if include_reaction:
+        pct = r.get("premarket_reaction_pct")
+        parts.append(f"pre-market {pct:+.1f}% at {r.get('premarket_as_of_et')}"
+                     if pct is not None else "pre-market reaction not available — verify live")
+    return f"{str(r.get('symbol') or '').upper()} — " + " · ".join(parts)
+
+
 def _index_secondary(fmp_rows: Optional[list]) -> dict[str, list[dict]]:
     idx: dict[str, list[dict]] = {}
     for r in fmp_rows or []:
@@ -99,6 +169,7 @@ def reconcile(primary_rows: Optional[list], fmp_rows: Optional[list]) -> list:
         p_reported = bool(p.get("reported"))
 
         verified = False
+        eps_disagree = rev_disagree = False
         confidence = "single-source"
         note: Optional[str] = None
         sources = ["Finnhub"]
@@ -119,11 +190,21 @@ def reconcile(primary_rows: Optional[list], fmp_rows: Optional[list]) -> list:
             if date_match and reported_match:
                 verified = True
                 confidence = "high"
+                notes = []
                 if p_reported and not _eps_matches(p.get("epsActual"), sec.get("eps_actual")):
                     confidence = "medium"
-                    note = (f"EPS actual differs across sources "
-                            f"(Finnhub {p.get('epsActual')} / FMP {sec.get('eps_actual')}) "
-                            f"— treat the surprise as approximate")
+                    eps_disagree = True
+                    notes.append(f"EPS actual differs across sources "
+                                 f"(Finnhub {p.get('epsActual')} / FMP {sec.get('eps_actual')}) "
+                                 f"— treat the surprise as approximate")
+                if p_reported and not _rev_matches(p.get("revenueActual"), sec.get("revenue_actual")):
+                    confidence = "medium"
+                    rev_disagree = True
+                    notes.append(f"revenue actual differs across sources "
+                                 f"(Finnhub {_money(p.get('revenueActual'))} / FMP "
+                                 f"{_money(sec.get('revenue_actual'))}) — treat the revenue "
+                                 f"surprise as approximate")
+                note = "; ".join(notes) or None
             elif not date_match:
                 confidence = "low"
                 note = (f"report-date conflict — Finnhub {p.get('date')} vs "
@@ -145,6 +226,8 @@ def reconcile(primary_rows: Optional[list], fmp_rows: Optional[list]) -> list:
             "verify_sources": sources,
             "verify_note": note,
             "display_status": display,
+            "eps_sources_disagree": eps_disagree,
+            "revenue_sources_disagree": rev_disagree,
         })
     return out
 

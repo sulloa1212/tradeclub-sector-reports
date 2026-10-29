@@ -16,11 +16,13 @@ from __future__ import annotations
 
 import logging
 import datetime as dt
+from pathlib import Path
 from typing import Any, Optional
 
 import requests
 
 from .. import config
+from . import sessions
 
 log = logging.getLogger("fmp")
 
@@ -148,7 +150,7 @@ def insider_trading(limit: int = 50) -> Optional[list]:
     return out
 
 
-def earnings_calendar(days: int = 7) -> Optional[list]:
+def earnings_calendar(days: int = 7, today: Optional[dt.date] = None) -> Optional[list]:
     """SECOND SOURCE for earnings (cross-check against Finnhub in sources/earnings.py).
 
     FMP /stable/earnings-calendar returns one row per company per report date with
@@ -158,11 +160,11 @@ def earnings_calendar(days: int = 7) -> Optional[list]:
     stable shape so the reconciler can compare apples to apples. Fails safe to None
     (key absent or plan-gated), in which case earnings stay single-source and every
     row is flagged unverified rather than asserted."""
-    today = dt.date.today()
-    # From YESTERDAY, matching the Finnhub window: last night's after-close
+    today = today or dt.date.today()
+    # From the PREVIOUS TRADING DAY, matching the Finnhub window: its after-close
     # reporters must exist in BOTH sources or the reconciler withholds them.
     rows = _get("/earnings-calendar",
-                {"from": (today - dt.timedelta(days=1)).isoformat(),
+                {"from": sessions.previous_trading_day(today).isoformat(),
                  "to": (today + dt.timedelta(days=days)).isoformat()})
     if not isinstance(rows, list):
         return None
@@ -190,6 +192,60 @@ def _sp500_symbols() -> Optional[list]:
     if not isinstance(rows, list):
         return None
     return [r.get("symbol") for r in rows if r.get("symbol")]
+
+
+UNIVERSE_FILE = Path(__file__).resolve().parent.parent / "data" / "universe.txt"
+
+
+def _constituents(path: str) -> Optional[list]:
+    rows = _get(path)
+    if not isinstance(rows, list):
+        return None
+    return [{"symbol": r.get("symbol"), "name": r.get("name")}
+            for r in rows if isinstance(r, dict) and r.get("symbol")]
+
+
+def _universe_from_file(path: Optional[Path] = None) -> list:
+    path = path or UNIVERSE_FILE
+    try:
+        out = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            sym, _, name = line.partition("\t")
+            if sym.strip():
+                out.append({"symbol": sym.strip().upper(), "name": name.strip() or None})
+        return out
+    except (OSError, ValueError) as e:  # ValueError: undecodable bytes
+        log.warning("universe fallback file unreadable (%s)", e)
+        return []
+
+
+def write_universe(rows: list, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(f"{r['symbol']}\t{r.get('name') or ''}\n" for r in rows),
+                    encoding="utf-8")
+
+
+def index_universe() -> list:
+    """S&P 500 ∪ Nasdaq-100 as [{symbol, name}], deduplicated, from FMP. The
+    committed list is added whenever either FMP list is missing, so the
+    pre-market movers never depend on one feed."""
+    sp = _constituents("/sp500-constituent")
+    nd = _constituents("/nasdaq-constituent")
+    rows = (sp or []) + (nd or [])
+    if sp is None or nd is None:
+        log.warning("FMP index list missing (S&P 500 %s, Nasdaq-100 %s) — adding %s",
+                    "ok" if sp is not None else "MISSING",
+                    "ok" if nd is not None else "MISSING", UNIVERSE_FILE.name)
+        rows += _universe_from_file()
+    seen, out = set(), []
+    for r in rows:
+        s = str(r.get("symbol") or "").strip().upper()
+        if s and s not in seen:
+            seen.add(s)
+            out.append({"symbol": s, "name": r.get("name")})
+    log.info("movers universe: %d symbols (S&P 500 %d, Nasdaq-100 %d from FMP)",
+             len(out), len(sp or []), len(nd or []))
+    return out
 
 
 def market_breadth() -> Optional[dict]:

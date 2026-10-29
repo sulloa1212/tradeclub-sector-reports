@@ -13,6 +13,7 @@ from typing import Optional
 import requests
 
 from .. import config
+from . import sessions
 
 log = logging.getLogger("macro")
 
@@ -189,7 +190,7 @@ def economic_calendar() -> Optional[list]:
     return events
 
 
-def _enrich_earnings(r: dict, today_iso: str) -> dict:
+def _enrich_earnings(r: dict, today_iso: str, prev_iso: Optional[str] = None) -> dict:
     """Tag each row reported-vs-upcoming and compute beat/miss. The key fix:
     use epsActual/revenueActual to know a name has ALREADY reported, instead of
     blindly calling everything 'upcoming'."""
@@ -202,43 +203,62 @@ def _enrich_earnings(r: dict, today_iso: str) -> dict:
             beat = "beat" if eps_act > eps_est else ("miss" if eps_act < eps_est else "inline")
         except (TypeError, ZeroDivisionError):
             pass
+    rev_est, rev_act = r.get("revenueEstimate"), r.get("revenueActual")
+    rev_surprise = rev_beat = None
+    if rev_act is not None and rev_est not in (None, 0):
+        try:
+            rev_surprise = round((rev_act - rev_est) / abs(rev_est) * 100, 1)
+            rev_beat = ("beat" if rev_act > rev_est else
+                        "miss" if rev_act < rev_est else "inline")
+        except (TypeError, ZeroDivisionError):
+            pass
     hour = (r.get("hour") or "").lower()
     when = ("reported" if reported else
             "before open" if hour == "bmo" else
             "after close" if hour == "amc" else "time TBD")
-    # Reported SINCE THE LAST CLOSE (yesterday after-hours, or today so far):
-    # these are the day's freshest results — a mega-cap that reported last
-    # night is usually the morning's biggest story (missed for NVDA 2026-08-26
-    # when the window started at 'today').
-    yesterday_iso = (dt.date.fromisoformat(today_iso) - dt.timedelta(days=1)).isoformat()
-    overnight = reported and r.get("date") in (yesterday_iso, today_iso)
+    # Reported SINCE THE LAST CLOSE: the previous trading day's after-close
+    # reports and this morning's before-open (or untimed) ones. A report from
+    # before yesterday's open already moved the stock yesterday (CLF/FITB shown
+    # as overnight news on 2026-10-20); on a Monday the previous session is
+    # Friday, not Sunday (NVDA 2026-08-26 is why the window starts a day back).
+    # Anything dated BETWEEN the two sessions (a weekend or holiday — Berkshire
+    # reports on Saturdays) is after the last close whatever its hour.
+    if prev_iso is None:
+        prev_iso = sessions.previous_trading_day(dt.date.fromisoformat(today_iso)).isoformat()
+    date = r.get("date")
+    overnight = reported and ((date == prev_iso and hour == "amc") or
+                              (date == today_iso and hour in ("bmo", "")) or
+                              bool(date and prev_iso < date < today_iso))
+    timing_unconfirmed = reported and date == prev_iso and hour not in ("amc", "bmo")
     return {**r, "reported": reported, "eps_surprise_pct": surprise,
-            "beat_miss": beat, "when": when, "is_today": r.get("date") == today_iso,
-            "is_overnight_result": overnight}
+            "beat_miss": beat, "revenue_surprise_pct": rev_surprise,
+            "revenue_beat_miss": rev_beat, "when": when, "is_today": date == today_iso,
+            "is_overnight_result": overnight, "timing_unconfirmed": timing_unconfirmed}
 
 
-def earnings_calendar() -> Optional[list]:
-    """Earnings for the next 7 days (Finnhub free tier — confirmed live), enriched
-    with reported/upcoming status + beat/miss. Trims micro-cap noise, keeps the
-    largest names by revenue, and surfaces today's names first."""
-    today = dt.date.today()
+def earnings_calendar(today: Optional[dt.date] = None) -> Optional[list]:
+    """Earnings from the previous trading day through the next 7 days (Finnhub
+    free tier — confirmed live), enriched with reported/upcoming status +
+    beat/miss. Trims micro-cap noise, keeps the largest names by revenue, and
+    surfaces the freshest names first."""
+    today = today or dt.date.today()
     today_iso = today.isoformat()
-    # Window starts YESTERDAY so last night's after-close reporters are included
-    # — they were "upcoming" on yesterday's calendar and would otherwise vanish
-    # from today's entirely (how NVDA's 2026-08-26 blowout got missed).
+    prev_iso = sessions.previous_trading_day(today).isoformat()
+    # Window starts at the PREVIOUS TRADING DAY so its after-close reporters
+    # are included — they were "upcoming" on that day's calendar and would
+    # otherwise vanish (NVDA 2026-08-26; Friday's after-close on a Monday).
     rows = _finnhub_calendar(
         "/calendar/earnings",
-        {"from": (today - dt.timedelta(days=1)).isoformat(),
-         "to": (today + dt.timedelta(days=7)).isoformat()},
+        {"from": prev_iso, "to": (today + dt.timedelta(days=7)).isoformat()},
         "earningsCalendar",
     )
     # In peak season Finnhub truncates a wide window and the EARLIEST days
     # (last night's and this morning's reporters) are the ones dropped
-    # (2026-10-29: no 10/28 or 10/29 rows at all). Fetch yesterday+today on
-    # their own and put them first.
+    # (2026-10-29: no 10/28 or 10/29 rows at all). Fetch the previous trading
+    # day + today on their own and put them first.
     recent = _finnhub_calendar(
         "/calendar/earnings",
-        {"from": (today - dt.timedelta(days=1)).isoformat(), "to": today_iso},
+        {"from": prev_iso, "to": today_iso},
         "earningsCalendar",
     )
     if isinstance(recent, list):
@@ -249,11 +269,11 @@ def earnings_calendar() -> Optional[list]:
         return rows
     named = [r for r in rows if r.get("epsEstimate") is not None
              or r.get("revenueEstimate")]
-    enriched = [_enrich_earnings(r, today_iso) for r in named]
+    enriched = [_enrich_earnings(r, today_iso, prev_iso) for r in named]
     # Freshest first: overnight results and today's names, then by revenue size.
     enriched.sort(key=lambda r: (not (r["is_today"] or r.get("is_overnight_result")),
                                  -(r.get("revenueEstimate") or 0)))
-    return enriched[:40] or [_enrich_earnings(r, today_iso) for r in rows[:40]]
+    return enriched[:40] or [_enrich_earnings(r, today_iso, prev_iso) for r in rows[:40]]
 
 
 _ECON_KEYWORDS = ("pce", "inflation", "jobless", "initial claims", "gdp",

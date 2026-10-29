@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import html as _html
 import json
 import logging
 from pathlib import Path
@@ -173,6 +174,115 @@ def _inject_section_nav(html: str) -> str:
     return html
 
 
+# --- Direction check: no "will gap up" without pre-market data --------------
+# Runs on the VISIBLE text in its original case, cut into blocks (paragraphs,
+# list items, table rows) and sentences, so a direction phrase is pinned to the
+# ticker it is about rather than to every ticker that shares a run of tags
+# with it. The 2026-10-22 call — "...chasing META and TSLA at the open. Both
+# will gap up on the earnings beats." — named no ticker in its own sentence.
+_MODAL = r"(?:will|should|would|could|set to|poised to|likely to|expected to|going to|to)"
+_DIR = {
+    "up": re.compile(
+        r"\bgap(?:s|ped|ping)?[\s-]+(?:up|higher)\b"
+        rf"|\b{_MODAL}\s+(?:\w+\s+){{0,2}}?(?:open|trade)\s+(?:\w+\s+)?(?:higher|up)\b"
+        r"|\bindicated\s+(?:\w+\s+)?(?:higher|up)\b"
+        rf"|\b{_MODAL}\s+(?:\w+\s+)?(?:rally|surge|pop|jump|rip)\s+(?:\w+\s+){{0,3}}?"
+        r"(?:at|off|into) the (?:open|bell)\b", re.I),
+    "down": re.compile(
+        r"\bgap(?:s|ped|ping)?[\s-]+(?:down|lower)\b"
+        rf"|\b{_MODAL}\s+(?:\w+\s+){{0,2}}?(?:open|trade)\s+(?:\w+\s+)?(?:lower|down)\b"
+        r"|\bindicated\s+(?:\w+\s+)?(?:lower|down)\b"
+        rf"|\b{_MODAL}\s+(?:\w+\s+)?(?:fall|drop|sink|slide|tumble|slump)\s+(?:\w+\s+){{0,3}}?"
+        r"(?:at|off|into) the (?:open|bell)\b", re.I),
+}
+# Negations and conditionals before the phrase: "don't assume META will gap
+# up", "if it gaps down and bounces, fade it" — neither is a prediction.
+_NEG = re.compile(r"\b(?:don't|dont|do not|not|no|never|won't|wont|isn't|aren't|"
+                  r"rather than|instead of|unlikely|avoid|if|unless|whether)\b", re.I)
+_CLAUSE = re.compile(r"\s*(?:[,;:·|]|—|–|\s-\s|\b(?:but|while|even as|whereas|although|"
+                     r"though|yet)\b)\s*", re.I)
+_PRONOUN = re.compile(r"^(?:it|both|they|shares|the stock|the name|each|"
+                      r"all (?:two|three|four|of them))\b", re.I)
+_INDEXISH = re.compile(r"\b(?:futures|s&p|index|indexes|indices|nasdaq|dow|russell|broad|"
+                       r"tape|spy|qqq|dia|iwm|spx|ndx|rut|djx|small caps|large caps|sectors?)\b"
+                       r"|(?<!-)\bmarkets?\b", re.I)
+_TICKERISH = re.compile(r"(?<![A-Za-z0-9&.\-])[A-Z]{2,5}(?:\.[A-Z])?(?![A-Za-z0-9&\-])")
+_NOT_TICKERS = frozenset("""EPS CEO CFO COO CTO ET AM PM US USA USD IPO ETF ETFS GDP CPI PPI
+PCE FOMC FED VIX AI EV EVS YOY QOQ YTD BEAT MISS INLINE ATH OTM ITM ATM IV GEX DEX FX OK TBD
+EST VS ADR ADS NYSE SEC FDA EU UK FY EBITDA GAAP MWTC AND OR THE BUY SELL HOLD NOTE RISK HIGH
+LOW NEW TOP KEY WATCH LONG SHORT CALL CALLS PUT PUTS OI DTE RSI MACD SMA EMA VWAP ATR PT EOD PCR
+SOFR BOJ ECB OPEC WTI DXY BTC ETH CNN AAII UW FMP PMI ISM NFP JOLTS LIVE BULL BEAR NEUTRAL
+AMC BMO DMH""".split())   # AMC/BMO/DMH: report timing (after close / before open / during)
+_BLOCK_END = re.compile(r"(?i)<\s*(?:/(?:p|li|tr|h[1-6]|div|section|article|ul|ol|table|thead|"
+                        r"tbody|blockquote)|br\s*/?|hr\s*/?)\s*>")
+_CELL_END = re.compile(r"(?i)<\s*/t[dh]\s*>")
+_SENT = re.compile(r"(?<=[.!?;])\s+(?=[A-Z\"'(“‘])")   # "vs est. $5.79" is not a sentence end
+
+
+def _visible_blocks(page: str) -> list:
+    """The visible text as [[sentence, ...], ...] per block, original case."""
+    t = re.sub(r"(?is)<(style|script)[^>]*>.*?</\1>", " ", page)
+    t = _CELL_END.sub("\n", _BLOCK_END.sub("\n\n", t))
+    t = _html.unescape(re.sub(r"<[^>]+>", " ", t)).replace("’", "'")
+    blocks = []
+    for block in re.split(r"\n\s*\n", t):
+        sents = []
+        for line in block.split("\n"):
+            line = re.sub(r"\s+", " ", line).strip()
+            if line:
+                sents += [x for x in _SENT.split(line) if x.strip()]
+        if sents:
+            blocks.append(sents)
+    return blocks
+
+
+def _named(text: str, syms) -> set:
+    """Which of `syms` the text names: case-sensitive whole symbols ("don't"
+    is not T, "now" is not NOW); a one-letter symbol never at the start of
+    its sentence or clause ("A gap up..." is not Agilent)."""
+    out = set()
+    for sym in syms:
+        for m in re.finditer(rf"(?<![A-Za-z0-9&.\-]){re.escape(sym)}(?![A-Za-z0-9&\-])", text):
+            if len(sym) == 1 and not text[:m.start()].strip():
+                continue
+            out.add(sym)
+            break
+    return out
+
+
+def _direction_calls(page: str, syms) -> dict:
+    """{symbol: {"up", "down"}} for every gap/open/rally/fall call the visible
+    text makes about one of `syms`."""
+    syms = [x for x in syms if x]
+    calls, prev_last = {}, ""
+    for block in _visible_blocks(page):
+        joined = " ".join(block)
+        block_names = _named(joined, syms)
+        block_other = set(_TICKERISH.findall(joined)) - _NOT_TICKERS - set(syms)
+        for i, sent in enumerate(block):
+            sent_names = _named(sent, syms)
+            sent_other = set(_TICKERISH.findall(sent)) - _NOT_TICKERS - set(syms)
+            for clause in _CLAUSE.split(sent):
+                for way, rx in _DIR.items():
+                    for m in rx.finditer(clause):
+                        if _NEG.search(clause[:m.start()]):
+                            continue                    # "Don't assume META will gap up"
+                        who = _named(clause, syms)
+                        if not who:
+                            if _INDEXISH.search(sent) or sent_other:
+                                continue                # an index call, or another name's
+                            if sent_names:
+                                who = sent_names
+                            elif _PRONOUN.match(sent):  # "Both will gap up"
+                                who = _named(block[i - 1] if i else prev_last, syms)
+                            elif len(block_names) == 1 and not block_other:
+                                who = block_names       # the one name this row/item is about
+                        for x in who:
+                            calls.setdefault(x, set()).add(way)
+        prev_last = block[-1]
+    return calls
+
+
 def _coverage_gaps(html: str, data: dict) -> list:
     """Deterministic must-cover check against the packet: the top overnight
     earnings result must appear early in the report, and every large pre-market
@@ -205,7 +315,10 @@ def _coverage_gaps(html: str, data: dict) -> list:
                     gaps.append(f"top pre-market {grp[:-1]} {sym} ({pct:.0f}%) never mentioned")
         # Reaction contradiction (2026-09-03 AVGO lesson): an overnight reporter
         # trading hard DOWN must be covered as down — a report that mentions the
-        # ticker only in bullish beat language gets one targeted retry.
+        # ticker only in bullish beat language gets one targeted retry. The
+        # ticker is found case-sensitively in the original-case text: as a
+        # substring of upper-cased text, T matched the T in "DON'T".
+        vis = " ".join(" ".join(b) for b in _visible_blocks(html))
         for r in ov:
             sym = str(r.get("symbol") or "").upper()
             try:
@@ -214,16 +327,43 @@ def _coverage_gaps(html: str, data: dict) -> list:
                 continue
             if not sym or pct >= -3:
                 continue
-            i = up.find(sym)
-            if i < 0:
+            hit = re.search(rf"(?<![A-Za-z0-9&.\-]){re.escape(sym)}(?![A-Za-z0-9&\-])", vis)
+            if not hit:
                 continue
-            ctx = up[max(0, i - 400): i + 400]
+            i = hit.start()
+            ctx = vis[max(0, i - 400): i + 400].upper()
             neg = ("DOWN", "DROP", "FALL", "FELL", "SLID", "SLIP", "LOWER", "WEAK",
                    "SANK", "TUMBL", "DECLIN", "SELL", "SOLD", "GUID", "MISS",
                    "DISAPPOINT", "NEGATIVE", "RED")
             if not any(w in ctx for w in neg):
                 gaps.append(f"{sym} trades {pct:.1f}% pre-market after its print — "
                             "cover the actual reaction and its driver, not just the headline beat")
+        # No direction without data (META 2026-10-22: "will gap up" while it
+        # traded -2.4% pre-market). A name with no pre-market figure gets no gap
+        # call; a name with one (beyond ±1%) must not be called the other way.
+        # Pre-Market only: the 4:30 PM wrap has no pre-market figures, and its
+        # "gapped down this morning" is a fact, not a prediction.
+        calls = ({} if data.get("mode") == "postmarket" else
+                 _direction_calls(html, [str(r.get("symbol") or "").upper() for r in ov]))
+        for r in ov:
+            sym = str(r.get("symbol") or "").upper()
+            ways = calls.get(sym)
+            if not ways:
+                continue
+            try:
+                pct = float(r.get("premarket_reaction_pct"))
+            except (TypeError, ValueError):
+                pct = None
+            if pct is None:
+                gaps.append(f"{sym} has no pre-market data in the packet — remove the "
+                            "gap/direction call and write 'pre-market reaction not "
+                            "available — verify live'")
+            elif pct <= -1 and "up" in ways:
+                gaps.append(f"{sym} trades {pct:+.1f}% pre-market — it is not gapping up; "
+                            "describe the actual move")
+            elif pct >= 1 and "down" in ways:
+                gaps.append(f"{sym} trades {pct:+.1f}% pre-market — it is not gapping down; "
+                            "describe the actual move")
     except Exception as e:  # noqa: BLE001 — the check must never kill a run
         log.warning("coverage check skipped: %s", e)
     return gaps
@@ -517,7 +657,7 @@ def generate(data_packet: dict, report_date: str, mode: Optional[str] = None) ->
         # Coverage check (2026-08-27 NVDA lesson): the packet SAYS what the
         # biggest overnight facts are — verify the report actually covers them
         # instead of trusting the prompt. One targeted retry, then fail-open.
-        gaps = _coverage_gaps(raw, data_packet)
+        gaps = _coverage_gaps(raw, {**data_packet, "mode": mode})
         if not gaps:
             break
         if attempt == 1:

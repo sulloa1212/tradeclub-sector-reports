@@ -19,12 +19,16 @@ on:
         description: "Run even if the market is closed today or the report already exists"
         type: boolean
         default: false
+      preview:
+        description: "PREVIEW: build into mwtc_out/ (artifact only) — nothing published, committed or notified. Required on any branch but main."
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # commit the published report back
 
 concurrency:
-  group: build-mwtc-${{ github.event.inputs.mode }}
+  group: build-mwtc-${{ github.event.inputs.mode }}${{ inputs.preview && '-preview' || '' }}
   cancel-in-progress: false
 
 jobs:
@@ -35,6 +39,7 @@ jobs:
     env:
       MODE_IN: ${{ inputs.mode }}
       FORCE_IN: ${{ inputs.force }}
+      PREVIEW_IN: ${{ inputs.preview }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -53,6 +58,15 @@ jobs:
         id: guard
         run: |
           MODE="${MODE_IN:-premarket}"
+          # Only main may publish. A report run on any other ref must be a
+          # preview; check-keys is a $0 probe and may run anywhere.
+          if [ "$MODE" != "check-keys" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$PREVIEW_IN" != "true" ]; then
+            echo "::error::Ref '$GITHUB_REF_NAME' is not main — re-run with preview=true (a preview publishes nothing)."
+            exit 1
+          fi
+          # A preview skips the market-day/already-built checks and every
+          # publishing step (they all require go=true).
+          if [ "$PREVIEW_IN" = "true" ]; then echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ "$MODE" = "check-keys" ]; then echo "go=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           SLUG=pre-market; [ "$MODE" = "postmarket" ] && SLUG=market-wrap
           if [ "$FORCE_IN" = "true" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
@@ -129,9 +143,26 @@ jobs:
           python -m mwtc.publish --mode "${MODE_IN:-premarket}"
           python build.py --rebuild-hub
 
+      - name: Build a PREVIEW (no publish, no notification)
+        if: inputs.preview == true && inputs.mode != 'check-keys'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          UW_API_KEY: ${{ secrets.UW_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          NASDAQ_DATA_LINK_API_KEY: ${{ secrets.NASDAQ_DATA_LINK_API_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          CME_FEDWATCH_API_ID: ${{ secrets.CME_FEDWATCH_API_ID }}
+          CME_FEDWATCH_API_SECRET: ${{ secrets.CME_FEDWATCH_API_SECRET }}
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python -m mwtc.publish --mode "${MODE_IN:-premarket}" --preview
+
       - name: Commit & push the rebuilt site (race-safe)
-        if: steps.guard.outputs.go == 'true'
+        if: steps.guard.outputs.go == 'true' && inputs.preview != true
         run: |
+          if [ "$PREVIEW_IN" = "true" ] || [ "$GITHUB_REF_NAME" != "main" ]; then
+            echo "::error::refusing to publish (preview=$PREVIEW_IN, ref=$GITHUB_REF_NAME)"; exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add site/
@@ -158,7 +189,7 @@ jobs:
       # La clave sale del modo: tradeclub-premarket / tradeclub-postmarket.
       # Son corridas independientes y fallan por separado.
       - name: Check in to MWTC Health
-        if: success() && steps.guard.outputs.go == 'true' && inputs.mode != 'check-keys'
+        if: success() && steps.guard.outputs.go == 'true' && inputs.mode != 'check-keys' && inputs.preview != true
         run: |
           curl -fsS -X POST \
             -H "Authorization: Bearer ${{ secrets.HEALTH_CHECKIN_TOKEN }}" \
@@ -166,3 +197,17 @@ jobs:
             -d "{\"run\":\"${{ github.run_id }}\",\"mode\":\"${{ inputs.mode }}\"}" \
             https://mwtc-health.green-paper-667a.workers.dev/checkin/tradeclub-${{ inputs.mode }}
           echo "Checked in as tradeclub-${{ inputs.mode }}."
+
+      # Earnings + movers trace (and the preview page). LAST and best-effort: a
+      # failed upload must never skip the commit or the Health check-in of a
+      # report that is already built and announced. The repo is public, so this
+      # artifact is too: mwtc/publish.py keeps the UW/CME payloads out of it.
+      - name: Keep this run's trace (artifact, 14 days)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwtc-${{ inputs.mode }}-packet
+          path: mwtc_out/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -11,12 +11,31 @@ on:
   # Self-healing backups for gap-risk: cron-job.org is the primary trigger
   # (two runs since 2026-09-15: 9:00 AM ET pre-open + 2:00 PM ET mid-session),
   # but on 2026-08-06 GitHub's API 500'd on the dispatch and the day's report
-  # silently never ran. 16:30 UTC backs up the AM run; 19:30 UTC backs up the
-  # PM run. The guard skips whenever the primary already produced the window's
-  # edition (PM detected via the page's own header time stamp) — never bills twice.
+  # silently never ran. The guard skips whenever the primary already produced
+  # the window's edition (PM detected via the page's own header time stamp) —
+  # never bills twice.
+  #
+  # These two times are UTC and cannot be anything else: GitHub's scheduler has
+  # no timezone setting. So they are chosen to sit safely after the primary in
+  # BOTH halves of the year rather than at a fixed Eastern hour:
+  #
+  #            summer (EDT, UTC-4)   winter (EST, UTC-5)
+  #   17:30 →  1:30 PM ET            12:30 PM ET     backs up the 9:00 AM run
+  #   20:30 →  4:30 PM ET             3:30 PM ET     backs up the 2:00 PM run
+  #
+  # They were 16:30 and 19:30 until 2 Nov 2026. That was fine on EDT, but when
+  # Eastern fell back on 1 Nov the PM backup landed 2:30 PM ET — thirty minutes
+  # after the primary, close enough that a slow primary and a drifting backup
+  # could overlap. Moving both forward an hour restores the gap without needing
+  # an edit every March and November.
+  #
+  # Do not trust these for timing. GitHub's cron drifts badly under load: on
+  # 30 Oct 2026 these two fired at 20:58 and 23:04 UTC, four hours late. The
+  # schedule that has to be punctual lives on cron-job.org, which does know
+  # about time zones.
   schedule:
-    - cron: '30 16 * * 1-5'
-    - cron: '30 19 * * 1-5'
+    - cron: '30 17 * * 1-5'
+    - cron: '30 20 * * 1-5'
   workflow_dispatch:
     inputs:
       reports:

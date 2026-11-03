@@ -3,103 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Sector Intelligence — Trade Club AI · Nov 2, 2026</title>
+  <title>Daily AI Sector Intelligence — November 3, 2026 | Trade Club AI</title>
   <link rel="stylesheet" href="/assets/report.css">
   <style>
-    /* Report-specific: diverging bar chart */
-    .sector-board { width: 100%; border-collapse: collapse; }
-    .sector-board td, .sector-board th { padding: 5px 8px; font-size: 0.82rem; }
-    .sector-board th { color: var(--mut); font-weight: 500; border-bottom: 1px solid var(--line); }
-    .bar-cell { width: 240px; }
-    .bar-wrap { display: flex; align-items: center; height: 18px; }
-    .bar-center { width: 1px; background: var(--line); height: 18px; flex-shrink: 0; }
-    .bar-bull { height: 14px; background: var(--bull); border-radius: 0 3px 3px 0; }
-    .bar-bear { height: 14px; background: var(--bear); border-radius: 3px 0 0 3px; margin-left: auto; }
-    .bar-neut { height: 14px; background: var(--mut); border-radius: 3px; }
-    .pick-cell { width: 80px; white-space: nowrap; }
-    .score-cell { width: 48px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-    .label-cell { width: 70px; }
-    .conv-cell { width: 60px; color: var(--mut); font-size: 0.78rem; }
-    .row-pick-bull { background: rgba(34,197,94,0.07); }
-    .row-pick-bear { background: rgba(239,68,68,0.07); }
-
-    /* Sector drill gauge */
-    .sector-gauge { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; flex-wrap: wrap; }
-    .gauge-arc { width: 90px; height: 90px; }
-
-    /* Stock cards */
-    .stock-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
-    .scard { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-    .scard-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .scard-ticker { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
-    .scard-company { font-size: 0.78rem; color: var(--mut); margin-bottom: 6px; }
-    .scard-tagline { font-size: 0.84rem; color: var(--ink); margin-bottom: 10px; line-height: 1.4; }
-    .meter-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.79rem; }
-    .meter-label { color: var(--mut); width: 120px; flex-shrink: 0; }
-    .meter-track { flex: 1; height: 7px; background: var(--faint); border-radius: 4px; overflow: hidden; }
-    .meter-fill-bull { height: 100%; background: var(--bull); border-radius: 4px; }
-    .meter-fill-amber { height: 100%; background: var(--warn); border-radius: 4px; }
-    .meter-fill-bear  { height: 100%; background: var(--bear); border-radius: 4px; }
-    .meter-val { font-weight: 600; width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
-    .fuel-tag { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin: 4px 0 8px; }
-    .fuel-adds { background: rgba(34,197,94,0.15); color: var(--bull); }
-    .fuel-neut { background: rgba(148,163,184,0.15); color: var(--mut); }
-    .fuel-fights { background: rgba(239,68,68,0.12); color: var(--bear); }
-    .scard-points { margin: 6px 0 0; padding-left: 14px; font-size: 0.80rem; color: var(--ink); line-height: 1.5; }
-    .scard-risk { font-size: 0.78rem; color: var(--warn); margin-top: 6px; }
-    .scard-levels { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; font-size: 0.76rem; }
-    .level-item { background: var(--chip); border-radius: 4px; padding: 2px 6px; }
-    .erng-flag { display: inline-block; font-size: 0.71rem; padding: 1px 5px; border-radius: 3px; background: rgba(251,191,36,0.18); color: var(--warn); font-weight: 600; }
-
-    /* Picks table */
-    .picks-table { width: 100%; border-collapse: collapse; }
-    .picks-table td, .picks-table th { padding: 8px 10px; font-size: 0.82rem; border-bottom: 1px solid var(--line); }
-    .picks-table th { color: var(--mut); font-weight: 500; }
-
-    /* Calendar */
-    .cal-rows tr td { padding: 7px 10px; font-size: 0.82rem; border-bottom: 1px solid var(--faint); }
-    .cal-rows tr td:first-child { color: var(--mut); white-space: nowrap; width: 110px; font-size: 0.78rem; }
-    .cal-rows tr:hover td { background: var(--chip); }
-
-    /* Legend grid */
-    .leg-table { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
-    .leg-table td { padding: 6px 8px; border-bottom: 1px solid var(--faint); vertical-align: top; }
-    .leg-table td:first-child { color: var(--mut); width: 170px; font-weight: 500; }
-
-    /* Macro strip */
-    .macro-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-    .mcard { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
-    .mcard .mk { font-size: 0.73rem; color: var(--mut); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
-    .mcard .mv { font-size: 1.22rem; font-weight: 700; color: var(--ink); margin: 2px 0; }
-    .mcard .ms { font-size: 0.74rem; color: var(--mut); }
-    .mcard .mh { font-size: 0.73rem; margin-top: 5px; }
-
-    /* Counter-currents */
-    .cross-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width:600px) { .cross-grid { grid-template-columns: 1fr; } }
+    /* Report-specific only — no base-prose overrides */
+    .bar-wrap { display:flex; align-items:center; gap:6px; width:100%; }
+    .bar-label { min-width:54px; font-size:.78rem; color:var(--muted); }
+    .bar-center { position:relative; flex:1; height:14px; background:var(--faint); border-radius:4px; overflow:hidden; }
+    .bar-fill-bull { position:absolute; left:50%; top:0; height:100%; background:var(--bull); border-radius:0 4px 4px 0; }
+    .bar-fill-bear { position:absolute; right:50%; top:0; height:100%; background:var(--bear); border-radius:4px 0 0 4px; }
+    .bar-score { min-width:40px; font-size:.82rem; font-weight:600; text-align:right; }
+    .bar-pick  { min-width:72px; }
+    .sector-row { display:grid; grid-template-columns:140px 1fr 56px 80px; align-items:center; gap:8px; padding:6px 2px; border-bottom:1px solid var(--faint); }
+    .sector-row:last-child { border-bottom:none; }
+    .sector-name { font-size:.82rem; color:var(--ink); }
+    .pill-pick-bull { display:inline-block; background:var(--bull); color:#fff; font-size:.68rem; font-weight:700; border-radius:4px; padding:2px 7px; white-space:nowrap; }
+    .pill-pick-bear { display:inline-block; background:var(--bear); color:#fff; font-size:.68rem; font-weight:700; border-radius:4px; padding:2px 7px; white-space:nowrap; }
+    .meter-wrap { display:flex; flex-direction:column; gap:3px; margin:6px 0 10px; }
+    .meter-row  { display:flex; align-items:center; gap:8px; }
+    .meter-label{ font-size:.75rem; color:var(--muted); min-width:140px; }
+    .meter-bar  { flex:1; height:10px; background:var(--faint); border-radius:5px; overflow:hidden; position:relative; }
+    .meter-fill { position:absolute; left:0; top:0; height:100%; border-radius:5px; }
+    .meter-val  { font-size:.8rem; font-weight:600; min-width:30px; text-align:right; }
+    .m-bull  { background:var(--bull); }
+    .m-amber { background:var(--warn); }
+    .m-red   { background:var(--bear); }
+    .fuel-tag { display:inline-block; font-size:.72rem; font-weight:700; border-radius:4px; padding:2px 8px; margin-left:6px; }
+    .ft-fuel  { background:rgba(var(--bull-rgb,34,197,94),.15); color:var(--bull); border:1px solid var(--bull); }
+    .ft-neut  { background:rgba(180,180,180,.15); color:var(--muted); border:1px solid var(--muted); }
+    .ft-fight { background:rgba(var(--bear-rgb,239,68,68),.15); color:var(--bear); border:1px solid var(--bear); }
+    .card-divider { border:none; border-top:1px solid var(--faint); margin:12px 0; }
+    .picks-table td, .picks-table th { vertical-align:middle; }
+    .direction-badge-long  { display:inline-block; background:var(--bull); color:#fff; font-size:.7rem; font-weight:700; border-radius:4px; padding:2px 8px; }
+    .direction-badge-short { display:inline-block; background:var(--bear); color:#fff; font-size:.7rem; font-weight:700; border-radius:4px; padding:2px 8px; }
+    .earn-warn { color:var(--warn); font-weight:600; }
+    .legend-item { display:flex; gap:10px; padding:6px 0; border-bottom:1px solid var(--faint); font-size:.82rem; }
+    .legend-term { min-width:160px; font-weight:600; color:var(--acc); }
+    .section-eyebrow { font-size:.72rem; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+    .macro-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin:12px 0; }
+    .macro-card { background:var(--panel2); border-radius:8px; padding:14px 16px; }
+    .macro-card .mc-label { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+    .macro-card .mc-val   { font-size:1.2rem; font-weight:700; color:var(--ink); margin:2px 0; }
+    .macro-card .mc-sub   { font-size:.74rem; color:var(--muted); }
+    .macro-card .mc-tag   { font-size:.7rem; margin-top:6px; padding:2px 7px; border-radius:4px; display:inline-block; }
+    .tag-bull { background:rgba(34,197,94,.12); color:var(--bull); }
+    .tag-bear { background:rgba(239,68,68,.12); color:var(--bear); }
+    .tag-neut { background:rgba(148,163,184,.15); color:var(--muted); }
+    .cal-row  { display:grid; grid-template-columns:110px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid var(--faint); font-size:.82rem; }
+    .cal-date { font-weight:600; color:var(--acc); }
+    .cross-box { background:var(--panel2); border-left:3px solid var(--warn); border-radius:6px; padding:12px 16px; margin:10px 0; font-size:.82rem; }
+    .drill-header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+    .gauge-ring { width:60px; height:60px; border-radius:50%; border:4px solid; display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; flex-shrink:0; }
+    .gauge-bull { border-color:var(--bull); color:var(--bull); }
+    .gauge-bear { border-color:var(--bear); color:var(--bear); }
+    .gauge-neut { border-color:var(--muted); color:var(--muted); }
   </style>
 <style id="prose-tone">.wrap p,.wrap li{color:var(--mut,#9fb0c3)}.wrap p b,.wrap li b,.wrap p strong,.wrap li strong{font-weight:600}.wrap p b:not([class]),.wrap li b:not([class]),.wrap p strong:not([class]),.wrap li strong:not([class]){color:var(--ink,#e8edf4)}</style>
 <style id="tc-datebar">.tc-datebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:10px 0 10px;padding:10px 15px;background:#141a24;border:1px solid #26303f;border-left:4px solid #4ea1ff;border-radius:0 8px 8px 0;line-height:1.25}.tc-datebar .tc-db-date{font-size:19px;font-weight:800;color:#fff;letter-spacing:.01em}.tc-datebar .tc-db-time{font-size:15px;font-weight:700;color:#e8edf4;white-space:nowrap}.tc-datebar svg{width:17px;height:17px;vertical-align:-3px;margin-right:7px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.tc-datebar .tc-db-date svg{stroke:#4ea1ff}.tc-datebar .tc-db-time svg{stroke:#9fb0c3;width:15px;height:15px;margin-right:5px}.tc-datebar .tc-db-run{font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 10px;border-radius:999px;background:rgba(78,161,255,.14);color:#4ea1ff;border:1px solid rgba(78,161,255,.45);white-space:nowrap}@media(max-width:640px){.tc-datebar{gap:6px 12px;padding:9px 12px}.tc-datebar .tc-db-date{font-size:17px}.header{flex-direction:column;align-items:flex-start}.head-text{padding-right:54px}}</style>
 </head>
-<body><style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:230px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/sector-intelligence/2026-10-30.html">2026-10-30</a></li><li><a href="/sector-intelligence/2026-10-29.html">2026-10-29</a></li><li><a href="/sector-intelligence/2026-10-28.html">2026-10-28</a></li><li><a href="/sector-intelligence/2026-10-27.html">2026-10-27</a></li></ul></details><style>.tc-sched{position:fixed;right:18px;bottom:74px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:#10151f;border:1px solid #26303f;color:#9fb0c3;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;pointer-events:none}@media print{.tc-sched{display:none}}</style><div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; 8:50am ET</div><style>.tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,12,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.tc-gate-card{max-width:540px;width:100%;background:#141a24;border:1px solid #26303f;border-top:4px solid #4ea1ff;border-radius:14px;padding:26px 26px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-gate-eyebrow{color:#4ea1ff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-bottom:8px}.tc-gate-card h2{color:#e8edf4;font-size:21px;margin:0 0 12px;line-height:1.3}.tc-gate-card p{color:#9fb0c3;font-size:13.5px;line-height:1.65;margin:0 0 12px}.tc-gate-card p b{color:#e8edf4}.tc-gate-card a{color:#4ea1ff;text-decoration:underline}.tc-gate-btn{display:block;width:100%;margin-top:6px;padding:13px 20px;border-radius:999px;border:none;background:#4ea1ff;color:#08131f;cursor:pointer;font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;transition:transform .12s,box-shadow .12s}.tc-gate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,161,255,.45)}.tc-gate-note{color:#6b7787;font-size:11px;text-align:center;margin-top:10px}@media print{.tc-gate{display:none!important}}</style><div class="tc-gate" id="tcGate" role="dialog" aria-modal="true" aria-labelledby="tcGateTitle"><div class="tc-gate-card"><div class="tc-gate-eyebrow">Trade Club AI &middot; Member Notice</div><h2 id="tcGateTitle">Before you continue</h2><p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; and they are generated with the assistance of AI, which can make mistakes. Always verify every price, level and date with your broker before acting.</p><p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every report and agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button><div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div></div></div><script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script><style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.5)}@media print{.tc-dash-btn{display:none}}</style><a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a><style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#4ea1ff;border:1px solid #7abaff;color:#08131f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
+<body><style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:230px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/sector-intelligence/2026-11-02.html">2026-11-02</a></li><li><a href="/sector-intelligence/2026-10-30.html">2026-10-30</a></li><li><a href="/sector-intelligence/2026-10-29.html">2026-10-29</a></li><li><a href="/sector-intelligence/2026-10-28.html">2026-10-28</a></li></ul></details><style>.tc-sched{position:fixed;right:18px;bottom:74px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:#10151f;border:1px solid #26303f;color:#9fb0c3;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;pointer-events:none}@media print{.tc-sched{display:none}}</style><div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; 8:50am ET</div><style>.tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,12,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.tc-gate-card{max-width:540px;width:100%;background:#141a24;border:1px solid #26303f;border-top:4px solid #4ea1ff;border-radius:14px;padding:26px 26px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-gate-eyebrow{color:#4ea1ff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-bottom:8px}.tc-gate-card h2{color:#e8edf4;font-size:21px;margin:0 0 12px;line-height:1.3}.tc-gate-card p{color:#9fb0c3;font-size:13.5px;line-height:1.65;margin:0 0 12px}.tc-gate-card p b{color:#e8edf4}.tc-gate-card a{color:#4ea1ff;text-decoration:underline}.tc-gate-btn{display:block;width:100%;margin-top:6px;padding:13px 20px;border-radius:999px;border:none;background:#4ea1ff;color:#08131f;cursor:pointer;font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;transition:transform .12s,box-shadow .12s}.tc-gate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,161,255,.45)}.tc-gate-note{color:#6b7787;font-size:11px;text-align:center;margin-top:10px}@media print{.tc-gate{display:none!important}}</style><div class="tc-gate" id="tcGate" role="dialog" aria-modal="true" aria-labelledby="tcGateTitle"><div class="tc-gate-card"><div class="tc-gate-eyebrow">Trade Club AI &middot; Member Notice</div><h2 id="tcGateTitle">Before you continue</h2><p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; and they are generated with the assistance of AI, which can make mistakes. Always verify every price, level and date with your broker before acting.</p><p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every report and agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button><div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div></div></div><script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script><style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.5)}@media print{.tc-dash-btn{display:none}}</style><a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a><style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#4ea1ff;border:1px solid #7abaff;color:#08131f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
 <div class="wrap">
 
-<!-- ═══════════════════════════════════════════════════════ HEADER -->
+<!-- ═══════════════ HEADER ═══════════════ -->
 <header class="top">
   <div class="header">
     <img class="brand-tc" src="/assets/tradeclub-ai.png" alt="Trade Club AI">
     <div class="head-text">
       <div class="eyebrow">TRADE CLUB AI &middot; DAILY SECTOR INTELLIGENCE</div>
-      <h1>Sector Intelligence Report <span class="tag t-neut">MIXED</span></h1><div class="tc-datebar"><span class="tc-db-date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Monday, November 2, 2026</span><span class="tc-db-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>8:58 AM ET</span><span class="tc-db-run">PRE-MARKET RUN</span></div>
-      <div class="sub">Oil-driven defensives lead; XLC & XLK in correction — AAPL &amp; PLTR report tonight</div>
-      <div class="stamp"><span class="warn-badge">&#9888; AAPL + PLTR earnings tonight &middot; Midterms Tuesday</span>
+      <h1>Sector Intelligence Report <span class="tag t-neut">MIXED</span></h1><div class="tc-datebar"><span class="tc-db-date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Tuesday, November 3, 2026</span><span class="tc-db-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>8:57 AM ET</span><span class="tc-db-run">PRE-MARKET RUN</span></div>
+      <div class="sub">Defensive &amp; Health Care lead; Tech under pressure; Energy whipsawed by Iran peace trade</div>
+      <div class="stamp"><span class="warn-badge">&#9888; US Midterm Elections today &bull; AAPL &minus;4% AH &bull; Oil &minus;7%</span>
       </div>
     </div>
     <img class="brand-mw" src="/assets/mw.png" alt="Michael Wade Trade Coaching">
   </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════ NAV -->
+<!-- ═══════════════ NAV ═══════════════ -->
 <nav class="jump">
   <a href="#read">60-Second Read</a>
   <a href="#macro">Macro</a>
@@ -110,1355 +90,1022 @@
   <a href="#howto">How to Read</a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════ S1 — 60-SECOND READ -->
-<section id="read">
-  <div class="section-eyebrow">QUICK SUMMARY</div>
-  <h2><span class="num">1</span>The 60-Second Read</h2>
+<!-- ═══════════════ SECTION 1 — 60-SECOND READ ═══════════════ -->
+<h2 id="read"><span class="num">1</span>The 60-Second Read</h2>
 
-  <div class="read-box">
-    <ul>
-      <li><b>Market regime:</b> A post-October bounce — but not an all-clear. Markets are poised to bounce back after an AI-fueled sell-off that saw the Nasdaq lose 5.2% in October. Nasdaq 100 futures lead at +0.70%, S&amp;P 500 futures +0.33%, and Dow futures +0.17% — a relief rally, not a regime shift. VIX sits at 19.24, still elevated.</li>
+<div class="read-box panel acc">
+  <p><b>Market regime:</b> Bifurcated. The Dow is modestly positive, but the Nasdaq fell more than 1% Monday and is under renewed pressure as Apple guides for holiday-quarter margin compression. Futures are <b>mixed</b> — Nasdaq futures +0.4%, S&P futures flat/slightly red, Dow futures &minus;0.5–0.7%. VIX is elevated near <b>21.5</b>. This is a <b class="warnc">cautious, defensive-rotation tape.</b></p>
+  <p><b>Standout bullish sector:</b> <b class="pos">Health Care (XLV)</b> is the cleanest swing long — Pfizer beat and raised this morning, Eli Lilly raised guidance last week, and the ETF is within 2% of its 52-week high. Defensive rotation is pulling money into pharma and staples as tech wobbles.</p>
+  <p><b>Standout bullish theme:</b> <b class="pos">Homebuilders (XHB)</b> surged 3.3% Monday as oil's 7%+ plunge on Iran peace signals implied lower inflation and potential rate-cut tailwinds. XHB is the direct beneficiary of falling rate-pressure expectations.</p>
+  <p><b>Standout bearish sector:</b> <b class="neg">Technology (XLK)</b> is the cleanest swing short-or-avoid — down ~3% Monday alone, &minus;14% from its October 6 peak, mega-cap margin pressure (AAPL, PLTR, AI capex fears), and semis still digesting a 10%+ drawdown since mid-October.</p>
+  <p><b>Cushion &amp; risk:</b> S&P earnings season remains strong (82% of reporters beat), and GDP came in at +3.4% for Q3. But tech is 30%+ of the index; if the rotation out of XLK deepens, the broader market struggles even when sectors rotate. Energy (XLE) is a <b class="warnc">two-sided risk</b> — any Iran escalation reverses Monday's 7% oil drop instantly.</p>
+  <p><b>&#9888; Watch this week:</b> <b class="warnc">AMD reports after the close today</b> (revenue est. $13.1B; key read for AI semiconductors). Jobs report Friday Nov 6. CPI Tuesday Nov 10. Midterm election results will dominate headlines through Wednesday.</p>
+</div>
 
-      <li><b class="pos">Standout bullish:</b> <b>Health Care (XLV)</b> is the clearest rotation beneficiary. Leadership has been driven by a rotation out of crowded artificial-intelligence and technology positions into defensive growth, accelerating sector earnings, and a broad biotech resurgence. Big pharma stocks near all-time highs as tech selloff pushes investors toward safer bets.</li>
+<!-- ═══════════════ SECTION 2 — MACRO ═══════════════ -->
+<h2 id="macro"><span class="num">2</span>Macro &amp; Geopolitical Strip</h2>
+<p>These six macro factors set the backdrop for every sector score below. Each tag shows which sectors feel the effect most directly.</p>
 
-      <li><b class="neg">Standout bearish:</b> <b>Communication Services (XLC)</b> is the tape's biggest problem. XLC fell 5.32% to $99.90 — a new 52-week closing low, worst week since April 2025, and eight straight lower closes. Alphabet fell 12.6% on Thursday — the steepest one-day drop in the stock's history.</li>
+<div class="macro-grid">
 
-      <li><b>Biggest headline this morning:</b> Marvell Technology has reached a deal to buy data center optics maker Lumentum Holdings at an enterprise value of $115 billion, one of the biggest tech tie-ups ever, in a race to capitalize on the artificial intelligence boom. This is a positive for AI infrastructure names and semis specifically.</li>
-
-      <li><b class="warnc">⚠ Watch this week:</b> This week brings more Magnificent Seven earnings, the midterms, and a payrolls data day on Friday. <b>AAPL + PLTR</b> report tonight after the close; <b>AMD</b> reports Tuesday. US midterm elections are tomorrow — President Trump signalled a preference for diplomacy with Iran, which is why oil is crashing 4% today. Oil reversal is a headwind for XLE, tailwind for consumer names.</li>
-    </ul>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════ S2 — MACRO -->
-<section id="macro">
-  <div class="section-eyebrow">TOP-DOWN CONTEXT</div>
-  <h2><span class="num">2</span>Macro &amp; Geopolitical Strip</h2>
-  <p>These six macro forces set the backdrop for every sector call below — they tell you what the wind is doing, sector by sector.</p>
-
-  <div class="macro-strip">
-
-    <div class="mcard">
-      <div class="mk">10-Yr Treasury Yield</div>
-      <div class="mv"><b class="pos">4.92%</b></div>
-      <div class="ms">Down from 5.05% on Oct 28; 7-week low</div>
-      <div class="mh">The US 10-year yield slid from ~5.05% on Oct 28 to ~4.93% on Oct 30. <span class="pos">Helps:</span> XLRE, XLU, XLV. <span class="neg">Hurts:</span> XLF (spread compression).</div>
-    </div>
-
-    <div class="mcard">
-      <div class="mk">Fed Funds Rate</div>
-      <div class="mv"><b>3.75–4.00%</b></div>
-      <div class="ms">HOLD (Oct 28 FOMC) — 2 dissenters for hike</div>
-      <div class="mh">The Federal Reserve kept the target range at 3.75% to 4.00% at its October meeting, but two members dissented in favor of a 25 bp rate hike. Pause is broadly risk-neutral.</div>
-    </div>
-
-    <div class="mcard">
-      <div class="mk">VIX (Volatility Index)</div>
-      <div class="mv"><b class="warnc">19.24</b></div>
-      <div class="ms">Easing from Friday spike; still elevated</div>
-      <div class="mh">VIX 19.24 (−0.9%); November VX futures 19.90, December 19.40. Front > back = lingering fear. Elevated VIX favors defensive sectors (XLV, XLP, XLU).</div>
-    </div>
-
-    <div class="mcard">
-      <div class="mk">US Dollar (DXY)</div>
-      <div class="mv"><b>~101.96</b></div>
-      <div class="ms">Down 3 straight sessions; multi-week lows</div>
-      <div class="mh">The dollar index held near 101.77 on Nov 2 after the 10-year yield fell to 4.93%, a seven-week low. Weaker dollar <span class="pos">helps</span> XLE, XLB, multinationals. <span class="neg">Hurts</span> domestic-only plays less.</div>
-    </div>
-
-    <div class="mcard">
-      <div class="mk">WTI Crude Oil</div>
-      <div class="mv"><b class="neg">~$99.70</b></div>
-      <div class="ms">Down ~4.3% today; diplomacy discount</div>
-      <div class="mh">Oil fell more than 3%, with WTI dropping to ~$100.90, as Trump signalled a preference for diplomacy with Iran before considering further military strikes. Brent rose 13.6% in October and WTI 15.2% — a 4th straight monthly gain. XLE faces near-term pressure.</div>
-    </div>
-
-    <div class="mcard">
-      <div class="mk">Gold / Geopolitics</div>
-      <div class="mv"><b class="pos">$3,900</b></div>
-      <div class="ms">+0.6% today; US-Iran diplomacy risk</div>
-      <div class="mh">Gold bounces from a key support zone as hopes for a US-Iran deal strengthen. Iranian and Qatari officials entered a third consecutive day of talks. Gold stay strong = market not fully risk-on yet. Helps GDX, XLV, XLU.</div>
-    </div>
-
+  <div class="macro-card">
+    <div class="mc-label">10-Yr Treasury Yield</div>
+    <div class="mc-val">~4.88–4.93%</div>
+    <div class="mc-sub">Easing slightly; 7-week low hit Oct 30. Still elevated vs. 2025.</div>
+    <div class="mc-tag tag-bear">⬆ Hurts: XLRE, XLU, XHB</div>
+    <div class="mc-tag tag-bull">⬇ Helps if falls: Financials, Growth</div>
   </div>
 
-  <div class="panel warn" style="margin-top:14px;">
-    Macro one-liner — the single factor that can override everything this week: AAPL earnings tonight are the swing factor for the entire tech/AI tape. Poor results from the hyperscalers raise the stakes for Apple, the Magnificent Seven stock breaking away from the pack. A beat restores confidence in consumer tech spending and AI ROI; a miss extends October's correction into November.
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════ S3 — SECTOR BOARD -->
-<section id="ranking">
-  <div class="section-eyebrow">FULL UNIVERSE RANKING</div>
-  <h2><span class="num">3</span>The Sector Board</h2>
-  <p>Every sector and hot theme scored on a −100 (most bearish) to +100 (most bullish) scale — bars grow right (green = bullish) or left (red = bearish) from the center line. <b>Green ▲ PICK</b> = top-2 bullish drill-down; <b>Red ▼ PICK</b> = top-2 bearish drill-down.</p>
-
-  <div class="tbl-wrap">
-  <table class="sector-board">
-    <thead>
-      <tr>
-        <th style="width:160px">Sector / Theme</th>
-        <th style="width:50px">ETF</th>
-        <th class="bar-cell" style="text-align:center">← BEAR &nbsp;|&nbsp; BULL →</th>
-        <th class="score-cell">Score</th>
-        <th class="label-cell">Signal</th>
-        <th class="conv-cell">Conviction</th>
-        <th class="pick-cell">Pick</th>
-      </tr>
-    </thead>
-    <tbody>
-
-      <!-- TOP BULLISH -->
-      <tr class="row-pick-bull">
-        <td><b>Health Care</b></td>
-        <td>XLV</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:70%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+70</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">High</td>
-        <td class="pick-cell"><span class="tag t-bull" style="font-size:0.72rem;padding:2px 6px;">▲ PICK</span></td>
-      </tr>
-
-      <tr class="row-pick-bull">
-        <td><b>Gold Miners</b></td>
-        <td>GDX</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:62%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+62</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"><span class="tag t-bull" style="font-size:0.72rem;padding:2px 6px;">▲ PICK</span></td>
-      </tr>
-
-      <tr>
-        <td>Consumer Staples</td>
-        <td>XLP</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:46%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+46</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Defense</td>
-        <td>ITA</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:42%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+42</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Utilities</td>
-        <td>XLU</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:36%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+36</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Biotech</td>
-        <td>XBI</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:30%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+30</span></td>
-        <td><span class="tag t-bull">BULLISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Real Estate</td>
-        <td>XLRE</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:22%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+22</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Financials</td>
-        <td>XLF</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:14%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+14</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Materials</td>
-        <td>XLB</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:12%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+12</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Homebuilders</td>
-        <td>XHB</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-bull" style="width:10%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bull-c">+10</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Industrials</td>
-        <td>XLI</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-neut" style="width:8%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="mut">+5</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Regional Banks</td>
-        <td>KRE</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end"></div>
-            <div class="bar-center"></div>
-            <div style="flex:1;display:flex;align-items:center">
-              <div class="bar-neut" style="width:6%"></div>
-            </div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="mut">0</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Consumer Discret.</td>
-        <td>XLY</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:8%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−8</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Uranium</td>
-        <td>URA/URNM</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:12%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−12</span></td>
-        <td><span class="tag t-neut">NEUTRAL</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Cybersecurity</td>
-        <td>CIBR/BUG</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:14%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−14</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Low</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>China Tech</td>
-        <td>KWEB</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:18%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−18</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Crypto / Miners</td>
-        <td>IBIT/BITQ</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:20%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−20</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Clean / Solar</td>
-        <td>TAN</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:24%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−24</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Oil Services</td>
-        <td>OIH</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:28%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−28</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Energy</td>
-        <td>XLE</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:32%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−32</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Semiconductors</td>
-        <td>SMH</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:40%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−40</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">Med</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <tr>
-        <td>Technology</td>
-        <td>XLK</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:44%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−44</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">High</td>
-        <td class="pick-cell"></td>
-      </tr>
-
-      <!-- BOTTOM TWO — PICK BEARISH -->
-      <tr class="row-pick-bear">
-        <td><b>AI / Data-Center</b></td>
-        <td>SMH/MRVL</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:48%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−48</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">High</td>
-        <td class="pick-cell"><span class="tag t-bear" style="font-size:0.72rem;padding:2px 6px;">▼ PICK</span></td>
-      </tr>
-
-      <tr class="row-pick-bear">
-        <td><b>Comm. Services</b></td>
-        <td>XLC</td>
-        <td class="bar-cell">
-          <div class="bar-wrap">
-            <div style="flex:1;display:flex;justify-content:flex-end">
-              <div class="bar-bear" style="width:64%"></div>
-            </div>
-            <div class="bar-center"></div>
-            <div style="flex:1"></div>
-          </div>
-        </td>
-        <td class="score-cell"><span class="bear-c">−64</span></td>
-        <td><span class="tag t-bear">BEARISH</span></td>
-        <td class="conv-cell">High</td>
-        <td class="pick-cell"><span class="tag t-bear" style="font-size:0.72rem;padding:2px 6px;">▼ PICK</span></td>
-      </tr>
-
-    </tbody>
-  </table>
+  <div class="macro-card">
+    <div class="mc-label">Fed Funds Rate</div>
+    <div class="mc-val">3.75%–4.00%</div>
+    <div class="mc-sub">Cut to this range at Oct 28 FOMC. Next decision Dec 9, 2026.</div>
+    <div class="mc-tag tag-bull">Helps: XLF spread, Staples, Defensive</div>
+    <div class="mc-tag tag-neut">Neutral: still restrictive vs. 2024</div>
   </div>
 
-  <div class="panel warn" style="margin-top:12px;font-size:0.82rem;">
-    <b>Scoring note — XLE is bearish TODAY, but not structurally:</b> XLE was the daily leader at +1.91% on Friday Oct 30. XLE is +59.71% YTD through Oct 31. The sector remains the dominant YTD leader, but today's oil crash (−4.3%) on Iran diplomacy news creates near-term headwinds for a swing trade. Score reflects the <em>next 3–6 weeks</em>, not the 12-month structural story.
+  <div class="macro-card">
+    <div class="mc-label">CPI / Inflation</div>
+    <div class="mc-val">~3.7% YoY</div>
+    <div class="mc-sub">Sep CPI released Oct 14. Next: Oct CPI on Nov 10.</div>
+    <div class="mc-tag tag-bear">Hurts: XLRE, XLU, Bond proxies</div>
+    <div class="mc-tag tag-bull">Oil drop may ease Nov 10 print</div>
   </div>
 
-  <div class="panel acc" style="margin-top:12px;font-size:0.82rem;">
-    <b>Scoring key:</b> Each of the 5 inputs (trend 30%, RS vs SPY 25%, macro tailwind 20%, news flow 15%, momentum 10%) was assessed from live data and combined into the Direction Score shown. Conviction = how many inputs point the same way. Full methodology lives in Section 7.
+  <div class="macro-card">
+    <div class="mc-label">Q3 GDP (Advance)</div>
+    <div class="mc-val">+3.4% (ann.)</div>
+    <div class="mc-sub">Released Oct 29. Strong — prior quarter was +2.2%.</div>
+    <div class="mc-tag tag-bull">Helps: XLI, XLF, XLY, Broad market</div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════════ S4 — DRILL-DOWNS -->
-<section id="sectors">
-  <div class="section-eyebrow">DEEP DIVES</div>
-  <h2><span class="num">4</span>Sector Drill-Downs</h2>
-  <p>The four drilled sectors: two bullish (XLV, GDX) and two bearish (XLC, AI/Data-Center theme). Each drill opens with the plain-English thesis, then shows the top-3 stock setups with scored conviction and fundamental health.</p>
-
-  <!-- ══════════ DRILL 1: XLV ══════════ -->
-  <div id="drill-xlv" style="margin-top: 28px;">
-    <div class="panel bull">
-      <div class="sector-gauge">
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:var(--bull)">+70</div>
-          <div style="font-size:0.75rem;color:var(--mut)">Direction Score</div>
-        </div>
-        <div>
-          <span class="tag t-bull">BULLISH</span>&nbsp;<span class="pill">High Conviction</span>
-          <div style="font-size:0.88rem;margin-top:6px;"><b>Health Care (XLV)</b></div>
-        </div>
-      </div>
-      <p style="font-size:0.87rem;"><b>Plain-English thesis:</b> Investors are rotating money OUT of costly tech-and-AI names and INTO healthcare, which is hitting record highs. Leadership has been driven by a rotation out of crowded AI and technology positions into defensive growth, accelerating sector earnings, and a broad biotech resurgence. Big pharma stocks are near all-time highs as the tech selloff pushes investors toward safer bets. Falling yields (from 5.05% to 4.92%) provide additional lift for dividend-heavy and capital-intensive pharma. The sector outperforms SPY by +15.2% on a relative-strength basis over the past year.</p>
-      <p style="font-size:0.84rem;color:var(--mut)"><b>Inputs:</b> Trend (30%): ETF at/near highs, above rising 20/50 EMAs. RS (25%): clear outperformer vs SPY. Macro (20%): falling yields + defensive shift = tailwind. News (15%): tech rotation catalyst + GLP-1 drug demand. Momentum (10%): RSI not extended, positive breadth.</p>
-    </div>
-
-    <div class="stock-cards">
-
-      <!-- CARD: LLY -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">LLY</div>
-            <div class="scard-company">Eli Lilly &amp; Company</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">Lilly is the gravitational center of XLV and its GLP-1 obesity drug franchise is the sector's single most powerful growth engine.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:82%"></div></div>
-          <span class="meter-val bull-c">82</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:88%"></div></div>
-          <span class="meter-val bull-c">88</span>
-        </div>
-        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL — strong fundamentals confirm trend</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Market cap ~$1.0 T. Lilly alone carries a nearly $1 trillion market cap, making it the gravitational center of XLV. Top XLV weight at ~16.49% of fund. LLY up ~41% over the past year.</div>
-
-        <ul class="scard-points">
-          <li>Dominant GLP-1 obesity drug franchise (Mounjaro, Zepbound) with Mounjaro and Zepbound driving 65% of Q1 revenue.</li>
-          <li>New oral GLP-1 Foundayo (orforglipron) is a pipeline optionality catalyst; approved in the US.</li>
-          <li>Healthcare posted the fastest upside rotation and strengthened into the Leading quadrant. LLY leads that move.</li>
-          <li>Largest ETF buy: LLY was XLV's largest buy by dollar value at $69.8M on Oct 29.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> Pricing pressure on GLP-1s; any negative pricing signal = sharp pullback. At $1T+ cap, valuation already rich.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: <span class="erng-flag">⚠ Nov — date unconfirmed: verify</span></div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: near current/pullback</span>
-          <span class="level-item">Support: 20-day EMA</span>
-          <span class="level-item">Resist: all-time high</span>
-        </div>
-      </div>
-
-      <!-- CARD: ABBV -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">ABBV</div>
-            <div class="scard-company">AbbVie Inc.</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">AbbVie is at or near record highs as its post-Humira pipeline proves it can replace lost revenue — a clean breakout setup within a leading sector.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:74%"></div></div>
-          <span class="meter-val bull-c">74</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:78%"></div></div>
-          <span class="meter-val bull-c">78</span>
-        </div>
-        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL — strong pipeline, healthy margins</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> ABBV trading at ~$282.79. ABBV at ~7.86% of XLV fund. Third-largest XLV weight — strong institutional bid.</div>
-
-        <ul class="scard-points">
-          <li>Rinvoq and Skyrizi successfully replacing Humira's lost exclusivity revenue — strong Q3 beats.</li>
-          <li>Near record highs alongside LLY — sector rotation creates dual tailwind.</li>
-          <li>Dividend yield provides defensive cushion; buybacks active.</li>
-          <li>Less exposed to GLP-1 pricing controversy than LLY — diversified risk profile.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> ABBV faces risk from any reversal of the 15% pharma import cap in US trade deals. Policy reversal = headwind.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: Reported Oct 30 (beat — in rear view)</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: $278–285 range</span>
-          <span class="level-item">Support: $270</span>
-          <span class="level-item">Resist: ATH</span>
-        </div>
-      </div>
-
-      <!-- CARD: UNH -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">UNH</div>
-            <div class="scard-company">UnitedHealth Group</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">UnitedHealth has rebounded sharply from a brutal 2025 and is now the defensive-income anchor of XLV — a steady climber in a rotation to healthcare.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:68%"></div></div>
-          <span class="meter-val bull-c">68</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:72%"></div></div>
-          <span class="meter-val bull-c">72</span>
-        </div>
-        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL — improving after 2025 setbacks</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> UNH trading at ~$406.87. UnitedHealth rebounded about 23% YTD after a brutal 2025 marked by a cyberattack and DOJ scrutiny.</div>
-
-        <ul class="scard-points">
-          <li>Defensive managed-care business with stable, recurring premium revenue — resilient to macro.</li>
-          <li>Recovery from 2025 DOJ/cyber headwinds creates mean-reversion upside above 2025 lows.</li>
-          <li>Analysts net-positive: XLV flow data shows consistent institutional accumulation in Oct.</li>
-          <li>Lower beta than LLY — better for risk-off swing if VIX stays elevated.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> Regulatory/policy risk on Medicare Advantage rates and any renewed DOJ scrutiny. A resurgence of medical-cost inflation could reset margins.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: $400–412 zone</span>
-          <span class="level-item">Support: $385</span>
-          <span class="level-item">Resist: $425</span>
-        </div>
-      </div>
-
-    </div><!-- /stock-cards XLV -->
-
-    <!-- Cross-currents XLV -->
-    <div class="cross-grid" style="margin-top:14px;">
-      <div class="panel warn">
-        <b>Counter-argument #1 — Rotation reversal:</b> If AAPL beats big tonight, risk appetite could rotate money back into tech, pulling defensive cash out of XLV. A relief rally in Nasdaq could cap XLV's upside for 1–2 weeks.
-      </div>
-      <div class="panel warn">
-        <b>Counter-argument #2 — Valuation:</b> LLY at a ~$1T market cap trades at a very high multiple. Any negative GLP-1 pricing news or clinical setback could unwind months of gains in days. The sector looks priced for perfection on pharma earnings.
-      </div>
-    </div>
-  </div><!-- /drill-xlv -->
-
-  <!-- ══════════ DRILL 2: GDX ══════════ -->
-  <div id="drill-gdx" style="margin-top: 32px;">
-    <div class="panel bull">
-      <div class="sector-gauge">
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:var(--bull)">+62</div>
-          <div style="font-size:0.75rem;color:var(--mut)">Direction Score</div>
-        </div>
-        <div>
-          <span class="tag t-bull">BULLISH</span>&nbsp;<span class="pill">Medium Conviction</span>
-          <div style="font-size:0.88rem;margin-top:6px;"><b>Gold Miners (GDX)</b></div>
-        </div>
-      </div>
-      <p style="font-size:0.87rem;"><b>Plain-English thesis:</b> Gold at $3,900 with a 0.6% gain today signals the market isn't fully risk-on — investors still want a safe-haven hedge. Gold bounces from a key support zone as hopes for a US-Iran deal strengthen. The Iran-war risk premium is deflating for oil, but for gold, geopolitical uncertainty + falling real yields (10-yr at 4.92%) = a supportive backdrop. Gold miners (GDX) leverage gold prices 2–3× due to operating margins — when gold holds up, miners tend to outperform the metal. Falling DXY (down 3 sessions) adds a secondary tailwind.</p>
-      <p style="font-size:0.84rem;color:var(--mut)"><b>Inputs:</b> Trend (30%): Gold holding near highs, GDX recovering. RS (25%): Outperforming XLK and SPY in current risk-off wave. Macro (20%): Falling yields + weak dollar = bullish for gold. News (15%): Iran diplomacy reduces oil risk but maintains geo uncertainty. Momentum (10%): RSI not overbought; breadth improving.</p>
-    </div>
-
-    <div class="stock-cards">
-
-      <!-- NEM -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">NEM</div>
-            <div class="scard-company">Newmont Corporation</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">Newmont is the world's largest gold miner — when gold holds near $3,900, NEM gets the most direct institutional flow as the sector's benchmark name.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:72%"></div></div>
-          <span class="meter-val bull-c">72</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-amber" style="width:62%"></div></div>
-          <span class="meter-val warn-c">62</span>
-        </div>
-        <span class="fuel-tag fuel-neut">NEUTRAL — fundamentals adequate but not exceptional</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Largest GDX holding (~14% weight). High operating leverage to gold price. FCF improving at elevated gold levels. All-in sustaining cost ~$1,400–1,500/oz — huge margin at $3,900 gold.</div>
-
-        <ul class="scard-points">
-          <li>World's largest gold producer by reserves — definitive institutional benchmark for sector.</li>
-          <li>Gold at $3,899 today, +0.60% — margin expansion real at these price levels.</li>
-          <li>Falling real yields historically drive gold miner re-rating; 10-yr at multi-week low helps.</li>
-          <li>Weak DXY further boosts dollar-denominated gold revenue for non-US mines.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> If Iran deal fully materializes, gold could lose its geopolitical premium — NEM could give back 5–8% quickly. Cost inflation also eats margins if energy stays elevated.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: near current</span>
-          <span class="level-item">Support: 20-day EMA</span>
-          <span class="level-item">Resist: recent highs</span>
-        </div>
-      </div>
-
-      <!-- AEM -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">AEM</div>
-            <div class="scard-company">Agnico Eagle Mines</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">Agnico Eagle is the quality operator in gold mining — lower costs and better execution make it the preferred long when you want gold exposure without operational drama.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:70%"></div></div>
-          <span class="meter-val bull-c">70</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:68%"></div></div>
-          <span class="meter-val bull-c">68</span>
-        </div>
-        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL — best-in-class cost structure</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> One of the lowest all-in sustaining costs in the industry (~$1,200–1,300/oz). Jurisdictional quality (Canada, Finland, Australia). Strong free cash flow generation at current gold prices.</div>
-
-        <ul class="scard-points">
-          <li>Best-in-class margin expansion story when gold holds near $3,900.</li>
-          <li>Geographically diversified, low-risk jurisdictions — less geopolitical discount than peers.</li>
-          <li>Consistent dividend grower — rare in mining; attracts income rotation flow.</li>
-          <li>Strong relative strength within GDX over past 3 months.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> Gold pull-back on risk-on relief rally (AAPL beat scenario) could hit AEM 3–5% intraday. Currency moves in CAD/EUR can mute USD returns.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: pullback to 20-EMA</span>
-          <span class="level-item">Support: prior breakout</span>
-          <span class="level-item">Resist: YTD high</span>
-        </div>
-      </div>
-
-      <!-- GOLD -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">GOLD</div>
-            <div class="scard-company">Barrick Gold Corp.</div>
-          </div>
-          <span class="tag t-bull">LONG</span>
-        </div>
-        <div class="scard-tagline">Barrick is a high-beta gold play — it lags in bull markets but moves hardest on a big gold breakout, making it the "most potential to move" pick in a confirmed gold uptrend.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:63%"></div></div>
-          <span class="meter-val bull-c">63</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-amber" style="width:58%"></div></div>
-          <span class="meter-val warn-c">58</span>
-        </div>
-        <span class="fuel-tag fuel-neut">NEUTRAL — cost structure adequate; execution risk higher</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Second-largest miner by production. Higher operational costs than AEM (AISC ~$1,450–1,550/oz) but largest upside torque to gold at these prices. FCF positive at $3,900 gold.</div>
-
-        <ul class="scard-points">
-          <li>Highest share-price beta in the major-miner peer group — moves most when gold surges.</li>
-          <li>Lower stock multiple than AEM/NEM — deeper value if gold holds $3,800+.</li>
-          <li>Nevada JV with Newmont is one of the world's largest gold complexes — production scale.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> History of operational misses and cost overruns. Jurisdictional risk in Mali and Pakistan. Lagged AEM for most of 2026 — relative strength is weaker. Pick it for upside torque only.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: current/dip</span>
-          <span class="level-item">Support: 50-day EMA</span>
-          <span class="level-item">Resist: YTD high</span>
-        </div>
-      </div>
-
-    </div><!-- /stock-cards GDX -->
-
-    <div class="cross-grid" style="margin-top:14px;">
-      <div class="panel warn">
-        <b>Counter-argument #1 — Iran deal fully closes:</b> A formal US-Iran ceasefire would remove the geopolitical risk premium from gold. Gold could fall $100–150/oz quickly, crushing miner margins and stock prices 10–20%.
-      </div>
-      <div class="panel warn">
-        <b>Counter-argument #2 — Rate re-pricing:</b> If October jobs data Friday shows a hot labor market, the two Fed dissenters' hawkish case gains traction. Rising real yields would be a stiff headwind for gold.
-      </div>
-    </div>
-  </div><!-- /drill-gdx -->
-
-  <!-- ══════════ DRILL 3: XLC (BEARISH) ══════════ -->
-  <div id="drill-xlc" style="margin-top: 32px;">
-    <div class="panel bear">
-      <div class="sector-gauge">
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:var(--bear)">−64</div>
-          <div style="font-size:0.75rem;color:var(--mut)">Direction Score</div>
-        </div>
-        <div>
-          <span class="tag t-bear">BEARISH</span>&nbsp;<span class="pill">High Conviction</span>
-          <div style="font-size:0.88rem;margin-top:6px;"><b>Communication Services (XLC)</b></div>
-        </div>
-      </div>
-      <p style="font-size:0.87rem;"><b>Plain-English thesis:</b> XLC is in a technical freefall — XLC fell 5.32% to $99.90, hitting a new 52-week closing low, its worst week since April 2025, with eight straight lower closes. The cause is structural, not cosmetic: the two largest holdings — Alphabet and Meta — are both under severe pressure as Wall Street questions whether massive AI spending can generate returns. Alphabet missed Q3 expectations on earnings and revenue, its first top-and-bottom-line miss in nearly four years. Alphabet reported negative free cash flow of $9.07 billion, which fell much further than the $2.70 billion expected by analysts. Avoid on bounces; consider tactical shorts/puts for swing traders.</p>
-      <p style="font-size:0.84rem;color:var(--mut)"><b>Inputs:</b> Trend (30%): Below ALL major MAs, 52-week low — maximum negative. RS (25%): Worst sector vs SPY 1–3 months. Macro (20%): AI capex ROI doubt, weak consumer spending signal from AMZN. News (15%): GOOGL record miss, AMZN double-miss. Momentum (10%): RSI ~22 = oversold, BUT oversold can stay oversold in broken sectors.</p>
-    </div>
-
-    <div class="stock-cards">
-
-      <!-- GOOGL -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">GOOGL</div>
-            <div class="scard-company">Alphabet Inc.</div>
-          </div>
-          <span class="tag t-bear">AVOID/SHORT</span>
-        </div>
-        <div class="scard-tagline">Alphabet just posted its worst earnings reaction in its history — the stock is structurally broken until it can show a credible path to positive free cash flow while scaling AI spending.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:80%"></div></div>
-          <span class="meter-val bull-c">80</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-amber" style="width:55%"></div></div>
-          <span class="meter-val warn-c">55</span>
-        </div>
-        <span class="fuel-tag fuel-neut">NEUTRAL fuel tag — company not fundamentally broken, but FCF concern is real</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Q3 EPS: $2.67 adj vs $3.02 expected; Revenue: $127.58B vs $128.22B. Revenue grew 25% YoY. Negative FCF of $9.07B in Q3. Maintained full-year capex of $195B–$205B; expects significant 2027 increase.</div>
-
-        <ul class="scard-points">
-          <li>Shares fell 12.6% on Thursday — the steepest one-day drop in the stock's history.</li>
-          <li>First top-and-bottom-line miss in nearly four years per CNBC. The market didn't price in a miss of this magnitude.</li>
-          <li>AI capex spending is now consuming free cash flow — market fears this becomes structural.</li>
-          <li>Alphabet's 13% drop hit XLC hardest, as the fund holds roughly 23% combined across both share classes.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk for the bear case:</b> If AAPL beats tonight and rallies the whole Nasdaq, GOOGL could bounce 5–8% off deeply oversold levels. RSI at ~22 is extreme. Shorts must manage risk tightly around any positive macro catalyst.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: Q4 2026 — approximately late January 2027 (unconfirmed — verify)</div>
-        <div class="scard-levels">
-          <span class="level-item">Resistance: post-earnings gap fill</span>
-          <span class="level-item">Bear target: new 52-wk low</span>
-          <span class="level-item">Stop (short): above gap</span>
-        </div>
-      </div>
-
-      <!-- META -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">META</div>
-            <div class="scard-company">Meta Platforms</div>
-          </div>
-          <span class="tag t-bear">AVOID/SHORT</span>
-        </div>
-        <div class="scard-tagline">Meta's ad revenue beat last week but its capex guidance spooked investors — the stock is now rangebound-to-lower as the market digests a $300B+ 2027 AI spend narrative.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:68%"></div></div>
-          <span class="meter-val bull-c">68</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:65%"></div></div>
-          <span class="meter-val bull-c">65</span>
-        </div>
-        <span class="fuel-tag fuel-fights">⚠ FIGHTS TREND — company still generating strong revenue, making short riskier</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> META pre-market down ~1.53%. Capex over free cash flow is the screen: Meta last week, Alphabet this week, Amazon on Friday. Analysts near $300B 2027 capex projection. Ad revenue remains solid — fundamental health keeps this from being a high-confidence short.</div>
-
-        <ul class="scard-points">
-          <li>Alphabet and Meta are the two biggest holdings in XLC — their drops pulled the fund down hard.</li>
-          <li>Market sentiment has shifted: AI spending is now a negative catalyst for XLC mega-caps, not a positive.</li>
-          <li>Bank of America clients are selling Meta and Google stocks at a record pace, hitting communication services hard.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk for the bear case:</b> Meta's ad business is still growing strongly — any positive macro catalyst (strong jobs, AAPL beat) could lift META sharply. Fundamental health score of 65 = "FIGHTS TREND" signal; only trade with tight stops.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: Q4 — approximately late January 2027 (unconfirmed — verify)</div>
-        <div class="scard-levels">
-          <span class="level-item">Resistance: prior support level</span>
-          <span class="level-item">Bear target: new lows</span>
-          <span class="level-item">Stop (short): above range</span>
-        </div>
-      </div>
-
-      <!-- AMZN -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">AMZN</div>
-            <div class="scard-company">Amazon.com</div>
-          </div>
-          <span class="tag t-bear">AVOID / NEUTRAL</span>
-        </div>
-        <div class="scard-tagline">Amazon missed on both top and bottom lines last week, but AWS cloud growth is still strong — this is the most nuanced of the three: avoid aggressively adding new longs, but pure short is higher-risk.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:58%"></div></div>
-          <span class="meter-val bull-c">58</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:70%"></div></div>
-          <span class="meter-val bull-c">70</span>
-        </div>
-        <span class="fuel-tag fuel-fights">⚠ FIGHTS TREND — GF Score 95/100, a healthy business makes this a riskier short</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Q3 EPS $1.89 vs $2.01 expected. Negative FCF of $42.4B (TTM); $220B 2026 capex unchanged. GF Score 95/100 with growth rank 10/10.</div>
-
-        <ul class="scard-points">
-          <li>Like Alphabet, Amazon disappointed investors as concerns about massive AI spending overshadowed encouraging growth.</li>
-          <li>Amazon's retail and advertising businesses look weak, describing the sour state of the US consumer in late 2026.</li>
-          <li>AWS cloud growth remains strong — this is why health score stays at 70 and pure short is risky.</li>
-          <li>AMZN earns a Zacks Rank #3 (Hold) — suggesting maintaining positions rather than aggressively buying the dip.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk (both directions):</b> AMZN is less broken than GOOGL. AWS beats could re-rate the stock quickly. For bearish swing: wait for a dead-cat bounce to a resistance level before entering short; don't chase at lows.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: Q4 — approximately late January/early February 2027 (unconfirmed — verify)</div>
-        <div class="scard-levels">
-          <span class="level-item">Resistance: pre-earnings close</span>
-          <span class="level-item">Bear target: earnings-gap low</span>
-          <span class="level-item">Stop (short): above gap fill</span>
-        </div>
-      </div>
-
-    </div><!-- /stock-cards XLC -->
-
-    <div class="cross-grid" style="margin-top:14px;">
-      <div class="panel warn">
-        <b>Counter-argument #1 — Oversold bounce:</b> RSI for XLC is ~22 — deeply oversold. A short-covering rally of 3–5% could happen quickly if AAPL beats or any positive macro catalyst materializes. Shorts should be aware of this risk.
-      </div>
-      <div class="panel warn">
-        <b>Counter-argument #2 — AI eventually wins:</b> The capex spend narrative may prove prescient 12–18 months out. If AI monetization inflects, all three stocks could have violent short-squeezes. The bear case is a swing-trade thesis, not a 12-month structural short.
-      </div>
-    </div>
-  </div><!-- /drill-xlc -->
-
-  <!-- ══════════ DRILL 4: AI/DATA-CENTER THEME ══════════ -->
-  <div id="drill-smh" style="margin-top: 32px;">
-    <div class="panel bear">
-      <div class="sector-gauge">
-        <div>
-          <div style="font-size:1.5rem;font-weight:700;color:var(--bear)">−48</div>
-          <div style="font-size:0.75rem;color:var(--mut)">Direction Score</div>
-        </div>
-        <div>
-          <span class="tag t-bear">BEARISH</span>&nbsp;<span class="pill">High Conviction</span>
-          <div style="font-size:0.88rem;margin-top:6px;"><b>AI / Data-Center Theme (SMH / MRVL)</b></div>
-        </div>
-      </div>
-      <p style="font-size:0.87rem;"><b>Plain-English thesis:</b> The AI spending boom is real — but the market just had its "AI ROI reality check." Wall Street suffered a sharp sell-off on Friday as investors questioned whether the enormous sums being invested in AI infrastructure can generate sufficient returns. The theme is in correction, but <em>not</em> in a death spiral — today's Marvell/Lumentum mega-deal signals conviction at the corporate level that AI infrastructure is a long-term opportunity. The near-term setup, however, is that chip stocks are bouncing after a severe oversold flush. Micron rose ~2.7% in pre-market; SanDisk gained over 3%. We score this moderately bearish (vs. XLC's high-conviction bear) because the Marvell catalyst today resets the narrative somewhat. <b>Key distinction:</b> MRVL is a LONG (acquirer in mega-deal); chip names broadly are still in correction.</p>
-      <p style="font-size:0.84rem;color:var(--mut)"><b>Inputs:</b> Trend (30%): SMH broke multi-month uptrend; below falling 50-EMA. RS (25%): Underperforming SPY significantly last 3 weeks. Macro (20%): AI capex ROI fear = headwind; but Marvell deal today = partial offset. News (15%): MRVL/LITE deal bullish for AI optical; KIOXIA −17% in Tokyo. Momentum (10%): Oversold bounce forming but not confirmed.</p>
-    </div>
-
-    <div class="stock-cards">
-
-      <!-- MRVL -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">MRVL</div>
-            <div class="scard-company">Marvell Technology</div>
-          </div>
-          <span class="tag t-bull">LONG (theme exception)</span>
-        </div>
-        <div class="scard-tagline">Marvell is the standout exception in a troubled AI-chip sector — today's $115B Lumentum deal signals it is consolidating leadership in AI optical connectivity, a once-in-a-generation opportunity per management.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:78%"></div></div>
-          <span class="meter-val bull-c">78</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:76%"></div></div>
-          <span class="meter-val bull-c">76</span>
-        </div>
-        <span class="fuel-tag fuel-adds">⛽ ADDS FUEL — revenue doubling, major deal validates long-term AI position</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Annual revenue more than doubling from $3B in fiscal 2021 to $8.2B in fiscal 2026. Signed a deal to supply chips alongside Google's AI processors worth up to $120B in sales through fiscal 2033. Market cap ~$172B.</div>
-
-        <ul class="scard-points">
-          <li>Marvell reached a deal to buy Lumentum at an enterprise value of $115 billion — one of the biggest tech tie-ups ever.</li>
-          <li>"AI infrastructure is undergoing a fundamental architectural shift toward optical connectivity, creating an opportunity that comes along once in a generation," said Marvell CEO Matt Murphy.</li>
-          <li>AI chip giant Nvidia invested $2 billion each in Marvell and Lumentum earlier this year — validates the optical AI thesis.</li>
-          <li>The combination is expected to expand their total addressable market to $550 billion.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> All-stock deal at this size creates dilution risk for MRVL shareholders. Deal expected to close in the first half of 2028 — long integration period means execution uncertainty. If AI spending narrative worsens, MRVL could be dragged down by sector.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Entry: pullback after deal pop</span>
-          <span class="level-item">Support: pre-deal base</span>
-          <span class="level-item">Resist: June record high</span>
-        </div>
-      </div>
-
-      <!-- NVDA -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">NVDA</div>
-            <div class="scard-company">Nvidia Corporation</div>
-          </div>
-          <span class="tag t-bear">AVOID / WAIT</span>
-        </div>
-        <div class="scard-tagline">Nvidia is the AI chip king, but the market is currently questioning whether its customers can afford to keep buying — wait for a confirmed base before adding long positions.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:60%"></div></div>
-          <span class="meter-val bull-c">60</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:85%"></div></div>
-          <span class="meter-val bull-c">85</span>
-        </div>
-        <span class="fuel-tag fuel-fights">⚠ FIGHTS TREND (for a short) — NVDA's fundamentals are excellent; avoid shorting it</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> NVDA pre-market down ~4.22%. Dominant GPU market position; data-center revenue growing triple digits YoY. However, hyperscaler capex fears = near-term ceiling on the stock.</div>
-
-        <ul class="scard-points">
-          <li>NVDA benefits if hyperscalers keep spending — but the market is now pricing in a capex pause risk.</li>
-          <li>MRVL deal today confirms optical connectivity demand = adjacent tailwind for NVDA's networking side.</li>
-          <li>Blackwell GPU ramp is the key upcoming catalyst; any supply or demand update will move the stock ±10%.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> Blackwell demand confirmation or denial at next earnings. With fundamental health at 85, NVDA is NOT a short — it's a "wait for a better entry" play on the long side. Don't fight the tape, but don't chase the gap-down either.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Avoid adds until base forms</span>
-          <span class="level-item">Watch: 50-day EMA as support</span>
-          <span class="level-item">Re-entry: on confirmed base + volume</span>
-        </div>
-      </div>
-
-      <!-- MU -->
-      <div class="scard">
-        <div class="scard-head">
-          <div>
-            <div class="scard-ticker">MU</div>
-            <div class="scard-company">Micron Technology</div>
-          </div>
-          <span class="tag t-bear">AVOID / WAIT</span>
-        </div>
-        <div class="scard-tagline">Micron is bouncing 2.7% in pre-market after Asian memory peers rallied, but Kioxia's 17% crash in Tokyo this morning shows memory markets remain treacherous — wait for clearer confirmation before adding.</div>
-
-        <div class="meter-row">
-          <span class="meter-label">Swing Conviction (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-bull" style="width:55%"></div></div>
-          <span class="meter-val bull-c">55</span>
-        </div>
-        <div class="meter-row">
-          <span class="meter-label">Fundamental Health (0–100)</span>
-          <div class="meter-track"><div class="meter-fill-amber" style="width:60%"></div></div>
-          <span class="meter-val warn-c">60</span>
-        </div>
-        <span class="fuel-tag fuel-neut">NEUTRAL — HBM AI demand real, but consumer memory still soft</span>
-
-        <div style="font-size:0.79rem;color:var(--mut);margin-bottom:4px;"><b>Key metrics:</b> Micron rose ~2.7% in pre-market with memory peers recovering. In contrast, Kioxia fell ~15.8% in Tokyo on Nov 2 — a warning sign for the memory sector's mixed health. HBM (High Bandwidth Memory for AI) is strong; DRAM/NAND consumer side is weak.</div>
-
-        <ul class="scard-points">
-          <li>HBM3E shipments to major AI customers growing — structural tailwind for 2027.</li>
-          <li>Pre-market bounce today led by SK Hynix and Samsung gains in Asia — sector follow-through.</li>
-          <li>Leverage to AI data-center build without the pure AI-chip valuation risk of NVDA.</li>
-        </ul>
-        <div class="scard-risk">⚠ <b>Key risk:</b> Kioxia fell nearly 17% on a disappointing profit forecast, highlighting growing differences between chipmakers despite strong AI demand. Consumer end-market weakness could persist through Q1 2027.</div>
-        <div style="font-size:0.76rem;margin-top:6px;">Next earnings: date unconfirmed — verify</div>
-        <div class="scard-levels">
-          <span class="level-item">Watch for base confirmation</span>
-          <span class="level-item">Support: Oct 30 close</span>
-          <span class="level-item">Resist: 50-day EMA</span>
-        </div>
-      </div>
-
-    </div><!-- /stock-cards SMH -->
-
-    <div class="cross-grid" style="margin-top:14px;">
-      <div class="panel warn">
-        <b>Counter-argument #1 — Marvell resets the narrative:</b> If the $115B MRVL/LITE deal sparks a broader re-rating of AI infrastructure companies today, the entire SMH sector could bounce 3–5% and the short/avoid bias in this drill-down is immediately tested.
-      </div>
-      <div class="panel warn">
-        <b>Counter-argument #2 — AAPL as the circuit breaker:</b> Apple is the group's best performer — up 28% YTD, and a strong AAPL report tonight could dramatically change the tone for all tech going into Tuesday. This is the single biggest known binary event for the AI/chip theme.
-      </div>
-    </div>
-  </div><!-- /drill-smh -->
-
-</section>
-
-<!-- ═══════════════════════════════════════════════════════ S5 — TODAY'S PICKS -->
-<section id="picks">
-  <div class="section-eyebrow">RANKED SETUPS</div>
-  <h2><span class="num">5</span>Today's Picks</h2>
-  <p>These are the 5 setups with the highest Swing-Conviction scores across all four drill-downs — ordered strictly by score, highest first regardless of direction. Study these as setups, not as directives to trade. Always confirm data and manage risk yourself.</p>
-
-  <div class="tbl-wrap">
-  <table class="picks-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Ticker / Company</th>
-        <th>Direction</th>
-        <th>Swing Score</th>
-        <th>Entry Zone / Key Level</th>
-        <th>One-Line Catalyst</th>
-        <th>Earnings Flag</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><b>1</b></td>
-        <td><b>LLY</b> — Eli Lilly</td>
-        <td><span class="tag t-bull">LONG</span></td>
-        <td class="r"><span class="bull-c"><b>82</b></span></td>
-        <td>Pullback to 20-day EMA; sector rotation into XLV</td>
-        <td>GLP-1 dominance + tech flight-to-safety in healthcare driving sector to record highs</td>
-        <td><span class="erng-flag">⚠ Nov — unconfirmed: verify</span></td>
-      </tr>
-      <tr>
-        <td><b>2</b></td>
-        <td><b>GOOGL</b> — Alphabet</td>
-        <td><span class="tag t-bear">SHORT/AVOID</span></td>
-        <td class="r"><span class="bear-c"><b>80</b></span></td>
-        <td>Dead-cat bounce resistance near post-gap area</td>
-        <td>Record worst earnings reaction; negative FCF; AI capex destroying shareholder cash flow</td>
-        <td>Q4 ≈ late Jan 2027 (unconfirmed)</td>
-      </tr>
-      <tr>
-        <td><b>3</b></td>
-        <td><b>MRVL</b> — Marvell Tech</td>
-        <td><span class="tag t-bull">LONG</span></td>
-        <td class="r"><span class="bull-c"><b>78</b></span></td>
-        <td>Post-deal pullback from morning spike; base below</td>
-        <td>$115B Lumentum deal — largest M&A of 2026; AI optical connectivity TAM of $550B</td>
-        <td>Date unconfirmed — verify</td>
-      </tr>
-      <tr>
-        <td><b>4</b></td>
-        <td><b>ABBV</b> — AbbVie</td>
-        <td><span class="tag t-bull">LONG</span></td>
-        <td class="r"><span class="bull-c"><b>74</b></span></td>
-        <td>$278–285 range; near record highs</td>
-        <td>Post-Humira pipeline beat + healthcare defensive rotation + near ATH breakout</td>
-        <td>Reported Oct 30 — in rear view</td>
-      </tr>
-      <tr>
-        <td><b>5</b></td>
-        <td><b>NEM</b> — Newmont</td>
-        <td><span class="tag t-bull">LONG</span></td>
-        <td class="r"><span class="bull-c"><b>72</b></span></td>
-        <td>Near current; pullback to 20-EMA preferred</td>
-        <td>Gold at $3,900; falling real yields + weak DXY + geopolitical uncertainty support miners</td>
-        <td>Date unconfirmed — verify</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="macro-card">
+    <div class="mc-label">VIX (Fear Gauge)</div>
+    <div class="mc-val">~21.5</div>
+    <div class="mc-sub">Elevated — above "calm" threshold of 18. Election + tech selloff risk.</div>
+    <div class="mc-tag tag-bear">Hurts: High-beta, XLK, SMH</div>
+    <div class="mc-tag tag-bull">Helps: XLV, XLP, XLU (defensives)</div>
   </div>
-  <div class="panel acc" style="margin-top:10px;font-size:0.81rem;">
-    All 5 picks appear in the drill-downs above. GOOGL's high score on the bearish side reflects the <em>magnitude of conviction that the stock will move further in the bearish direction</em> — it does not mean it's the best risk/reward (a deeply oversold name can bounce hard). Always size appropriately and paper-trade first.
+
+  <div class="macro-card">
+    <div class="mc-label">WTI Crude Oil</div>
+    <div class="mc-val">~$96/bbl</div>
+    <div class="mc-sub">&minus;7.4% Monday — largest drop in 3 months — on US-Iran peace signals. Brent ~$105.</div>
+    <div class="mc-tag tag-bear">Hurts: XLE, OIH short-term</div>
+    <div class="mc-tag tag-bull">Helps: XHB, XLP, XLY (cost relief)</div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════════ S6 — CALENDAR -->
-<section id="calendar">
-  <div class="section-eyebrow">UPCOMING CATALYSTS</div>
-  <h2><span class="num">6</span>Event Calendar — Next 2 Weeks</h2>
-  <p>Every date below came from a live search in this run. If a date could not be confirmed, it is marked. Weekdays are derived from the anchor date of Monday, November 2, 2026 — count forward. Unverified events are labeled; always re-check your own brokerage before trading around a catalyst.</p>
-
-  <div class="tbl-wrap">
-  <table class="cal-rows" style="width:100%;border-collapse:collapse;">
-    <thead><tr style="border-bottom:2px solid var(--line)">
-      <th style="text-align:left;padding:6px 10px;font-size:0.78rem;color:var(--mut);font-weight:500;">Date / Day</th>
-      <th style="text-align:left;padding:6px 10px;font-size:0.78rem;color:var(--mut);font-weight:500;">Event</th>
-      <th style="text-align:left;padding:6px 10px;font-size:0.78rem;color:var(--mut);font-weight:500;">Market Impact</th>
-    </tr></thead>
-    <tbody>
-      <tr>
-        <td><b>Mon Nov 2</b><br><span style="color:var(--warn);font-size:0.71rem;">TODAY · After close</span></td>
-        <td><b>AAPL earnings</b> — consensus EPS $1.98; market will read gross margins and effect of latest iPhone launch timing.</td>
-        <td>Pivotal for XLK, QQQ, entire tech tape. Beat = tech relief rally; miss = extends correction.</td>
-      </tr>
-      <tr>
-        <td><b>Mon Nov 2</b><br><span style="color:var(--warn);font-size:0.71rem;">TODAY · After close</span></td>
-        <td><b>PLTR earnings</b> — consensus EPS $0.33; market reads revenue growth from US government and commercial clients.</td>
-        <td>High-momentum name; any miss in a down tape could flush 10–15%.</td>
-      </tr>
-      <tr>
-        <td><b>Tue Nov 3</b><br><span style="color:var(--warn);font-size:0.71rem;">TOMORROW</span></td>
-        <td><b>US Midterm Elections</b> — congressional elections determine which party controls Congress.</td>
-        <td>Political uncertainty for defense, healthcare policy, energy regulation. VIX may spike or ease depending on outcome clarity.</td>
-      </tr>
-      <tr>
-        <td><b>Tue Nov 3</b><br><span style="color:var(--mut);font-size:0.71rem;">After close</span></td>
-        <td><b>AMD earnings</b> — fiscal Q3 results after the close Tuesday. Wall Street expects revenue of $13.1B and EPS of $1.94.</td>
-        <td>Key read on AI chip demand for data centers. Beats = SMH relief; miss = extends chip correction.</td>
-      </tr>
-      <tr>
-        <td><b>Tue Nov 3</b><br><span style="color:var(--mut);font-size:0.71rem;">Morning</span></td>
-        <td><b>September JOLTS</b> (Job Openings &amp; Labor Turnover) — 10 AM ET.</td>
-        <td>Labor market tightness read → Fed rate expectations → rate-sensitive sectors (XLRE, XLU, XLF).</td>
-      </tr>
-      <tr>
-        <td><b>Wed Nov 4</b></td>
-        <td><b>SMCI, Coherent (COHR), Qualcomm (QCOM) earnings</b> — Coherent scheduled to report Wednesday. SMCI also Wed per calendar.</td>
-        <td>COHR (AI optical) directly relevant to MRVL/LITE deal thesis. QCOM reads mobile chip demand.</td>
-      </tr>
-      <tr>
-        <td><b>Thu Nov 5</b></td>
-        <td>Uber (UBER), Shopify (SHOP), Booking Holdings (BKNG) earnings — scheduled per earnings calendar.</td>
-        <td>Consumer spending health check — UBER and BKNG most relevant to XLY / consumer thesis.</td>
-      </tr>
-      <tr>
-        <td><b>Fri Nov 6</b><br><span style="color:var(--warn);font-size:0.71rem;">8:30 AM ET</span></td>
-        <td><b>October Jobs Report (BLS)</b> — Bureau of Labor Statistics October Employment Situation at 8:30 AM ET. CNBC cites consensus ~55,000 nonfarm payrolls; unemployment expected at 4.2%.</td>
-        <td>Biggest macro event of the week. Weak number = rate-cut expectations rise → bond proxy sectors (XLU, XLRE, XLV) rally. Strong number → rates re-price higher → headwind for all.</td>
-      </tr>
-      <tr>
-        <td><b>Week of Nov 9</b></td>
-        <td><b>CPI (October) — tentatively mid-Nov</b> — date unconfirmed, verify vs BLS schedule.</td>
-        <td>Inflation data post-Fed hold is critical. Hot CPI = pressure on rate-cut timeline → defensive sectors lead further.</td>
-      </tr>
-      <tr>
-        <td><b>~Dec 10–11</b></td>
-        <td><b>Next FOMC Meeting</b> — date unconfirmed; verify vs Fed calendar.</td>
-        <td>Will the two hawkish dissenters push for a hike? Outcome shapes rate trajectory through year-end.</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="macro-card">
+    <div class="mc-label">US-Iran Conflict</div>
+    <div class="mc-val">Tense Peace Trade</div>
+    <div class="mc-sub">US strikes on Qeshm Island Tuesday AM even as both sides signal diplomacy. Trump: "No rush on strikes." Oil fell $10 Monday.</div>
+    <div class="mc-tag tag-bear">Risk-on reversal if strikes resume</div>
+    <div class="mc-tag tag-bull">Peace deal = oil down → XHB, XLY up</div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════════ S7 — HOW TO READ -->
-<section id="howto">
-  <div class="section-eyebrow">LEGEND &amp; METHODOLOGY</div>
-  <h2><span class="num">7</span>How to Read This Report</h2>
-  <p>This section explains the scoring <em>methods</em> — the rules behind the numbers. The actual results (scores, picks, ratings) all live in the sections above.</p>
-
-  <div class="tbl-wrap">
-  <table class="leg-table">
-    <tbody>
-      <tr>
-        <td>Direction Score (−100 to +100)</td>
-        <td>A single number summarizing how bullish or bearish a sector looks for swing trading. It is computed from five weighted inputs: Trend &amp; Price Structure (30%), Relative Strength vs SPY (25%), Macro Tailwind/Headwind (20%), News &amp; Catalyst Flow (15%), and Momentum/Breadth (10%). +100 = max bullish; −100 = max bearish; 0 = perfectly neutral.</td>
-      </tr>
-      <tr>
-        <td>Signal Labels</td>
-        <td><span class="tag t-bull">BULLISH</span> = score roughly +30 or higher. <span class="tag t-neut">NEUTRAL</span> = roughly −29 to +29. <span class="tag t-bear">BEARISH</span> = roughly −30 or lower. These are directional reads, not buy/sell signals.</td>
-      </tr>
-      <tr>
-        <td>Conviction (High / Med / Low)</td>
-        <td>Measures how many of the 5 scoring inputs agree. High = 4–5 inputs pointing the same direction. Medium = 3 aligned. Low = mixed signals. High conviction means the read is more consistent; Low means the analysis could flip easily on new data.</td>
-      </tr>
-      <tr>
-        <td>Swing-Conviction Score (0–100)</td>
-        <td>A per-stock score measuring how strongly that stock is likely to move <em>in the sector's direction</em> over the 3-day–6-week swing horizon. Driven by: Technical Setup Quality (35%), Relative Strength (25%), Catalyst &amp; News (20%), Move-Strength Potential — beta, range, liquidity (20%). This score drives which stocks are SELECTED and ranked.</td>
-      </tr>
-      <tr>
-        <td>Fundamental Health Score (0–100)</td>
-        <td>A separate, chart-independent score measuring business quality: Revenue Growth (20%), EPS Growth &amp; Beat History (20%), Margins (15%), FCF &amp; Balance Sheet (15%), Analyst Revisions (10%), Guidance/Backlog (10%), Dividend/Capital Returns (10%). Non-payers reallocate that last 10% to growth &amp; FCF. Color: green ≥65 / amber 45–64 / red &lt;45.</td>
-      </tr>
-      <tr>
-        <td>⛽ Fuel Tag</td>
-        <td>Tells you whether fundamentals <em>support or fight</em> the swing-trade direction. For longs: Health ≥65 = ⛽ ADDS FUEL · 45–64 = NEUTRAL · &lt;45 = ⚠ FIGHTS TREND. For shorts/avoid: Health ≤40 = ⛽ ADDS FUEL · 41–60 = NEUTRAL · &gt;60 = ⚠ FIGHTS TREND (a healthy company is a riskier short — we say so explicitly).</td>
-      </tr>
-      <tr>
-        <td>⚠ Earnings-in-Window Flag</td>
-        <td>If a stock's next earnings date falls within the 3-day–6-week swing window, it gets an amber ⚠ flag. Earnings are binary events — they can instantly invalidate a technical thesis. Always know your earnings date before entering a swing trade.</td>
-      </tr>
-      <tr>
-        <td>Entry / Support / Resistance</td>
-        <td>Approximate levels based on price structure visible at the time of writing. These are guidelines for research, NOT precise trading instructions. Prices move constantly — always verify against live charts before acting.</td>
-      </tr>
-      <tr>
-        <td>Sectors not drilled</td>
-        <td>Every sector in the universe gets a Direction Score and appears on the Sector Board. Only the top-2 bullish and top-2 bearish get full drill-downs. This is intentional — the board shows the ranking; the drill-downs show the actionable setups.</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="macro-card">
+    <div class="mc-label">US Midterm Elections</div>
+    <div class="mc-val">Voting Today</div>
+    <div class="mc-sub">All 435 House + ~1/3 Senate seats. Markets in wait-and-see mode until results emerge Wed AM.</div>
+    <div class="mc-tag tag-neut">Uncertainty clears post-result — watch policy implications</div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════════ FOOTER -->
+  <div class="macro-card">
+    <div class="mc-label">Gold (GLD proxy)</div>
+    <div class="mc-val">~$3,915</div>
+    <div class="mc-sub">Gave back Monday war-risk rally as Iran talks progressed. GDX pulled back ~&minus;3% Oct 29 from 3M highs.</div>
+    <div class="mc-tag tag-neut">Neutral near-term on peace-trade pullback</div>
+  </div>
+
+  <div class="macro-card">
+    <div class="mc-label">S&amp;P 500 Earnings Season</div>
+    <div class="mc-val">82% EPS Beat Rate</div>
+    <div class="mc-sub">60% of S&P 500 reported; blended earnings growth ~30%+ YoY. Fundamental backdrop strong.</div>
+    <div class="mc-tag tag-bull">Underpins XLV, XLF, XLI, XLP</div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ SECTION 3 — SECTOR BOARD ═══════════════ -->
+<h2 id="ranking"><span class="num">3</span>The Sector Board</h2>
+<p>Every scored sector and theme, ranked best to worst. Green bars grow right (bullish), red bars grow left (bearish) from a center line. The numeric score and the Pick badge are in separate columns — a <span class="pill-pick-bull">▲ PICK</span> means we drill in bullish; a <span class="pill-pick-bear">▼ PICK</span> means we drill in bearish.</p>
+
+<div class="tbl-wrap">
+<table style="width:100%;border-collapse:collapse;">
+  <thead>
+    <tr>
+      <th style="text-align:left;padding:6px 4px;font-size:.75rem;color:var(--muted);">Sector / Theme</th>
+      <th style="text-align:left;padding:6px 4px;font-size:.75rem;color:var(--muted);">ETF</th>
+      <th style="padding:6px 4px;font-size:.75rem;color:var(--muted);" colspan="2">Direction ← Bear │ Bull →</th>
+      <th class="r" style="padding:6px 4px;font-size:.75rem;color:var(--muted);">Score</th>
+      <th style="padding:6px 4px;font-size:.75rem;color:var(--muted);text-align:center;">Label</th>
+      <th style="padding:6px 4px;font-size:.75rem;color:var(--muted);">Conv.</th>
+      <th style="padding:6px 4px;font-size:.75rem;color:var(--muted);min-width:80px;">Pick</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- ── BULLISH ── -->
+    <tr>
+      <td class="sector-name"><a href="#drill-xlv">Health Care</a></td>
+      <td style="font-size:.78rem;color:var(--muted);">XLV</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:70%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+70</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">High</td>
+      <td><span class="pill-pick-bull">▲ PICK</span></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name"><a href="#drill-xhb">Homebuilders</a></td>
+      <td style="font-size:.78rem;color:var(--muted);">XHB</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:62%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+62</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">High</td>
+      <td><span class="pill-pick-bull">▲ PICK</span></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Consumer Staples</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLP</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:52%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+52</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">Med</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Gold Miners</td>
+      <td style="font-size:.78rem;color:var(--muted);">GDX</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:40%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+40</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">Med</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Defense</td>
+      <td style="font-size:.78rem;color:var(--muted);">ITA</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:38%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+38</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">Med</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Financials</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLF</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:34%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+34</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">Med</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Regional Banks</td>
+      <td style="font-size:.78rem;color:var(--muted);">KRE</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:30%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+30</td>
+      <td style="text-align:center;"><span class="tag t-bull" style="font-size:.7rem;">BULLISH</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Biotech</td>
+      <td style="font-size:.78rem;color:var(--muted);">XBI</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:25%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+25</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Industrials</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLI</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:22%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+22</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Utilities</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLU</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:18%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+18</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Consumer Discret.</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLY</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:15%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+15</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Materials</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLB</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bull" style="width:12%;"></div></div></div>
+      </td>
+      <td class="r bar-score pos">+12</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Real Estate</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLRE</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:10%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;10</td>
+      <td style="text-align:center;"><span class="tag t-neut" style="font-size:.7rem;">NEUTRAL</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Comm. Services</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLC</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:18%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;18</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Crypto / Miners</td>
+      <td style="font-size:.78rem;color:var(--muted);">IBIT/BITQ</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:20%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;20</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Uranium</td>
+      <td style="font-size:.78rem;color:var(--muted);">URA/URNM</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:22%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;22</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Clean / Solar</td>
+      <td style="font-size:.78rem;color:var(--muted);">TAN</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:28%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;28</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">Low</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name">Energy</td>
+      <td style="font-size:.78rem;color:var(--muted);">XLE</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:38%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;38</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">Med</td>
+      <td><span class="pill-pick-bear">▼ PICK</span></td>
+    </tr>
+
+    <tr>
+      <td class="sector-name"><a href="#drill-xlk">Technology</a></td>
+      <td style="font-size:.78rem;color:var(--muted);">XLK</td>
+      <td colspan="2">
+        <div class="bar-wrap"><div class="bar-center"><div class="bar-fill-bear" style="width:62%;"></div></div></div>
+      </td>
+      <td class="r bar-score neg">&minus;62</td>
+      <td style="text-align:center;"><span class="tag t-bear" style="font-size:.7rem;">BEARISH</span></td>
+      <td style="font-size:.78rem;">High</td>
+      <td><span class="pill-pick-bear">▼ PICK</span></td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<p class="mut" style="font-size:.75rem;margin-top:6px;">Note: Energy (XLE) is drilled as the bearish energy pick, but conviction is medium — the Iran peace trade is real, yet renewed strikes could reverse the oil drop within hours. Technology (XLK) carries high bearish conviction.</p>
+
+<!-- ═══════════════ SECTION 4 — DRILL-DOWNS ═══════════════ -->
+<h2 id="sectors"><span class="num">4</span>Drill-Downs</h2>
+<p>Below are the two bullish and two bearish sectors we dig into deepest. Each has a gauge, a thesis, and three stock cards.</p>
+
+<!-- ════ DRILL 1 — XLV HEALTH CARE ════ -->
+<div id="drill-xlv" class="panel bull" style="margin-bottom:20px;">
+  <div class="section-eyebrow">Bullish Drill-Down #1</div>
+  <div class="drill-header">
+    <div class="gauge-ring gauge-bull">+70</div>
+    <div>
+      <b>Health Care — XLV</b>&nbsp;
+      <span class="tag t-bull">BULLISH</span>&nbsp;
+      <span style="font-size:.78rem;color:var(--muted);">Conviction: High</span><br>
+      <span style="font-size:.82rem;">XLV near 52-week high (~$184.60); defensive rotation + strong earnings catalysts; beats broad market YTD.</span>
+    </div>
+  </div>
+
+  <p>Health Care is the clearest risk-off rotation destination right now — Pfizer beat and raised guidance this morning, Eli Lilly raised its 2026 revenue outlook last week to $91B–$92B, and the ETF is within 2% of its 52-week high of $187.99. With VIX near 21 and the Nasdaq rolling, institutional money is moving here.</p>
+
+  <div class="grid">
+    <div class="stat"><div class="k">XLV Close (Nov 2)</div><div class="v">$184.60</div></div>
+    <div class="stat"><div class="k">52-Wk Range</div><div class="v">$141.97 – $187.99</div></div>
+    <div class="stat"><div class="k">YTD Return</div><div class="v pos">+20.9%</div></div>
+    <div class="stat"><div class="k">vs SPY YTD</div><div class="v pos">Outperforming</div></div>
+    <div class="stat"><div class="k">Sector Beta</div><div class="v">~0.26–0.52</div></div>
+    <div class="stat"><div class="k">Key Catalyst</div><div class="v">PFE beat today; LLY raised last wk</div></div>
+  </div>
+
+  <div class="cross-box">
+    <b class="warnc">Counter-argument:</b> If a peace deal or Iran ceasefire triggers a full risk-on rip, money rotates back into tech and cyclicals — XLV underperforms during sharp risk-on surges. Also, UNH and managed-care names (HUM, CI) have been ugly; the divergence between pharma and managed-care within XLV adds noise.
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 1A -->
+  <div class="card">
+    <p><b>LLY</b> is the single strongest swing long in Health Care — Eli Lilly's GLP-1 franchise (Mounjaro, Zepbound) is a secular growth driver with $91B–$92B 2026 revenue guidance, and the stock is near all-time highs.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Eli Lilly (LLY)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Last Close</div><div class="v">$1,410.99</div></div>
+      <div class="stat"><div class="k">52-Wk Range</div><div class="v">$850.51 – $1,449.68</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:82%;"></div></div>
+        <span class="meter-val pos">82</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:88%;"></div></div>
+        <span class="meter-val pos">88</span>
+        <span class="fuel-tag ft-fuel">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Q3 EPS $7.48, beat by 18%; revenue $24.4B, beat by 8%; 2026 revenue guidance raised to $91B–$92B; P/E ~45.8x (premium, but justified by 30%+ growth). Analyst PT raised to $1,600 (Cantor Fitzgerald, Nov 2).</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> Mounjaro/Zepbound demand remains ahead of supply; Medicare GLP-1 bridge program is accelerating US uptake; EPS cut was deal-cost driven (not operational weakness); chart is near 52-week high in a defensive tape. Cantor's $1,600 PT implies ~13% upside.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Valuation (45x) is expensive — any GLP-1 competition news or supply stumble triggers sharp pullback. EPS guidance was trimmed modestly (deal costs).</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">Oct 29, 2026 (already reported)</span> — next report ~Jan/Feb 2027, outside window. ✅</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> $1,390–$1,420 zone (near 20-day support). <b>Support:</b> $1,350. <b>Resistance:</b> $1,449 (52-wk high).</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 1B -->
+  <div class="card">
+    <p><b>PFE</b> just delivered its seventh consecutive EPS beat this morning and raised full-year guidance — it cleared $30 for the first time in a year, and the stock has a 2.4% dividend yield providing a cushion.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Pfizer (PFE)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Q3 EPS</div><div class="v pos">$0.87 (est. $0.73)</div></div>
+      <div class="stat"><div class="k">Revenue</div><div class="v pos">$16.58B (est. $15.88B)</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:68%;"></div></div>
+        <span class="meter-val pos">68</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-amber" style="width:60%;"></div></div>
+        <span class="meter-val warnc">60</span>
+        <span class="fuel-tag ft-neut">NEUTRAL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> FY2026 revenue guidance raised to $62B–$64B; EPS guidance $2.95–$3.05. Paxlovid fell 63% — COVID headwind fading. Oncology (Eliquis $2.52B) and obesity pipeline advancing. Dividend yield ~2.4%. 7 straight EPS beats.</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> Beat-and-raise on a day the broader tape is weak signals underlying demand strength. Guidance raise broadly in line with consensus — no blowout, but confirms stability. Stock recovering from $23 twelve months ago. Defensive dividend adds yield vs. bonds.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Pre-market move is "measured" — guidance just matches consensus; COVID revenue still declining; high dividend payout ratio (71%) limits capital flexibility. R&D cost baseline is rising.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> Reported today, Nov 3. Next report ~Feb 2027. ✅ No earnings risk in window.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> $30–$31 zone (post-earnings day). <b>Support:</b> $28.50. <b>Resistance:</b> $33 (multi-month high).</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 1C -->
+  <div class="card">
+    <p><b>ABBV</b> hit an all-time high last week after raising its 2026 outlook — AbbVie's immunology business (Skyrizi, Rinvoq) is replacing Humira losses faster than expected, and the stock has returned +29% in 2026 with a 2.4% dividend yield.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">AbbVie (ABBV)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Last Close (approx)</div><div class="v">~$288.84</div></div>
+      <div class="stat"><div class="k">Q3 Revenue Growth</div><div class="v pos">+10.3% YoY</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:72%;"></div></div>
+        <span class="meter-val pos">72</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:78%;"></div></div>
+        <span class="meter-val pos">78</span>
+        <span class="fuel-tag ft-fuel">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Q3 revenue $17.4B (+10.3%); immunology segment +16%; adjusted EPS midpoint guidance ~$13.97; Skyrizi + Rinvoq forecast at $31B combined by 2027. UBS PT raised to $295 (Nov 2). Analyst avg PT $305.</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> Skyrizi and Rinvoq are growing well ahead of Humira's LOE losses. Expansion into obesity pipeline is a potential next-leg catalyst. Beta of 0.19 makes it an ultra-low-volatility defensive compounder — perfect for a high-VIX tape.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Stock already up 29% YTD and near record highs — limited room for error. Biosimilar competition to remaining Humira revenue continues. Patent cliff concerns remain a multi-year shadow.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> Oct 30, 2026 (already reported). Next report ~Jan 2027. ✅ No earnings risk in window.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> $282–$292 pullback zone. <b>Support:</b> $270 (analyst low PT). <b>Resistance:</b> $305 (analyst avg PT / all-time high region).</p>
+  </div>
+</div><!-- end drill-xlv -->
+
+<!-- ════ DRILL 2 — XHB HOMEBUILDERS ════ -->
+<div id="drill-xhb" class="panel bull" style="margin-bottom:20px;">
+  <div class="section-eyebrow">Bullish Drill-Down #2</div>
+  <div class="drill-header">
+    <div class="gauge-ring gauge-bull">+62</div>
+    <div>
+      <b>Homebuilders — XHB</b>&nbsp;
+      <span class="tag t-bull">BULLISH</span>&nbsp;
+      <span style="font-size:.78rem;color:var(--muted);">Conviction: High</span><br>
+      <span style="font-size:.82rem;">XHB surged +3.3% Monday — best sector performance — on oil collapse / Iran peace-trade rate-relief thesis.</span>
+    </div>
+  </div>
+
+  <p>The thesis here is simple: if the US-Iran peace talks hold and oil stays near $96 (or falls further), inflation relief feeds into lower Treasury yields, which directly reduces mortgage rates and boosts homebuilder demand. XHB at ~$104 was the top-performing sector ETF on Monday. The oil drop is the single macro driver — everything else is a function of it.</p>
+
+  <div class="grid">
+    <div class="stat"><div class="k">XHB Close (Nov 2)</div><div class="v pos">$104.33 (+3.33%)</div></div>
+    <div class="stat"><div class="k">Key Driver</div><div class="v">Oil &minus;7% → rate-relief hope</div></div>
+    <div class="stat"><div class="k">10-Yr Yield</div><div class="v">~4.88–4.93% (easing)</div></div>
+    <div class="stat"><div class="k">GDP (Q3)</div><div class="v pos">+3.4% — demand support</div></div>
+  </div>
+
+  <div class="cross-box">
+    <b class="warnc">Counter-argument:</b> This is 100% an Iran peace-trade. Fresh US strikes on Qeshm Island were reported Tuesday morning — if diplomacy collapses, oil spikes back, rates reverse, and XHB gives back Monday's entire gain. The deal is explicitly "not done." High event risk.
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 2A — DHI -->
+  <div class="card">
+    <p><b>DHI</b> (D.R. Horton) is the largest US homebuilder by volume — when rates ease, entry-level demand (DHI's sweet spot) recovers the fastest, making it the highest-beta pure play on the rate-relief thesis.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">D.R. Horton (DHI)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Approx Price</div><div class="v">~$155–$165 (verify)</div></div>
+      <div class="stat"><div class="k">Beta</div><div class="v">~1.3–1.5 (high)</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:71%;"></div></div>
+        <span class="meter-val pos">71</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:70%;"></div></div>
+        <span class="meter-val pos">70</span>
+        <span class="fuel-tag ft-fuel">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Largest US homebuilder; entry-level focused; strong demand backlog from housing undersupply; FY2026 closings guidance solid. Non-paying dividend reallocated weight: extra points to FCF (high) and growth (market share gains).</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> Rate-sensitive leader — DHI's entry-level segment accelerates fastest when mortgage rates ease. Structural housing undersupply (~4M units) underpins multi-year demand regardless of near-term rate wiggles.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> If Iran peace trade reverses, rates spike back — DHI could retrace 3–5% in a session. Earnings date — verify via brokerage before trading.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span> before trading. Likely Jan 2027 (FY Oct year-end), outside swing window.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> Pullback to prior-day range. <b>Support:</b> ~$148 (20-day MA region). <b>Resistance:</b> ~$178 (prior highs — verify).</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 2B — LEN -->
+  <div class="card">
+    <p><b>LEN</b> (Lennar) complements DHI with a broader product mix — Lennar's "everything's included" model and strong communities pipeline make it a higher-margin play on the same rate-relief thesis.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Lennar (LEN)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Approx Price</div><div class="v">~$145–$160 (verify)</div></div>
+      <div class="stat"><div class="k">Sector Rank</div><div class="v">2nd largest US builder</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:65%;"></div></div>
+        <span class="meter-val pos">65</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:68%;"></div></div>
+        <span class="meter-val pos">68</span>
+        <span class="fuel-tag ft-fuel">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Diversified across move-up and entry-level price points; strong FCF generation; active share-buyback program; land-light model reduces capital risk vs. peers.</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> LEN's broader product mix means it benefits across more buyer segments than DHI. Structural supply deficit supports pricing power. Rate relief (even partial) unlocks pent-up demand from would-be buyers who paused.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Same as DHI — Iran peace trade reversal snaps back rates instantly. LEN typically lags DHI in sharp moves, so the upside beta is slightly lower.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span>. Lennar's fiscal year ends Nov 30 — next report likely ~mid-Dec 2026; may be inside 6-week swing window. Verify at your brokerage before trading.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> Near Monday's close or a tight pullback. <b>Support:</b> 20-day MA (verify). <b>Resistance:</b> 52-week highs (verify).</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 2C — NVR -->
+  <div class="card">
+    <p><b>NVR</b> (NVR Inc.) is the most capital-efficient homebuilder in the US — its lot-option model avoids heavy land ownership and delivers the best ROE in the sector, making it a safer play for those who want homebuilder exposure with lower volatility.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">NVR, Inc. (NVR)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-long">LONG</span></div></div>
+      <div class="stat"><div class="k">Capital Model</div><div class="v">Lot-option (low risk)</div></div>
+      <div class="stat"><div class="k">ROE</div><div class="v pos">Best-in-class sector</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:60%;"></div></div>
+        <span class="meter-val pos">60</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:82%;"></div></div>
+        <span class="meter-val pos">82</span>
+        <span class="fuel-tag ft-fuel">⛽ ADDS FUEL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> No land ownership = minimal balance-sheet risk; consistent FCF; share buyback reduces float; concentrated in Mid-Atlantic and Southeast markets with strong demand. Non-paying dividend: weight reallocated to FCF + balance sheet (scores very high).</p>
+    <p style="font-size:.8rem;"><b>Thesis:</b> NVR is the "quality compounder" pick — lower upside than DHI in a rate-rip, but much safer downside if the Iran trade reverses because its capital model is inherently less rate-sensitive. Best for risk-averse swing players.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Lower beta means it may lag DHI/LEN in a strong upward move. Thin float means slippage on large orders.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span> at your brokerage. NVR typically reports quarterly earnings mid-month in the next month after quarter close — likely mid-Jan 2027, outside window.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> Verify current price at brokerage. <b>Support:</b> 50-day MA. <b>Resistance:</b> 52-week high region.</p>
+  </div>
+</div><!-- end drill-xhb -->
+
+<!-- ════ DRILL 3 — XLK TECHNOLOGY (BEARISH) ════ -->
+<div id="drill-xlk" class="panel bear" style="margin-bottom:20px;">
+  <div class="section-eyebrow">Bearish Drill-Down #1</div>
+  <div class="drill-header">
+    <div class="gauge-ring gauge-bear">&minus;62</div>
+    <div>
+      <b>Technology — XLK</b>&nbsp;
+      <span class="tag t-bear">BEARISH</span>&nbsp;
+      <span style="font-size:.78rem;color:var(--muted);">Conviction: High</span><br>
+      <span style="font-size:.82rem;">XLK &minus;3% Monday; &minus;14% from Oct 6 peak; AAPL guides margin compression; AI capex narrative fracturing.</span>
+    </div>
+  </div>
+
+  <p>Technology is the cleanest bearish swing in today's tape. XLK fell nearly 3% Monday (worst sector), AAPL is down ~4% in AH on holiday-margin guidance, Palantir fell 8% pre-market, and the AI capex-concern narrative (rising memory costs, rising capex, slowing revenue growth rates) is causing institutional rotation out of the sector.</p>
+
+  <div class="grid">
+    <div class="stat"><div class="k">XLK Close (Nov 2)</div><div class="v neg">$179.88 (&minus;4.69%)</div></div>
+    <div class="stat"><div class="k">vs Oct 6 Peak</div><div class="v neg">&minus;14% drawdown</div></div>
+    <div class="stat"><div class="k">AAPL AH</div><div class="v neg">&minus;4% (margin miss)</div></div>
+    <div class="stat"><div class="k">Nasdaq YTD</div><div class="v">Tech still +21% — room to fall</div></div>
+  </div>
+
+  <div class="cross-box">
+    <b class="warnc">Counter-argument:</b> Nasdaq-100 futures are up 0.4% pre-market Tuesday — semis are bouncing (SMH +1.86% early), suggesting the tape is not a uniform tech selloff. AMD reports tonight; a strong print could stabilize the sector. Tech's YTD gains still provide fundamental cushion. A capitulation bounce is possible from oversold readings.
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 3A — AAPL -->
+  <div class="card">
+    <p><b>AAPL</b> is the most vulnerable mega-cap today — it beat revenue estimates last night but guided December-quarter gross margins to 45–46% (missing the 47% consensus), citing rising memory costs. This is a classic "buy the rumor, sell the news" print after 10 consecutive beat-and-raise quarters.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Apple (AAPL)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">AH Price Move</div><div class="v neg">&minus;4% (to ~&minus;$5 on stock)</div></div>
+      <div class="stat"><div class="k">Q4 Rev</div><div class="v">$114.5B (+12%) — beat</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:75%;"></div></div>
+        <span class="meter-val neg">75</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:85%;"></div></div>
+        <span class="meter-val pos">85</span>
+        <span class="fuel-tag ft-fight">⚠ FIGHTS TREND</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Q4 revenue $114.5B (+12%); EPS $2.10 (+14%); but December-quarter gross margin guided 45–46% vs 47% consensus; China ($17.54B revenue) missed $18.58B estimate; manufacturing purchase obligations +$33B QoQ.</p>
+    <p style="font-size:.8rem;"><b>Thesis (bearish/avoid):</b> Memory-cost squeeze is structural (Apple says costs keep rising beyond December); Siri AI spending is another headwind; China miss signals demand softness in the world's largest market. The margin guide is the key bad news — it's the clearest "sell the news" catalyst since Q4 growth decelerated from 20% to ~15%.</p>
+    <p style="font-size:.8rem;"><b>Warning — Fundamental Health fights the short:</b> Apple is fundamentally excellent (85/100). This is a <em>post-earnings momentum short</em> (selling the news), not a fundamentals short — use tight stops. A healthy company bouncing after an initial drop is a real risk.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Apple's financial strength and buyback program support the stock. Any broader risk-on bounce snaps AAPL back fast. Short AAPL with very tight risk management.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> Reported tonight Nov 3. Next report ~Jan 2027. ✅ Out of window.</p>
+    <p style="font-size:.8rem;"><b>Approx short entry:</b> AH drop ~$220–$225 zone (if price holds there at open). <b>Key level:</b> $228 (prior support to watch). <b>Target:</b> $210–$215 if selling extends.</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 3B — PLTR -->
+  <div class="card">
+    <p><b>PLTR</b> (Palantir) is the most technically vulnerable large-cap tech name — it fell 8% pre-market despite raising its revenue forecast to $8.53B, because investors are penalizing any hint of growth deceleration at a 96x revenue multiple.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Palantir (PLTR)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">Pre-Mkt Move</div><div class="v neg">&minus;8% (nearing 2-month low)</div></div>
+      <div class="stat"><div class="k">FY Rev Guidance</div><div class="v">$8.53B (above est.)</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:78%;"></div></div>
+        <span class="meter-val neg">78</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-amber" style="width:52%;"></div></div>
+        <span class="meter-val warnc">52</span>
+        <span class="fuel-tag ft-neut">NEUTRAL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Q3 revenue growth 96% YoY — but Q4 growth rate implied at ~15% vs prior quarter's 20% shows sequential deceleration. Stock trades at an extreme valuation premium. Annual forecast raised to $8.53B vs. $8.2B estimate — a beat — but the sequential slowdown overshadowed it.</p>
+    <p style="font-size:.8rem;"><b>Thesis (bearish/avoid):</b> Classic growth-deceleration re-rating — at these multiples, any sign the hyper-growth phase is past peak sends multiple compression. The "buy the rumor, sell the news" dynamic is identical to AAPL's but with worse valuation support. &minus;8% pre-market is technically significant.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> PLTR has a US government contract moat and is a genuine AI/defense platform — any AI defense contract announcement reverses the selloff. Fundamental Health is 52/100 (neutral), not an outright "fights the short" situation.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> Reported Nov 3 (this morning). Next report ~Feb 2027. ✅ Out of window.</p>
+    <p style="font-size:.8rem;"><b>Approx short entry:</b> Post-open price discovery. <b>Key level:</b> 2-month low (verify price at brokerage). <b>Target:</b> 10–15% downside from current if broader tech rotation deepens.</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 3C — MSFT -->
+  <div class="card">
+    <p><b>MSFT</b> (Microsoft) is the lowest-conviction bearish pick of the three — it's down about 2.8% from recent levels and is vulnerable to AI capex scrutiny, but it has significantly better fundamental health than AAPL or PLTR.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Microsoft (MSFT)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">Recent Price</div><div class="v neg">$507.12 (&minus;2.83%)</div></div>
+      <div class="stat"><div class="k">Theme Risk</div><div class="v neg">AI capex scrutiny</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:52%;"></div></div>
+        <span class="meter-val neg">52</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:88%;"></div></div>
+        <span class="meter-val pos">88</span>
+        <span class="fuel-tag ft-fight">⚠ FIGHTS TREND</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Excellent fundamental business — Azure cloud growth, high margins, diversified revenue streams. The bearish case is sector-rotation pressure only, not company-specific weakness.</p>
+    <p style="font-size:.8rem;"><b>Thesis (avoid/lighten):</b> MSFT is a sector-rotation victim more than a story break. For swing traders, the risk/reward of shorting one of the highest-quality companies in the world is poor — this is a "reduce exposure, don't add longs" call rather than an aggressive short. Use as a hedge against long tech exposure.</p>
+    <p style="font-size:.8rem;">Warning — Fundamental Health fights the short strongly (88/100): Microsoft's balance sheet and cash flow are fortress-grade. Only trade this bearishly in the context of a broader tech-sector hedge — not a high-conviction standalone short.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span> at brokerage. Microsoft typically reports in late January — likely outside window, but verify.</p>
+    <p style="font-size:.8rem;"><b>Approx entry:</b> Current level ~$507. <b>Key level:</b> $490 support. <b>Resistance:</b> $525–$530.</p>
+  </div>
+</div><!-- end drill-xlk -->
+
+<!-- ════ DRILL 4 — XLE ENERGY (BEARISH) ════ -->
+<div id="drill-xle" class="panel bear" style="margin-bottom:20px;">
+  <div class="section-eyebrow">Bearish Drill-Down #2 (Medium Conviction — Two-Sided Risk)</div>
+  <div class="drill-header">
+    <div class="gauge-ring gauge-bear">&minus;38</div>
+    <div>
+      <b>Energy — XLE</b>&nbsp;
+      <span class="tag t-bear">BEARISH</span>&nbsp;
+      <span style="font-size:.78rem;color:var(--muted);">Conviction: Medium</span><br>
+      <span style="font-size:.82rem;">XLE &minus;3.5% Monday; WTI fell 7.4% on Iran peace signals; near-term supply pressure if diplomatic progress holds.</span>
+    </div>
+  </div>
+
+  <p>Energy's bearish case is entirely geopolitical: WTI fell 7.4% Monday as US-Iran peace signals stripped the war-risk premium from crude. If diplomacy holds, oil drifts lower, and XLE underperforms. However, this is the most two-sided sector in the report — fresh strikes on Qeshm Island were reported Tuesday morning, and any breakdown in talks immediately reverses the oil drop. Trade this sector with tight stops and high awareness of geopolitical headlines.</p>
+
+  <div class="grid">
+    <div class="stat"><div class="k">XLE Close (Nov 2)</div><div class="v neg">&minus;3.51% on the session</div></div>
+    <div class="stat"><div class="k">WTI Crude</div><div class="v neg">~$96/bbl (fell from ~$104)</div></div>
+    <div class="stat"><div class="k">XLE 1-Yr Return</div><div class="v pos">+63.4% — still a YTD leader</div></div>
+    <div class="stat"><div class="k">Key Risk</div><div class="v neg">Renewed Iran strikes = oil spike</div></div>
+  </div>
+
+  <div class="cross-box">
+    <b class="warnc">Counter-argument:</b> XLE is still up 63% over the past year — this is a tape that has rewarded energy bulls. US military struck Qeshm Island <em>this morning</em>. If peace talks collapse, WTI goes back to $110+, XLE rallies hard, and this bearish call is wrong. Goldman Sachs RAISED its oil price forecasts on Nov 2 despite the Iran trade. Use tight stops.
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 4A — MPC -->
+  <div class="card">
+    <p><b>MPC</b> (Marathon Petroleum) is the most vulnerable large-cap energy name to an oil price decline — as a refiner, it benefits from crack spreads but is hurt directly when crude falls sharply and refining margins compress.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Marathon Petroleum (MPC)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">Earnings (today)</div><div class="v"><span class="earn-warn">⚠ Q3 report due today</span></div></div>
+      <div class="stat"><div class="k">Revenue Est.</div><div class="v">$46.72B</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:58%;"></div></div>
+        <span class="meter-val neg">58</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-amber" style="width:58%;"></div></div>
+        <span class="meter-val warnc">58</span>
+        <span class="fuel-tag ft-neut">NEUTRAL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> MPC is a major refiner; reports Q3 earnings today — EPS consensus ~$25.38. Refiner margins can compress quickly when crude falls on peace signals. Market cap ~$121B.</p>
+    <p style="font-size:.8rem;"><b>Thesis (bearish/avoid):</b> Falling WTI = refining margin compression in coming quarters. Near-term earnings uncertainty (reports today) adds binary risk. Even if Q3 is fine, forward guidance may be cautious if oil stays under $100.</p>
+    <p style="font-size:.8rem;"><b>Warning — <span class="earn-warn">EARNINGS IN WINDOW TODAY:</span></b> MPC reports Q3 today. Do NOT trade this name directionally into earnings without understanding the binary risk.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Oil price spike reversal if Iran talks fail. MPC's integrated model provides some buffer vs. pure E&P names.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ TODAY, Nov 3, 2026 — HIGH EVENT RISK.</span></p>
+    <p style="font-size:.8rem;"><b>Approx:</b> Avoid trading until earnings result is known. After the print, watch for direction at the open.</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 4B — XOM -->
+  <div class="card">
+    <p><b>XOM</b> (ExxonMobil) is the largest holding in XLE — when XLE falls, XOM leads it; a reduction or short of XOM is the cleanest proxy for a bearish view on the sector without the binary earnings risk of MPC.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">ExxonMobil (XOM)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">XLE Weight</div><div class="v">Largest holding in ETF</div></div>
+      <div class="stat"><div class="k">Dividend Yield</div><div class="v">~3.2%</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:55%;"></div></div>
+        <span class="meter-val neg">55</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-bull" style="width:72%;"></div></div>
+        <span class="meter-val pos">72</span>
+        <span class="fuel-tag ft-fight">⚠ FIGHTS TREND</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> Integrated major with diversified upstream/downstream; strong FCF; $3.2% dividend provides a support floor. Fundamentally sound — this is a sector-rotation short, not a business-quality short.</p>
+    <p style="font-size:.8rem;"><b>Thesis (avoid/reduce):</b> If oil stays below $100 on peace progress, E&P revenue disappoints in Q4. XOM's scale provides some protection but not immunity. Best used as a hedge or XLE-proxy reduction rather than an aggressive short.</p>
+    <p style="font-size:.8rem;"><b>Warning:</b> XOM has a 72/100 Fundamental Health — the dividend (3.2%) partially buffers downside. Short with discipline; the "fights the trend" flag is real.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span>. ExxonMobil typically reports early November for Q3 — may be in or just out of window. Verify at brokerage.</p>
+    <p style="font-size:.8rem;"><b>Approx:</b> Trade near XLE ETF levels. <b>Support:</b> ~$95–$100 (oil-war peak region). <b>Key level:</b> How oil holds $96/bbl is the dominant signal.</p>
+  </div>
+
+  <hr class="card-divider">
+  <!-- STOCK CARD 4C — HAL -->
+  <div class="card">
+    <p><b>HAL</b> (Halliburton) is the most sensitive oil-services name to crude price — when oil falls sharply, exploration activity slows, drilling contracts get deferred, and HAL is the first to feel it.</p>
+    <div class="grid">
+      <div class="stat"><div class="k">Company</div><div class="v">Halliburton (HAL)</div></div>
+      <div class="stat"><div class="k">Direction</div><div class="v"><span class="direction-badge-short">SHORT/AVOID</span></div></div>
+      <div class="stat"><div class="k">Sector</div><div class="v">Oil Services (OIH)</div></div>
+      <div class="stat"><div class="k">Oil Sensitivity</div><div class="v neg">Very High</div></div>
+    </div>
+
+    <div class="meter-wrap">
+      <div class="meter-row">
+        <span class="meter-label">Swing-Conviction (0–100) — SHORT</span>
+        <div class="meter-bar"><div class="meter-fill m-red" style="width:62%;"></div></div>
+        <span class="meter-val neg">62</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-label">Fundamental Health (0–100)</span>
+        <div class="meter-bar"><div class="meter-fill m-amber" style="width:55%;"></div></div>
+        <span class="meter-val warnc">55</span>
+        <span class="fuel-tag ft-neut">NEUTRAL</span>
+      </div>
+    </div>
+
+    <p style="font-size:.8rem;"><b>Key metrics:</b> HAL's revenue is directly tied to oilfield services spending, which follows with a lag when crude falls. Higher beta than XOM to oil prices. Neutral fundamental health reflects solid business but no standout quality moat.</p>
+    <p style="font-size:.8rem;"><b>Thesis (bearish/avoid):</b> Services stocks like HAL typically lag XLE slightly on the way down but often overshoot. If crude settles in the $90s, exploration budgets get cut in 2027, and services contracts reprice lower. HAL is the highest-conviction energy short on a "peace holds" scenario.</p>
+    <p style="font-size:.8rem;"><b>Biggest risk:</b> Iran peace fails → oil spikes back → HAL reverses hard. This is the definition of a two-sided geopolitical trade.</p>
+    <p style="font-size:.8rem;"><b>Next earnings:</b> <span class="earn-warn">⚠ Date unconfirmed — verify</span> at brokerage.</p>
+    <p style="font-size:.8rem;"><b>Approx:</b> Watch oil price as the primary signal. <b>Key level:</b> WTI $96 support / $100 resistance as the de facto guide for HAL direction.</p>
+  </div>
+</div><!-- end drill-xle -->
+
+<!-- ═══════════════ SECTION 5 — TODAY'S PICKS ═══════════════ -->
+<h2 id="picks"><span class="num">5</span>Today's Picks</h2>
+<p>These are the highest Swing-Conviction setups across all drill-downs, ranked strictly by score from highest to lowest. Every name also appears in a drill-down above. Study these as learning setups, not trade directives — always verify prices, dates, and levels at your own brokerage first.</p>
+
+<div class="tbl-wrap">
+<table class="picks-table" style="width:100%;border-collapse:collapse;">
+  <thead>
+    <tr style="font-size:.75rem;color:var(--muted);border-bottom:2px solid var(--line);">
+      <th style="padding:8px 6px;text-align:left;">#</th>
+      <th style="padding:8px 6px;text-align:left;">Ticker</th>
+      <th style="padding:8px 6px;">Direction</th>
+      <th class="r" style="padding:8px 6px;">Swing-Conv.</th>
+      <th style="padding:8px 6px;text-align:left;">Entry Zone / Key Level</th>
+      <th style="padding:8px 6px;text-align:left;">One-Line Catalyst</th>
+      <th style="padding:8px 6px;text-align:center;">Earn. Window</th>
+    </tr><tr style="border-bottom:1px solid var(--faint);">
+      <td style="padding:8px 6px;font-weight:700;">1</td>
+      <td style="padding:8px 6px;"><b>LLY</b><br><span style="font-size:.72rem;color:var(--muted);">Eli Lilly</span></td>
+      <td style="padding:8px 6px;text-align:center;"><span class="direction-badge-long">LONG</span></td>
+      <td class="r" style="padding:8px 6px;font-weight:700;" class="pos">82</td>
+      <td style="padding:8px 6px;font-size:.8rem;">$1,390–$1,420 pullback</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Revenue guidance raised to $91B–$92B; GLP-1 demand ahead of supply; defensive tape.</td>
+      <td style="padding:8px 6px;text-align:center;font-size:.8rem;">✅ Clear</td>
+    </tr><tr style="border-bottom:1px solid var(--faint);">
+      <td style="padding:8px 6px;font-weight:700;">2</td>
+      <td style="padding:8px 6px;"><b>PLTR</b><br><span style="font-size:.72rem;color:var(--muted);">Palantir</span></td>
+      <td style="padding:8px 6px;text-align:center;"><span class="direction-badge-short">SHORT/AVOID</span></td>
+      <td class="r" style="padding:8px 6px;font-weight:700;">78</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Post-open price discovery; 2-month low region</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Growth deceleration re-rating at extreme multiples; &minus;8% pre-market despite raised guidance.</td>
+      <td style="padding:8px 6px;text-align:center;font-size:.8rem;">✅ Clear</td>
+    </tr><tr style="border-bottom:1px solid var(--faint);">
+      <td style="padding:8px 6px;font-weight:700;">3</td>
+      <td style="padding:8px 6px;"><b>AAPL</b><br><span style="font-size:.72rem;color:var(--muted);">Apple</span></td>
+      <td style="padding:8px 6px;text-align:center;"><span class="direction-badge-short">SHORT/AVOID</span></td>
+      <td class="r" style="padding:8px 6px;font-weight:700;">75</td>
+      <td style="padding:8px 6px;font-size:.8rem;">~$220–$225 post-open; tight stops only</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Guided Dec-qtr gross margin 45–46% vs 47% consensus; memory cost headwind; China miss.</td>
+      <td style="padding:8px 6px;text-align:center;font-size:.8rem;">✅ Clear</td>
+    </tr><tr style="border-bottom:1px solid var(--faint);">
+      <td style="padding:8px 6px;font-weight:700;">4</td>
+      <td style="padding:8px 6px;"><b>ABBV</b><br><span style="font-size:.72rem;color:var(--muted);">AbbVie</span></td>
+      <td style="padding:8px 6px;text-align:center;"><span class="direction-badge-long">LONG</span></td>
+      <td class="r" style="padding:8px 6px;font-weight:700;">72</td>
+      <td style="padding:8px 6px;font-size:.8rem;">$282–$292 pullback zone</td>
+      <td style="padding:8px 6px;font-size:.8rem;">All-time high post Q3 beat; 10.3% revenue growth; Skyrizi/Rinvoq replacing Humira losses.</td>
+      <td style="padding:8px 6px;text-align:center;font-size:.8rem;">✅ Clear</td>
+    </tr><tr style="border-bottom:1px solid var(--faint);">
+      <td style="padding:8px 6px;font-weight:700;">5</td>
+      <td style="padding:8px 6px;"><b>DHI</b><br><span style="font-size:.72rem;color:var(--muted);">D.R. Horton</span></td>
+      <td style="padding:8px 6px;text-align:center;"><span class="direction-badge-long">LONG</span></td>
+      <td class="r" style="padding:8px 6px;font-weight:700;">71</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Pullback from Monday's surge; verify at brokerage</td>
+      <td style="padding:8px 6px;font-size:.8rem;">Direct beneficiary of oil-driven rate-relief hope; entry-level demand recovers fastest.</td>
+      <td style="padding:8px 6px;text-align:center;font-size:.8rem;"><span class="earn-warn">⚠ Verify date</span></td>
+    </tr></table>
+</div>
+
+<div class="panel warn" style="margin-top:12px;font-size:.82rem;">
+  <b class="warnc">Ranked note:</b> AAPL appears at #4 above PLTR's score of 78 due to a minor display note — PLTR at 78 ranks above AAPL at 75 (correctly shown in table). These are setups to study, not directives to trade. Always paper trade first.
+</div>
+
+<!-- ═══════════════ SECTION 6 — EVENT CALENDAR ═══════════════ -->
+<h2 id="calendar"><span class="num">6</span>Event Calendar</h2>
+<p>Dates below are sourced from live web searches in this run. Earnings dates marked ⚠ are inside a typical 3-day–6-week swing window from today (Nov 3). Always re-verify earnings dates at your brokerage — they shift.</p>
+
+<div class="cal-row" style="background:var(--panel2);border-radius:6px;padding:8px 10px;margin-bottom:4px;">
+  <span class="cal-date">Tue · Nov 3</span>
+  <span><b>TODAY:</b> US Midterm Elections (all 435 House seats, ~1/3 Senate). JOLTS Job Openings (Sep 2026) at 10:00 AM ET. <b class="warnc">⚠ AMD Q3 earnings after close</b> (est. rev $13.1B — key AI/semi read). <b class="warnc">⚠ PFE Q3 earnings (pre-mkt — already released, beat+raise).</b> Also: AMGN, ANET, SHOP, BKNG report today.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Wed · Nov 4</span>
+  <span>ADP Private Payrolls; ISM Services PMI; Election results fully tabulated overnight/morning. FICO Corp earnings (after close, per research). Factory Orders release.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Thu · Nov 5</span>
+  <span>Initial Jobless Claims (week ending Nov 1) at 8:30 AM ET.</span>
+</div>
+
+<div class="cal-row" style="background:var(--panel2);border-radius:6px;padding:8px 10px;margin-bottom:4px;">
+  <span class="cal-date">Fri · Nov 6</span>
+  <span><b class="warnc">⚠ October Jobs Report (NFP)</b> at 8:30 AM ET — biggest macro catalyst of the week. Prior: +29K jobs added in Sep 2026. Market-moving for Fed rate-cut expectations and every rate-sensitive sector.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Tue · Nov 10</span>
+  <span><b class="warnc">⚠ CPI (October 2026)</b> at 8:30 AM ET — highest-impact inflation print since the Iran oil-drop. A soft number here accelerates rate-cut bets (bullish XHB, XLU, XLRE). A hot number reverses the homebuilder trade.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Thu · Nov 12</span>
+  <span>Initial Jobless Claims (week ending Nov 7) at 8:30 AM ET.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Fri · Nov 13</span>
+  <span>PPI (October 2026) at 8:30 AM ET — producer-price inflation read.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Mon · Nov 17</span>
+  <span>Retail Sales (October 2026) at 8:30 AM ET.</span>
+</div>
+
+<div class="cal-row" style="background:var(--panel2);border-radius:6px;padding:8px 10px;margin-bottom:4px;">
+  <span class="cal-date">Wed · Nov 18</span>
+  <span>FOMC Minutes (Oct 27–28 meeting) at 2:00 PM ET — look for any pivot signal or rate-cut hints. Housing Starts &amp; Building Permits (Oct 2026) at 8:30 AM ET — direct read for XHB.</span>
+</div>
+
+<div class="cal-row">
+  <span class="cal-date">Tue · Nov 25</span>
+  <span>GDP Q3 2026 Second Estimate + PCE Inflation (Oct 2026) at 8:30 AM ET.</span>
+</div>
+
+<div style="background:var(--panel2);border-radius:6px;padding:10px 14px;margin-top:10px;font-size:.78rem;color:var(--muted);">
+  <b>Ongoing watch:</b> US-Iran diplomatic track — any strike/ceasefire headline moves oil ±5–10% within hours and whipsaws XLE, XHB, and energy-adjacent sectors instantly. Watch for Qeshm Island/Strait of Hormuz developments as the highest-frequency geopolitical trigger.
+</div>
+
+<!-- ═══════════════ SECTION 7 — HOW TO READ ═══════════════ -->
+<h2 id="howto"><span class="num">7</span>How to Read This Report</h2>
+<p>A quick legend so every score and badge makes sense on your first pass.</p>
+
+<div class="legend-grid">
+  <div class="legend-item">
+    <span class="legend-term">Direction Score (−100 to +100)</span>
+    <span>Our overall bullish or bearish read for a sector. +100 = maximally bullish (strong trend, great macro, positive news, strong momentum). −100 = maximally bearish. Zero = neutral, no edge.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">Conviction (High / Med / Low)</span>
+    <span>How confident we are in the Direction Score. High = multiple inputs agree strongly. Low = mixed signals or limited data. Conviction measures certainty, not expected return size.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">Swing-Conviction Score (0–100)</span>
+    <span>Measures how likely a stock is to make the biggest move in its sector's direction over 3 days–6 weeks. Weighted: 35% technical setup, 25% relative strength, 20% catalyst, 20% move potential. This drives stock selection.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">Fundamental Health Score (0–100)</span>
+    <span>Measures the absolute business quality of the company — revenue growth, EPS growth, margins, FCF, balance sheet, analyst revisions, guidance, capital returns. Independent of chart. Green ≥65 · Amber 45–64 · Red &lt;45.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">⛽ ADDS FUEL</span>
+    <span>For longs: Fundamental Health ≥65 — strong business backs the chart. For shorts: Fundamental Health ≤40 — weak fundamentals confirm the bearish thesis. Fuel means fundamentals help the trade.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">⚠ FIGHTS TREND</span>
+    <span>For longs: Health &lt;45 — weak business could undermine the chart. For shorts: Health &gt;60 — shorting a strong company is riskier. This flag warns you the fundamentals push against your trade direction.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">⚠ Earnings In Window</span>
+    <span>The stock reports during the ~3-day–6-week swing horizon. Earnings create a binary event — the stock can gap 5–20% either way. Swing trades around earnings carry substantial extra risk. Always verify the earnings date at your brokerage.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">▲ PICK / ▼ PICK badges</span>
+    <span>Mark the top-2 bullish and top-2 bearish sectors that receive full drill-downs with stock cards. All other sectors are scored but not drilled in depth in this edition.</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-term">Score Weighting (Direction Score)</span>
+    <span>Trend &amp; price structure 30% · Relative strength vs SPY 25% · Macro tailwind/headwind 20% · News &amp; catalyst flow 15% · Momentum/breadth 10%.</span>
+  </div>
+</div>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
 <div class="footer">
-  <p class="sources">Sources consulted: Saxo Bank Market Quick Take (Nov 2, 2026); Yahoo Finance live blog (Nov 2, 2026); TheStreet stock market today (Nov 2, 2026); CNBC crude oil / Marvell-Lumentum / Alphabet / Amazon earnings pages (Nov 2, 2026); Bloomberg Marvell/Lumentum deal (Nov 2, 2026); Reuters Marvell deal; TradingEconomics crude oil, Brent, 10-yr yield, DXY (Nov 2, 2026); Investing.com 10-yr yield / DXY historical; Vantage Markets DXY analysis (Nov 2, 2026); BankofVol Substack (Nov 2, 2026); The National News oil prices (Nov 2, 2026); InvestingLive European wrap (Nov 2, 2026); TradingPedia crude analysis (Nov 2, 2026); India Infoline crude (Nov 2, 2026); EarningsWhispers calendar (Nov 2, 2026); StockTitan earnings calendar week of Nov 2, 2026; Markets Today X post pre-market highlights; Benzinga S&amp;P prediction markets; Quantlake sector rotation (Oct 30, 2026); TheTradingTools sector performance (Oct 30, 2026); PortfoliosLab sector ETF rotation; StockAnalysis XLK; Schwab XLV holdings; GuruFocus XLV flow data (Oct 29, 2026); TickerOn XLV overview; 247WallSt XLV factors; Zacks AMZN/GOOGL/META/NVDA; Benzinga big tech earnings; Pluang Alphabet ETF impact; GitHub weekly council scan XLC trigger; TradersPro substack weekly review; TradingKey pre-market Nov 2; HeyGoTrade week ahead; Shattered.io AAPL/PLTR preview; EconoTimes election week calendar; TokenPost Palantir/AMD; TipRanks XLV holdings; FRED 10-yr yield; CNBC oil and earnings pages.</p>
+  <p class="sources">Sources consulted: Investrade Morning Preview (Nov 3, 2026); MarketAlleys Premarket Brief (Nov 3, 2026); StockMarketWatch live blog (Nov 3, 2026); TradingKey pre-market brief (Nov 3, 2026); Benzinga (AAPL, XHB, oil); Goodreturns.in Wall Street Outlook (Nov 3, 2026); Getleveraged.com Closing Recap (Nov 2, 2026); NBC News oil prices (Nov 2, 2026); Gurufocus oil plunge article (Nov 2, 2026); Fox News Iran Qeshm strikes (Nov 3, 2026); EBC.com oil drop article (Nov 2, 2026); Zack Eiseman Substack ICYMI (Nov 3, 2026); Pfizer SEC 8-K (Nov 3, 2026); Gurufocus PFE Q3 (Nov 3, 2026); 247WallSt PFE Q3 (Nov 3, 2026); Google Finance LLY; Yahoo Finance ABBV; Trefis LLY (Nov 2, 2026); StockTwits LLY/ABBV; TotalRealReturns sector data (through Nov 2, 2026); StockAnalysis SPDR sector ETFs; ChartRow S&P sector performance 2026; Investing.com XLV; SSGA XLV fund page; Quantlake GDX posts (Oct 2026); Heygotrade GDX (Nov 2, 2026); FRED 10-yr yield (through Oct 30); Yahoo Finance TNX (Nov 2); Centdaily.com economic calendar; Smartcalendars.ai; Fedratecalc.com; Xoomar.com economic calendar; Feargreedmeter.com; Alcapital UNH analysis; PC Thematic Daily Report (Nov 2, 2026); Macro4micro asset returns (Nov 1, 2026); Kiplinger November sector article.</p>
 
   <div class="disc">
     <div class="disc-text">
@@ -1466,10 +1113,10 @@
     </div>
   </div>
 
-  <p>All data is time-stamped (November 2, 2026, pre-market) and goes stale quickly &mdash; re-verify before trading.</p>
-  <p style="color:var(--faint)">Daily Sector Intelligence &middot; Trade Club AI &middot; Generated 2026-11-02 &middot; mwtradecoach.com</p>
+  <p>All data is time-stamped (2026-11-03, 8:50 AM ET) and goes stale quickly &mdash; re-verify before trading.</p>
+  <p style="color:var(--faint)">Daily AI Sector Intelligence &middot; Trade Club AI &middot; Generated 2026-11-03 &middot; mwtradecoach.com</p>
 </div>
 
-</div><!-- /wrap -->
+</div><!-- .wrap -->
 </body>
 </html>

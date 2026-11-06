@@ -1,93 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mean-Reversion Watchlist — Trade Club AI · 2026-11-05</title>
-  <link rel="stylesheet" href="/assets/report.css">
-  <style>
-    /* Report-specific additions only — palette variables from /assets/report.css */
-    .honesty {
-      font-size: 0.82rem;
-      color: var(--muted, #8a8f9a);
-      margin-top: 0.5rem;
-      font-style: italic;
-    }
-    .stretch-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 3px;
-      background: var(--chip, #2a2e38);
-      color: var(--ink, #e4e6ed);
-      letter-spacing: 0.03em;
-      vertical-align: middle;
-    }
-    .stretch-badge.hi { background: var(--bear, #d94040); color: #fff; }
-    .stretch-badge.lo { background: var(--bull, #2ea84f); color: #fff; }
-    .stretch-badge.med { background: var(--warn, #c97d1a); color: #fff; }
-    .knife-flag {
-      display: inline-block;
-      font-size: 0.7rem;
-      color: var(--bear, #d94040);
-      font-weight: 700;
-      margin-left: 4px;
-    }
-    .tbl-wrap table td, .tbl-wrap table th {
-      font-size: 0.82rem;
-    }
-    .macro-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    .macro-card {
-      background: var(--panel2, #1c2030);
-      border: 1px solid var(--line, #2c3045);
-      border-radius: 6px;
-      padding: 1rem;
-    }
-    .macro-card .mc-ticker { font-size: 1.1rem; font-weight: 700; color: var(--ink, #e4e6ed); }
-    .macro-card .mc-sub { font-size: 0.75rem; color: var(--muted, #8a8f9a); margin-bottom: 0.5rem; }
-    .macro-card .mc-price { font-size: 1.5rem; font-weight: 700; margin: 0.3rem 0; }
-    .macro-card .mc-line { font-size: 0.8rem; color: var(--muted, #8a8f9a); margin-top: 0.3rem; }
-    .vol-box {
-      border-left: 4px solid var(--accent, #3b82f6);
-      background: var(--panel, #161b27);
-      padding: 1rem 1.2rem;
-      border-radius: 0 6px 6px 0;
-      margin-top: 1rem;
-    }
-    .legend-block { margin-bottom: 1rem; }
-    .legend-block dt { font-weight: 600; color: var(--ink, #e4e6ed); font-size: 0.85rem; }
-    .legend-block dd { color: var(--muted, #8a8f9a); font-size: 0.82rem; margin-left: 1rem; margin-bottom: 0.5rem; }
-    dl.legend-block { margin: 0; }
-    .guardrail-list li { margin-bottom: 0.5rem; font-size: 0.85rem; }
-    .ruin-box {
-      background: var(--panel2, #1c2030);
-      border: 1px solid var(--bear, #d94040);
-      border-radius: 6px;
-      padding: 0.9rem 1.1rem;
-      margin-top: 1rem;
-      font-size: 0.84rem;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mean-Reversion Watchlist — Trade Club AI · Nov 6, 2026</title>
+<link rel="stylesheet" href="/assets/report.css">
+<style>
+  /* Report-specific only — no overrides of shared prose styling */
+  .honesty {
+    font-size: 0.82rem;
+    color: var(--muted, #8a8fa8);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+  .setup-qual {
+    display: inline-block;
+    font-size: 0.74rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--chip, #2a2d3e);
+    color: var(--mut, #9ca0b4);
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .flag-knife { color: var(--bear, #e05c6e); font-weight: 600; }
+  .flag-ok    { color: var(--bull, #4ade80); font-weight: 600; }
+  .flag-warn  { color: var(--warn, #f59e0b); font-weight: 600; }
+  .vol-banner {
+    border: 2px solid var(--warn, #f59e0b);
+    border-radius: 8px;
+    padding: 1.1rem 1.4rem;
+    background: color-mix(in srgb, var(--warn, #f59e0b) 8%, var(--panel, #1c1f2e));
+    margin-bottom: 1.2rem;
+  }
+  .vol-banner .dial { margin: 0.5rem auto; }
+  .struct-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.9rem;
+    margin-top: 0.8rem;
+  }
+  .struct-card {
+    background: var(--panel2, #22263a);
+    border-radius: 7px;
+    padding: 0.85rem 1rem;
+  }
+  .struct-card .sc-title { font-weight: 600; font-size: 0.88rem; color: var(--ink, #e2e6f3); margin-bottom: 0.3rem; }
+  .struct-card .sc-body  { font-size: 0.8rem; color: var(--muted, #8a8fa8); line-height: 1.5; }
+  .def-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  .def-item { background: var(--panel2, #22263a); border-radius: 6px; padding: 0.7rem 0.9rem; }
+  .def-item .di-term { font-size: 0.8rem; font-weight: 600; color: var(--acc, #60a5fa); margin-bottom: 0.2rem; }
+  .def-item .di-def  { font-size: 0.78rem; color: var(--muted, #8a8fa8); line-height: 1.4; }
+  .guard-list li { margin-bottom: 0.5rem; font-size: 0.88rem; color: var(--muted, #8a8fa8); }
+  .sources-line { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.5rem; }
+  .fresh-line   { font-size: 0.76rem; color: var(--faint); margin-top: 0.5rem; }
+  /* Dial overrides for position */
+  .dial { width: 56px; height: 56px; }
+</style>
 <style id="prose-tone">.wrap p,.wrap li{color:var(--mut,#9fb0c3)}.wrap p b,.wrap li b,.wrap p strong,.wrap li strong{font-weight:600}.wrap p b:not([class]),.wrap li b:not([class]),.wrap p strong:not([class]),.wrap li strong:not([class]){color:var(--ink,#e8edf4)}</style>
 <style id="tc-datebar">.tc-datebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:10px 0 10px;padding:10px 15px;background:#141a24;border:1px solid #26303f;border-left:4px solid #4ea1ff;border-radius:0 8px 8px 0;line-height:1.25}.tc-datebar .tc-db-date{font-size:19px;font-weight:800;color:#fff;letter-spacing:.01em}.tc-datebar .tc-db-time{font-size:15px;font-weight:700;color:#e8edf4;white-space:nowrap}.tc-datebar svg{width:17px;height:17px;vertical-align:-3px;margin-right:7px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.tc-datebar .tc-db-date svg{stroke:#4ea1ff}.tc-datebar .tc-db-time svg{stroke:#9fb0c3;width:15px;height:15px;margin-right:5px}.tc-datebar .tc-db-run{font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 10px;border-radius:999px;background:rgba(78,161,255,.14);color:#4ea1ff;border:1px solid rgba(78,161,255,.45);white-space:nowrap}@media(max-width:640px){.tc-datebar{gap:6px 12px;padding:9px 12px}.tc-datebar .tc-db-date{font-size:17px}.header{flex-direction:column;align-items:flex-start}.head-text{padding-right:54px}}</style>
 </head>
-<body><style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:230px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/mean-reversion/2026-11-04.html">2026-11-04</a></li><li><a href="/mean-reversion/2026-11-03.html">2026-11-03</a></li><li><a href="/mean-reversion/2026-11-02.html">2026-11-02</a></li><li><a href="/mean-reversion/2026-10-30.html">2026-10-30</a></li></ul></details><style>.tc-sched{position:fixed;right:18px;bottom:74px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:#10151f;border:1px solid #26303f;color:#9fb0c3;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;pointer-events:none}@media print{.tc-sched{display:none}}</style><div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; 8:50am ET</div><style>.tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,12,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.tc-gate-card{max-width:540px;width:100%;background:#141a24;border:1px solid #26303f;border-top:4px solid #4ea1ff;border-radius:14px;padding:26px 26px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-gate-eyebrow{color:#4ea1ff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-bottom:8px}.tc-gate-card h2{color:#e8edf4;font-size:21px;margin:0 0 12px;line-height:1.3}.tc-gate-card p{color:#9fb0c3;font-size:13.5px;line-height:1.65;margin:0 0 12px}.tc-gate-card p b{color:#e8edf4}.tc-gate-card a{color:#4ea1ff;text-decoration:underline}.tc-gate-btn{display:block;width:100%;margin-top:6px;padding:13px 20px;border-radius:999px;border:none;background:#4ea1ff;color:#08131f;cursor:pointer;font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;transition:transform .12s,box-shadow .12s}.tc-gate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,161,255,.45)}.tc-gate-note{color:#6b7787;font-size:11px;text-align:center;margin-top:10px}@media print{.tc-gate{display:none!important}}</style><div class="tc-gate" id="tcGate" role="dialog" aria-modal="true" aria-labelledby="tcGateTitle"><div class="tc-gate-card"><div class="tc-gate-eyebrow">Trade Club AI &middot; Member Notice</div><h2 id="tcGateTitle">Before you continue</h2><p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; and they are generated with the assistance of AI, which can make mistakes. Always verify every price, level and date with your broker before acting.</p><p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every report and agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button><div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div></div></div><script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script><style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.5)}@media print{.tc-dash-btn{display:none}}</style><a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a><style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#4ea1ff;border:1px solid #7abaff;color:#08131f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
+<body><style>.tc-prev{position:fixed;left:18px;bottom:74px;z-index:99999;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-prev>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:999px;background:#141a24;border:1.5px solid #4ea1ff;color:#cfe6ff;box-shadow:0 6px 20px rgba(78,161,255,.28)}.tc-prev>summary::-webkit-details-marker{display:none}.tc-prev>summary:hover{background:#1b2740;color:#fff}.tc-prev[open]>summary{background:#4ea1ff;border-color:#4ea1ff;color:#08131f}.tc-prev ul{position:absolute;left:0;bottom:calc(100% + 8px);margin:0;padding:6px;list-style:none;background:#141a24;border:1px solid #26303f;border-radius:10px;min-width:230px;max-height:50vh;overflow:auto;box-shadow:0 12px 32px rgba(0,0,0,.6)}.tc-prev li a{display:block;padding:8px 12px;border-radius:7px;color:#e8edf4;text-decoration:none;font-variant-numeric:tabular-nums;font-weight:600}.tc-prev li a:hover{background:#1b2740;color:#fff}@media print{.tc-prev{display:none}}</style><details class="tc-prev"><summary>&#128336;&nbsp;Previous reports</summary><ul><li><a href="/mean-reversion/2026-11-05.html">2026-11-05</a></li><li><a href="/mean-reversion/2026-11-04.html">2026-11-04</a></li><li><a href="/mean-reversion/2026-11-03.html">2026-11-03</a></li><li><a href="/mean-reversion/2026-11-02.html">2026-11-02</a></li></ul></details><style>.tc-sched{position:fixed;right:18px;bottom:74px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:#10151f;border:1px solid #26303f;color:#9fb0c3;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;pointer-events:none}@media print{.tc-sched{display:none}}</style><div class="tc-sched">&#128197;&nbsp;New report weekdays &middot; 8:50am ET</div><style>.tc-gate{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,12,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}.tc-gate-card{max-width:540px;width:100%;background:#141a24;border:1px solid #26303f;border-top:4px solid #4ea1ff;border-radius:14px;padding:26px 26px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.tc-gate-eyebrow{color:#4ea1ff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-bottom:8px}.tc-gate-card h2{color:#e8edf4;font-size:21px;margin:0 0 12px;line-height:1.3}.tc-gate-card p{color:#9fb0c3;font-size:13.5px;line-height:1.65;margin:0 0 12px}.tc-gate-card p b{color:#e8edf4}.tc-gate-card a{color:#4ea1ff;text-decoration:underline}.tc-gate-btn{display:block;width:100%;margin-top:6px;padding:13px 20px;border-radius:999px;border:none;background:#4ea1ff;color:#08131f;cursor:pointer;font:800 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;transition:transform .12s,box-shadow .12s}.tc-gate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(78,161,255,.45)}.tc-gate-note{color:#6b7787;font-size:11px;text-align:center;margin-top:10px}@media print{.tc-gate{display:none!important}}</style><div class="tc-gate" id="tcGate" role="dialog" aria-modal="true" aria-labelledby="tcGateTitle"><div class="tc-gate-card"><div class="tc-gate-eyebrow">Trade Club AI &middot; Member Notice</div><h2 id="tcGateTitle">Before you continue</h2><p>These reports are <b>educational tools only &mdash; not investment advice</b> &mdash; and they are generated with the assistance of AI, which can make mistakes. Always verify every price, level and date with your broker before acting.</p><p>By continuing, you acknowledge the <b>full disclaimer</b> shown at the bottom of every report and agree to our <a href="https://www.mwtradecoach.com/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="https://www.mwtradecoach.com/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.</p><button type="button" class="tc-gate-btn" id="tcGateBtn">I Understand &amp; Agree &mdash; Enter</button><div class="tc-gate-note">You&rsquo;ll be asked once per day on this device. Nothing is sent anywhere.</div></div></div><script>(function(){var KEY="tcai_terms_accepted_v2";var g=document.getElementById("tcGate");if(!g)return;var ok=false;try{ok=localStorage.getItem(KEY)===new Date().toDateString();}catch(e){ok=true;}if(ok){g.remove();return;}g.style.display="flex";document.documentElement.style.overflow="hidden";document.getElementById("tcGateBtn").addEventListener("click",function(){try{localStorage.setItem(KEY,new Date().toDateString());}catch(e){}g.remove();document.documentElement.style.overflow="";});})();</script><style>.tc-dash-btn{position:fixed;right:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#10151f;border:1px solid #4ea1ff;color:#4ea1ff;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(0,0,0,.45);transition:transform .12s,box-shadow .12s,background .12s,color .12s}.tc-dash-btn:hover{background:#4ea1ff;color:#08131f;transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.5)}@media print{.tc-dash-btn{display:none}}</style><a class="tc-dash-btn" href="https://www.mwtradecoach.com/products/mwtc-trade-club-ai" aria-label="Trade Club AI dashboard">&#8617;&nbsp;TC Dashboard</a><style>.tc-hub-btn{position:fixed;left:18px;bottom:18px;z-index:99999;display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;background:#4ea1ff;border:1px solid #7abaff;color:#08131f;font:800 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;text-decoration:none;box-shadow:0 6px 22px rgba(78,161,255,.45);transition:transform .12s,box-shadow .12s}.tc-hub-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(78,161,255,.6)}@media print{.tc-hub-btn{display:none}}</style><a class="tc-hub-btn" href="/" aria-label="All Trade Club AI reports">&#8962;&nbsp;All Reports</a>
 <div class="wrap">
 
-<!-- ═══════════ HEADER ═══════════ -->
+<!-- ═══════════════════════════════ HEADER ═════════════════════════════════ -->
 <header class="top">
   <div class="header">
     <img class="brand-tc" src="/assets/tradeclub-ai.png" alt="Trade Club AI">
     <div class="head-text">
       <div class="eyebrow">TRADE CLUB AI &middot; MEAN-REVERSION SCAN</div>
-      <h1>Mean-Reversion Watchlist <span class="tag t-neut">DUAL EXTREME</span></h1><div class="tc-datebar"><span class="tc-db-date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Thursday, November 5, 2026</span><span class="tc-db-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>9:03 AM ET</span><span class="tc-db-run">PRE-MARKET RUN</span></div>
-      <div class="sub">Statistically-stretched assets with credible reversion theses — post-midterm rotation edition</div>
+      <h1>Mean-Reversion Watchlist <span class="tag t-bull">OVERSOLD TILT</span></h1><div class="tc-datebar"><span class="tc-db-date"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>Friday, November 6, 2026</span><span class="tc-db-time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>9:02 AM ET</span><span class="tc-db-run">PRE-MARKET RUN</span></div>
+      <div class="sub">Statistically-stretched assets with credible reversion theses</div>
       <div class="stamp"><span class="warn-badge">&#9888; snapshot — verify before acting</span>
       </div>
     </div>
@@ -95,761 +83,639 @@
   </div>
 </header>
 
-<!-- ═══════════ NAV ═══════════ -->
+<!-- ═══════════════════════════════ NAV ════════════════════════════════════ -->
 <nav class="jump">
-  <a href="#context">1 · Market Context</a>
-  <a href="#oversold">2 · Oversold</a>
-  <a href="#overbought">3 · Overbought</a>
-  <a href="#macro">4 · Macro Unwinds</a>
-  <a href="#cross-asset">5 · Cross-Asset ETFs</a>
-  <a href="#vol">6 · Vol Callout</a>
-  <a href="#structures">7 · Options Legend</a>
-  <a href="#guardrails">8 · Guardrails</a>
+  <a href="#context">Market Context</a>
+  <a href="#oversold">Oversold → Upside</a>
+  <a href="#overbought">Overbought → Downside</a>
+  <a href="#macro">Macro / Event</a>
+  <a href="#cross-asset">Cross-Asset ETFs</a>
+  <a href="#vol">Vol Callout</a>
+  <a href="#structures">Structures Legend</a>
+  <a href="#guardrails">Guardrails</a>
 </nav>
 
-<!-- ═══════════ SECTION 1 — MARKET CONTEXT ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 1 — CONTEXT ═══════════════════ -->
+<section>
 <h2 id="context"><span class="num">1</span>Market Context</h2>
 
 <div class="read-box">
-  <p><strong>The dominant driver today:</strong> Tuesday's U.S. midterm elections produced a Democratic sweep of both chambers, triggering a violent cross-asset rotation. Two big trades are unwinding simultaneously — energy and defense — while a third (semiconductors / AI infrastructure) is breaking structurally. The S&P 500 posted a +1.6% gain yesterday, but the breadth told a very different story: Dow +3% vs. Nasdaq -1.2% (futures this morning). That divergence is the entire setup for today's scan.</p>
-
-  <p>Three macro shocks are creating mean-reversion candidates right now:</p>
-  <ol>
-    <li><b>Oil collapse:</b> WTI fell ~8–9% Wednesday to roughly $87–89/bbl on Iran de-escalation hopes tied to the new Democratic majority signaling a diplomatic shift. Crude is now on its fourth consecutive down day. Energy stocks and ETFs that spiked on Iran-war fears are reverting toward pre-conflict levels.</li>
-    <li><b>Defense unwind:</b> LMT, NOC, RTX, and LHX all fell 3–7% Wednesday as investors repriced Pentagon budget expectations under a Democratically-led Congress. These names had surged on geopolitical tailwinds — that tailwind just reversed.</li>
-    <li><b>Semiconductor break:</b> SMH fell to ~$488–493, now below its 200-day moving average (~$521) for the first time since May 2025. The catalyst: AI regulatory scrutiny, plus a weak Intel earnings-driven initial shock. This one has a structural dimension — treat it differently from the pure-reversion plays.</li>
-  </ol>
-
-  <p><b>Counter-rotation winners</b> (now potentially overbought): consumer staples (XLP near 52-week high), utilities (XLU RSI ~64), and gold (GLD ~$379, spot gold ~$4,120–4,135).</p>
+  <p>Yesterday's tech wipeout created a rare situation: a large batch of high-quality, optionable names are now statistically stretched to the downside — many at RSI readings in the low-to-mid 20s — while a handful of names that bucked the selloff are overbought. The unifying catalyst: <b class="warnc">the Democratic midterm sweep</b> triggered panic-selling in AI and semiconductor stocks on fears of slower data-center buildout and tighter tech regulation. The move was broad, fast, and sentiment-driven — the ingredients for a credible mean-reversion setup. The key question for each name below is whether this is a reversion opportunity or a new reality; the section notes flag which is which.</p>
+  <p>The <b>VIX surged ~70% Thursday to ~28</b>, and VXX / UVXY spiked dramatically. That volatility spike is itself a high-confidence reversion setup — see the Vol Callout (Section 6).</p>
 </div>
 
-<p class="honesty">⚠ All prices, RSI readings, and technicals below are model-generated snapshots assembled from screeners and news sources as of pre-market, November 5, 2026 (ET). Verify every figure in your own brokerage before acting — these numbers move every minute.</p>
+<div class="grid">
+  <div class="stat"><div class="k">Nasdaq (QQQ close)</div><div class="v bear-c">$647.05 &minus;6.49%</div></div>
+  <div class="stat"><div class="k">S&amp;P 500 (SPY)</div><div class="v bear-c">&minus;3.5–4.4%</div></div>
+  <div class="stat"><div class="k">PHLX Semiconductors</div><div class="v bear-c">&minus;9–12%</div></div>
+  <div class="stat"><div class="k">VIX (Thu close)</div><div class="v warn-c">~28 (+70%)</div></div>
+  <div class="stat"><div class="k">VXX (Thu)</div><div class="v warn-c">+23%</div></div>
+  <div class="stat"><div class="k">UVXY (Thu)</div><div class="v warn-c">+43%</div></div>
+  <div class="stat"><div class="k">XLK RSI(14)</div><div class="v bull-c">23 — extreme oversold</div></div>
+  <div class="stat"><div class="k">QQQ RSI(14)</div><div class="v bull-c">25.8 — extreme oversold</div></div>
+</div>
 
+<p class="honesty">All prices and RSI readings above are model-generated from screener sources as of the Nov 5 close / Nov 6 pre-market. Treat as starting points only — verify every figure in your brokerage before acting.</p>
+</section>
 
-<!-- ═══════════ SECTION 2 — OVERSOLD ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 2 — OVERSOLD ══════════════════ -->
+<section>
 <h2 id="oversold"><span class="num">2</span>Oversold → Potential Upside Reversion</h2>
 
-<p>These are names that have dropped sharply enough — across multiple technical measures — that a snap-back toward their recent average price is plausible. <em>Oversold alone is not a buy signal</em>; every name below must also pass the reversion-vs-ruin filter (see Section 8).</p>
+<p>These are names that have dropped sharply enough — across multiple measures — that a bounce back toward their recent average is plausible, <em>if</em> the underlying business is intact. Each name passed the "reversion vs. ruin" filter; counter-evidence is noted inline.</p>
 
 <div class="tbl-wrap">
 <table>
 <thead>
-  <tr>
-    <th>#</th>
-    <th>Ticker</th>
-    <th>Name</th>
-    <th class="r">Price*</th>
-    <th class="r">RSI(14)*</th>
-    <th class="r">% from 50d</th>
-    <th class="r">% from 200d</th>
-    <th>Stretch reads</th>
-    <th>Why it moved</th>
-    <th>Reference mean</th>
-    <th>IV note</th>
-    <th>Earnings / event</th>
-    <th>Educational structure</th>
-  </tr>
+<tr>
+  <th>Rank</th>
+  <th>Ticker</th>
+  <th>Price (Nov 5 close est.)</th>
+  <th class="r">RSI(14)</th>
+  <th class="r">% from 50-day</th>
+  <th class="r">% from 200-day</th>
+  <th>Why It Moved</th>
+  <th>Reference Mean (target)</th>
+  <th>IV Note</th>
+  <th>Earnings / Event</th>
+  <th>Education: Defined-Risk Structure</th>
+  <th>Filter Pass?</th>
+</tr>
 </thead>
 <tbody>
-  <tr>
-    <td>1</td>
-    <td><b>INTC</b></td>
-    <td>Intel Corp</td>
-    <td class="r bear-c">~$56.60</td>
-    <td class="r bull-c">~22</td>
-    <td class="r bear-c">~&minus;39%</td>
-    <td class="r bear-c">~&minus;46%</td>
-    <td>
-      <span class="stretch-badge lo">RSI 22</span>
-      <span class="stretch-badge lo">%B&lt;0</span>
-      <span class="stretch-badge lo">&minus;39% / 50d</span>
-      <span class="stretch-badge lo">Z&asymp;&minus;3.2</span>
-    </td>
-    <td>Oct 30 earnings gap-down (~&minus;26% in one session) on weak PC-segment guidance. Post-gap drift continues.</td>
-    <td>50-day SMA ~$93 (est.); nearer-term: 20-day ~$80 — verify</td>
-    <td>IV elevated post-earnings gap. Favors option <em>selling</em> structures (premium is rich).</td>
-    <td>Post-earnings; next event date unconfirmed — verify</td>
-    <td>
-      <b class="warnc">Caution — partial knife:</b> Reversion thesis requires stabilization first. If price holds $55 support, a <em>cash-secured put</em> below current price or a <em>bull put spread</em> collects elevated premium with defined risk. Confirm base before entry.
-    </td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td><b>LMT</b></td>
-    <td>Lockheed Martin</td>
-    <td class="r bear-c">~$595</td>
-    <td class="r bull-c">est. ~28</td>
-    <td class="r bear-c">~&minus;8%</td>
-    <td class="r bear-c">~&minus;7%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~28</span>
-      <span class="stretch-badge lo">%B~0</span>
-      <span class="stretch-badge lo">&minus;8% / 50d</span>
-      <span class="stretch-badge lo">Record backlog intact</span>
-    </td>
-    <td>Democratic midterm sweep → budget-cut fears; stock was RSI ~80 just Nov 2 (pre-election). Violent mean-reversion candidate.</td>
-    <td>50-day SMA ~$645 (est.); pre-shock level ~$650</td>
-    <td>IV spiked on the gap — elevated. Favors premium-selling structures.</td>
-    <td>⚠ Date unconfirmed — verify before trading</td>
-    <td>Oversold + high IV → <em>put credit spread</em> or <em>cash-secured put</em> below key support. Backlog of ~$194B argues fundamentals intact; risk is budget uncertainty lingers.</td>
-  </tr>
-  <tr>
-    <td>3</td>
-    <td><b>NOC</b></td>
-    <td>Northrop Grumman</td>
-    <td class="r bear-c">~$525</td>
-    <td class="r bull-c">est. ~27</td>
-    <td class="r bear-c">~&minus;5%</td>
-    <td class="r bear-c">~&minus;5%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~27</span>
-      <span class="stretch-badge lo">%B~0</span>
-      <span class="stretch-badge lo">&minus;5% / 50d</span>
-      <span class="stretch-badge med">Backlog ~$95.7B</span>
-    </td>
-    <td>Same midterm defense unwind as LMT; NOC fell ~4.5% Wednesday. Iran de-escalation reduces contract urgency sentiment.</td>
-    <td>50-day SMA ~$555 (est.) — verify</td>
-    <td>IV elevated. Favors premium-selling.</td>
-    <td>⚠ Date unconfirmed — verify before trading</td>
-    <td>Oversold + high IV → <em>bull put spread</em> using elevated premium. Counter-thesis: Democratic Congress constrains new program approvals — size risk accordingly.</td>
-  </tr>
-  <tr>
-    <td>4</td>
-    <td><b>RTX</b></td>
-    <td>RTX Corp</td>
-    <td class="r bear-c">~$198</td>
-    <td class="r bull-c">est. ~30</td>
-    <td class="r bear-c">~&minus;4%</td>
-    <td class="r bear-c">~&minus;3%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~30</span>
-      <span class="stretch-badge lo">%B boundary</span>
-      <span class="stretch-badge lo">&minus;4% / 50d</span>
-      <span class="stretch-badge med">$289B backlog</span>
-    </td>
-    <td>Election-driven defense sell-off; RTX was RSI ~27 in late September before recovering — now re-testing that zone.</td>
-    <td>50-day SMA ~$208 (est.) — verify</td>
-    <td>IV elevated on sector volatility — favors selling structures.</td>
-    <td>⚠ Date unconfirmed — verify before trading</td>
-    <td>Cleaner setup than LMT/NOC if $197 support holds. <em>Put credit spread</em> or <em>bull call spread</em> for defined risk. Raised 2026 outlook is a fundamental anchor.</td>
-  </tr>
-  <tr>
-    <td>5</td>
-    <td><b>LHX</b></td>
-    <td>L3Harris Technologies</td>
-    <td class="r bear-c">~$260</td>
-    <td class="r bull-c">est. ~24</td>
-    <td class="r bear-c">~&minus;9%</td>
-    <td class="r bear-c">~&minus;8%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~24</span>
-      <span class="stretch-badge lo">%B&lt;0</span>
-      <span class="stretch-badge lo">&minus;9% / 50d</span>
-      <span class="stretch-badge lo">Largest % drop in defense group</span>
-    </td>
-    <td>Fell ~6.5–8% Wednesday — largest in the defense group — on midterm results; oversold relative to peers with same backlog-driven fundamentals.</td>
-    <td>50-day SMA ~$285 (est.) — verify</td>
-    <td>IV spiked; elevated. Selling premium has edge if vega contracts.</td>
-    <td>⚠ Date unconfirmed — verify before trading</td>
-    <td>Deepest oversold in the group. <em>Cash-secured put</em> or <em>put credit spread</em>. Counter-thesis: smaller company = less political buffer if budgets do compress.</td>
-  </tr>
-  <tr>
-    <td>6</td>
-    <td><b>XLE</b></td>
-    <td>Energy Select Sector SPDR</td>
-    <td class="r bear-c">~$64</td>
-    <td class="r bull-c">est. ~26</td>
-    <td class="r bear-c">~&minus;10%</td>
-    <td class="r mut">~+2%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~26</span>
-      <span class="stretch-badge lo">%B&lt;0</span>
-      <span class="stretch-badge lo">&minus;10% / 50d (est.)</span>
-      <span class="stretch-badge lo">Only 5% holdings above 10d SMA</span>
-    </td>
-    <td>Oil fell ~8%+ Wednesday on Iran de-escalation hopes post-election; XLE is the equity proxy for WTI. 4-day losing streak in crude.</td>
-    <td>50-day SMA ~$70–72 (est.) — verify; crude inventory draw is a partial offset</td>
-    <td>IV elevated — premium selling has edge. Watch crude for stabilization signal.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td>Oversold + elevated sector IV → <em>put credit spread</em> near $60 support or <em>bull call spread</em>. Risk: Iran peace deal firms up and oil retests $80 — deeper move before reversion.</td>
-  </tr>
-  <tr>
-    <td>7</td>
-    <td><b>XOP</b></td>
-    <td>SPDR S&amp;P Oil &amp; Gas E&amp;P</td>
-    <td class="r bear-c">est. ~$130</td>
-    <td class="r bull-c">est. ~25</td>
-    <td class="r bear-c">~&minus;12%</td>
-    <td class="r mut">~&minus;2%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~25</span>
-      <span class="stretch-badge lo">%B&lt;0</span>
-      <span class="stretch-badge lo">&minus;12% / 50d (est.)</span>
-      <span class="stretch-badge lo">Equal-weight → E&amp;P most exposed to crude</span>
-    </td>
-    <td>Equal-weighted E&amp;P exposure means XOP falls harder than XLE when crude drops; pure oil-price proxy for reversion thesis.</td>
-    <td>50-day SMA ~$148 (est.) — verify; WTI stabilization is the trigger</td>
-    <td>IV elevated; premium-selling structures have edge.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td><em>Bull put spread</em> well below current price if WTI finds a floor. Risk: further diplomatic progress = more crude downside first. Proxy — carries equity beta, not spot oil.</td>
-  </tr>
-  <tr>
-    <td>8</td>
-    <td><b>IWM</b></td>
-    <td>iShares Russell 2000 ETF</td>
-    <td class="r mut">~$279</td>
-    <td class="r bull-c">est. ~38</td>
-    <td class="r bear-c">~&minus;3%</td>
-    <td class="r mut">~+1%</td>
-    <td>
-      <span class="stretch-badge med">RSI ~38</span>
-      <span class="stretch-badge lo">Below 50d SMA</span>
-      <span class="stretch-badge lo">Below 150d SMA</span>
-      <span class="stretch-badge med">Held $270 support Oct</span>
-    </td>
-    <td>Small-caps underperformed large-caps throughout the AI-driven rally; rising rate fears and AI-driven capital concentration hurt the Russell 2000. Now a catch-up candidate as yields ease on falling oil.</td>
-    <td>50-day SMA ~$285; 200-day ~$277 — verify</td>
-    <td>IV moderate (lower than single-stock names). Slight edge to buying structures.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td>Lower IV than the defense/energy names → <em>bull call spread</em> or <em>long call</em> near $280 strike. Rate relief from falling oil is the catalyst; risk is a recession fear re-price hurts small caps more.</td>
-  </tr>
+
+<tr>
+  <td>1</td>
+  <td><b>NVDA</b></td>
+  <td>$181.60</td>
+  <td class="r bull-c">25</td>
+  <td class="r bear-c">&minus;~20%</td>
+  <td class="r bear-c">&minus;~21%</td>
+  <td>AI-infrastructure fear post-Dem sweep; Nvidia led the Mag-7 rout, losing ~$440B in market cap in one session on sector-specific selling, not fundamental implosion</td>
+  <td>50-day SMA (~$220–230 est.) — large but well-defined gap</td>
+  <td>IV surged (VIX +70%); favors <b class="acc">premium-selling</b> structures</td>
+  <td class="warn-c">⚠ <b>Nov 17, 2026</b> (confirmed AMC) — 11 days away; binary risk is high</td>
+  <td>Oversold + high IV → <b>put credit spread</b> (sell lower put, buy further lower put) or <b>cash-secured put</b> at support. <em>Earnings binary in 11 days — keep defined risk tight; consider avoiding or sizing very small.</em></td>
+  <td><span class="flag-ok">✓ PASS</span> — positioning excess, not fraud/structural break; AMD CEO confirmed AI demand is "not slowing"</td>
+</tr>
+
+<tr>
+  <td>2</td>
+  <td><b>AMD</b></td>
+  <td>~$404.40</td>
+  <td class="r bull-c">22–30</td>
+  <td class="r bear-c">&minus;~17%</td>
+  <td class="r bear-c">&minus;~15%</td>
+  <td>Sympathy selloff to Nvidia/chip panic; fell 17.26% Thursday. Stochastic %K ~1.3 — extreme. AMD CEO Lisa Su publicly stated AI demand is not slowing. <em>Already reported Q3 Nov 3.</em></td>
+  <td>50-day SMA (est. ~$480–500) — verify in brokerage</td>
+  <td>IV elevated; favors <b class="acc">premium-selling</b></td>
+  <td class="mut">Already reported Nov 3 — no near-term binary ✓</td>
+  <td>Oversold + high IV → <b>bull put spread</b> or <b>bull call spread</b> (defined risk). No imminent earnings catalyst; cleaner setup than NVDA.</td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI ~22, Stochastic ~1, volume surge: 2.7× avg. No structural break identified.</td>
+</tr>
+
+<tr>
+  <td>3</td>
+  <td><b>TSM</b></td>
+  <td>~$353.10</td>
+  <td class="r bull-c">26</td>
+  <td class="r bear-c">&minus;~20%</td>
+  <td class="r bear-c">&minus;~16%</td>
+  <td>Sold off 10.78% on AI regulation fears and export-control concerns; Bollinger %B at &minus;27% — well below the lower band. Next earnings est. Jan 2027.</td>
+  <td>50-day SMA (~$440 est.) — verify; 200-day ~$418 is a nearer target</td>
+  <td>IV elevated; premium-selling edge</td>
+  <td class="mut">Next earnings ~Jan 21, 2027 — no near-term binary</td>
+  <td>Oversold + high IV → <b>put credit spread</b> or <b>cash-secured put</b> near support. No earnings for ~10 weeks — clean setup window.</td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI 26, %B &minus;27%, Williams %R oversold; global monopoly on leading-edge chips intact</td>
+</tr>
+
+<tr>
+  <td>4</td>
+  <td><b>ARM</b></td>
+  <td>~$166.72</td>
+  <td class="r bull-c">27</td>
+  <td class="r bear-c">&minus;~37% est.</td>
+  <td class="r bear-c">&minus;~37% est.</td>
+  <td>Fell 13.08% Thursday, RSI 26.9, Stochastic %K ~4.8. AI licensing fears; at 20-day low on high volume.</td>
+  <td>50-day SMA (~$265 est. — verify); nearer resistance ~$187–$188</td>
+  <td>IV elevated; premium-selling favored</td>
+  <td class="mut">No confirmed near-term earnings date in search results — verify unconfirmed</td>
+  <td>Oversold + high IV → <b>bull put spread</b> (defined risk). Caution: ARM has very high valuation multiple; reversion may be partial.</td>
+  <td><span class="flag-warn">⚠ QUALIFY</span> — RSI &amp; Stochastic extreme, but ARM's elevated multiple means a "fair value" is higher than 50-day; size conservatively</td>
+</tr>
+
+<tr>
+  <td>5</td>
+  <td><b>LRCX</b> (Lam Research)</td>
+  <td>~$207 (pre-mkt)</td>
+  <td class="r bull-c">30–33</td>
+  <td class="r bear-c">&minus;~27%</td>
+  <td class="r bear-c">&minus;~27%</td>
+  <td>Chip-equipment selloff; down ~35% over past month. At 52-week low proximity. Stochastic also oversold. Next earnings: Jan 27, 2027.</td>
+  <td>50-day SMA (~$291 est.) — verify</td>
+  <td>IV elevated after multi-week selloff</td>
+  <td class="mut">Jan 27, 2027 — no near-term binary</td>
+  <td>Oversold + high IV → <b>put credit spread</b> or <b>bull call spread</b>. Equipment makers are leveraged to fab capex; watch for capex cut headlines as a trap risk.</td>
+  <td><span class="flag-ok">✓ PASS</span> — 3 measures extreme (RSI, Stochastic, % from MAs); business intact but capex cycle is a risk</td>
+</tr>
+
+<tr>
+  <td>6</td>
+  <td><b>CAT</b> (Caterpillar)</td>
+  <td><span class="notconn">&mdash; verify pre-mkt price &mdash;</span></td>
+  <td class="r bull-c">~21</td>
+  <td class="r bear-c">&minus;~15% est.</td>
+  <td class="r bear-c">&minus;~10% est.</td>
+  <td>Industrials caught in broad market selloff; RSI near or below 30, deeply oversold with sympathetic selling. Already reported Q3 Oct 29.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV elevated after selloff</td>
+  <td class="mut">Already reported Oct 29 — no near-term binary ✓</td>
+  <td>Oversold + elevated IV → <b>bull put spread</b> or <b>cash-secured put</b> near support. CAT earnings already cleared — cleaner setup.</td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI ~21, well-established industrial with no structural break identified</td>
+</tr>
+
+<tr>
+  <td>7</td>
+  <td><b>ETN</b> (Eaton Corp)</td>
+  <td><span class="notconn">&mdash; verify pre-mkt price &mdash;</span></td>
+  <td class="r bull-c">~30 est.</td>
+  <td class="r bear-c">&minus;~10% est.</td>
+  <td class="r bear-c">&minus;~5% est.</td>
+  <td>Industrial selloff; Eaton reported Nov 3 (already past), making this a post-earnings oversold setup. Data-center power demand thesis still intact.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV normalizing post-earnings</td>
+  <td class="mut">Already reported Nov 3 — no near-term binary ✓</td>
+  <td>Post-earnings oversold + IV normalizing → <b>bull call spread</b> (buy lower call, sell higher call) for defined upside. IV falling may favor buying structure here.</td>
+  <td><span class="flag-ok">✓ PASS</span> — earnings cleared, power-infrastructure demand thesis intact; RSI approaching oversold</td>
+</tr>
+
+<tr>
+  <td>8</td>
+  <td><b>MPC</b> (Marathon Petroleum)</td>
+  <td><span class="notconn">&mdash; verify pre-mkt price &mdash;</span></td>
+  <td class="r bull-c">~22 est.</td>
+  <td class="r bear-c">&minus;~15% est.</td>
+  <td class="r bear-c">&minus;~10% est.</td>
+  <td>Refiner caught in energy selloff despite holding stronger fundamentals; RSI ~22 on screeners. Already reported earnings Nov 3.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV elevated; premium-selling edge</td>
+  <td class="mut">Already reported Nov 3 — no near-term binary ✓</td>
+  <td>Oversold + high IV → <b>put credit spread</b>. Refiner margins and crack spreads are the fundamental backstop — confirm those haven't collapsed before entering.</td>
+  <td><span class="flag-ok">✓ PASS</span> — earnings cleared; oversold RSI with no structural break in refining business</td>
+</tr>
+
+<tr>
+  <td>9</td>
+  <td><b>QQQ</b> (Nasdaq-100 ETF)</td>
+  <td>$647.05</td>
+  <td class="r bull-c">25.8</td>
+  <td class="r bear-c">&minus;~10%</td>
+  <td class="r bear-c">&minus;~5%</td>
+  <td>ETF-level oversold after 6.49% single-day drop; Stochastic ~10, Williams %R &minus;100 (fully oversold). Below all key moving averages AND lower Bollinger Band.</td>
+  <td>200-day SMA (~$680–712 est.) — first meaningful resistance; 50-day ~$716–726 est.</td>
+  <td>IV surged with VIX; premium-selling favored at index level</td>
+  <td class="mut">ETF — no single earnings date; NVDA reports Nov 17 is the next index catalyst</td>
+  <td>ETF oversold + high IV → <b>put credit spread on QQQ</b> or <b>bull call spread</b>. NVDA Nov 17 earnings is a known catalyst — keep expiration beyond that or size very small before it.</td>
+  <td><span class="flag-ok">✓ PASS</span> — 5+ measures extreme; ETF cannot go to zero; reversion toward 200-day is a credible mean</td>
+</tr>
+
 </tbody>
 </table>
 </div>
-<p class="honesty">* All prices and RSI readings are pre-market snapshots assembled from multiple news sources — treat as approximate, verify in your brokerage before acting. % from 50d/200d are estimates based on reported recent technicals.</p>
+<p class="honesty">⚠ All prices, RSI values, and % from moving-average estimates above are model-generated from screener data as of the Nov 5 close. The 50/200-day SMA estimates are approximations — verify every figure in your brokerage before acting. Earnings dates sourced from confirmed sources where available; always cross-check on company investor-relations pages.</p>
+</section>
 
-
-<!-- ═══════════ SECTION 3 — OVERBOUGHT ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 3 — OVERBOUGHT ════════════════ -->
+<section>
 <h2 id="overbought"><span class="num">3</span>Overbought → Potential Downside Reversion</h2>
 
-<p>These names have been bid up quickly — often into the same rotation that crushed the oversold group — and are now stretched on multiple measures. A pullback toward their own recent average is the thesis. Overbought does not mean "short right now"; it means the risk/reward for new long entries is poor and a fade is worth watching.</p>
+<p>These names moved sharply <em>up</em> and are now stretched on multiple measures — the question is whether the catalyst was a one-time event that the market is likely to fade, not a new trend. Each passed the "not a breakout" filter.</p>
 
 <div class="tbl-wrap">
 <table>
 <thead>
-  <tr>
-    <th>#</th>
-    <th>Ticker</th>
-    <th>Name</th>
-    <th class="r">Price*</th>
-    <th class="r">RSI(14)*</th>
-    <th class="r">% from 50d</th>
-    <th class="r">% from 200d</th>
-    <th>Stretch reads</th>
-    <th>Why it moved</th>
-    <th>Reference mean</th>
-    <th>IV note</th>
-    <th>Earnings / event</th>
-    <th>Educational structure</th>
-  </tr>
+<tr>
+  <th>Rank</th>
+  <th>Ticker</th>
+  <th>Price (Nov 5 close est.)</th>
+  <th class="r">RSI(14)</th>
+  <th class="r">Stochastic %K</th>
+  <th>Why It Moved Up</th>
+  <th>Reference Mean (target)</th>
+  <th>IV Note</th>
+  <th>Earnings / Event</th>
+  <th>Education: Defined-Risk Structure</th>
+  <th>Filter Pass?</th>
+</tr>
 </thead>
 <tbody>
-  <tr>
-    <td>1</td>
-    <td><b>XLP</b></td>
-    <td>Consumer Staples SPDR</td>
-    <td class="r bull-c">~$89–91</td>
-    <td class="r bear-c">~70–75</td>
-    <td class="r bull-c">~+5–7%</td>
-    <td class="r bull-c">~+5%</td>
-    <td>
-      <span class="stretch-badge hi">RSI ~70+</span>
-      <span class="stretch-badge hi">Near 52-wk high ($90.86)</span>
-      <span class="stretch-badge hi">+5% / 50d (est.)</span>
-      <span class="stretch-badge hi">12-mo return +20.4%</span>
-    </td>
-    <td>Defensive rotation from tech/energy into consumer staples on AI-regulation fears + oil collapse. XLP tested its 52-week high Nov 3 at $90.86.</td>
-    <td>50-day SMA ~$84.73; 20-day SMA — verify. Mean reversion target ~$85–87.</td>
-    <td>IV low-to-moderate (staples are stable). Edge to option-buying structures for the fade.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td>Overbought + low IV → <em>bear put spread</em> or <em>call credit spread</em> near $90 strike if rotation stalls. Risk: if Nasdaq selling accelerates, staples remain the safety trade.</td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td><b>GLD</b></td>
-    <td>SPDR Gold Shares</td>
-    <td class="r bull-c">~$379</td>
-    <td class="r bear-c">est. ~72</td>
-    <td class="r bull-c">~+5%</td>
-    <td class="r bull-c">~+4%</td>
-    <td>
-      <span class="stretch-badge hi">RSI ~72</span>
-      <span class="stretch-badge hi">+5% / 50d (est.)</span>
-      <span class="stretch-badge hi">Spot gold ~$4,135</span>
-      <span class="stretch-badge hi">Multi-week high</span>
-    </td>
-    <td>Gold surged ~3.2% Wednesday (+1.9% again today premarket) as yields eased, the dollar fell, and safe-haven demand returned on election uncertainty + softer oil.</td>
-    <td>50-day SMA ~$361 (est.) — verify; gold "mean" is blurry given its secular uptrend</td>
-    <td>IV elevated on the surge — selling premium has edge. But secular bull trend means fading gold is higher risk than fading staples.</td>
-    <td>FOMC path is the next major catalyst; date unconfirmed — verify</td>
-    <td>Elevated IV → <em>call credit spread</em> above $382 for a defined-risk fade. Important: gold is in a multi-year secular uptrend (ATH $5,608 this year) — this is a short-term mean-reversion play only, not a structural short.</td>
-  </tr>
-  <tr>
-    <td>3</td>
-    <td><b>SLV</b></td>
-    <td>iShares Silver Trust</td>
-    <td class="r bull-c">est. ~$46–47</td>
-    <td class="r bear-c">est. ~65</td>
-    <td class="r bull-c">~+3%</td>
-    <td class="r bear-c">~&minus;14% (1 month)</td>
-    <td>
-      <span class="stretch-badge med">RSI ~65</span>
-      <span class="stretch-badge hi">Silver up ~5% Wed + 1% Thu</span>
-      <span class="stretch-badge hi">&minus;13.9% 1-month then V-reversal</span>
-      <span class="stretch-badge hi">Spot silver ~$52.80</span>
-    </td>
-    <td>Silver had a brutal month (&minus;14%), then snapped back sharply with gold on the election and yield relief. The V-reversal is itself a potential exhaustion signal.</td>
-    <td>Prior-week close ~$46 (est.) — verify; 50-day diverged on the month's selloff</td>
-    <td>IV elevated from the volatile swing. Premium selling has edge for a range trade.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td>High-IV V-reversal → <em>iron condor</em> or <em>call credit spread</em> for a range-bound fade. Risk: if gold continues its run, silver follows. Watch gold as the leading indicator.</td>
-  </tr>
-  <tr>
-    <td>4</td>
-    <td><b>XLU</b></td>
-    <td>Utilities Select Sector SPDR</td>
-    <td class="r bull-c">~$43–44</td>
-    <td class="r bear-c">~64</td>
-    <td class="r bull-c">~+3%</td>
-    <td class="r bull-c">~+5%</td>
-    <td>
-      <span class="stretch-badge med">RSI ~64</span>
-      <span class="stretch-badge med">+3% / 50d (est.)</span>
-      <span class="stretch-badge med">MA5 sell vs all longer MAs buy</span>
-      <span class="stretch-badge med">XLU 10% gain over 1 month</span>
-    </td>
-    <td>Same defensive rotation as XLP — utilities benefited from rate relief and the AI power-demand narrative pivot (less AI = less grid-stress pressure to raise rates). Near top of 1-year range.</td>
-    <td>50-day SMA ~$42.81 — verify; reversion target ~$42–43</td>
-    <td>IV moderate/low — slight edge to buying structures for the fade.</td>
-    <td>⚠ Date unconfirmed — verify</td>
-    <td>Not deep overbought yet — RSI 64, not 80. Watch for RSI crossing 70 before a fade entry. <em>Bear put spread</em> near $44 strike if momentum stalls. AI regulation benefit may prove durable — keep position small.</td>
-  </tr>
-  <tr>
-    <td>5</td>
-    <td><b>IBIT</b></td>
-    <td>iShares Bitcoin ETF</td>
-    <td class="r bull-c">~BTC $80,460</td>
-    <td class="r bear-c">est. ~65</td>
-    <td class="r bull-c">~+5%</td>
-    <td class="r mut">varies</td>
-    <td>
-      <span class="stretch-badge med">RSI ~65</span>
-      <span class="stretch-badge hi">+3.4% Wed on short squeeze (~$378M)</span>
-      <span class="stretch-badge med">Fear &amp; Greed 34 (Fear)</span>
-      <span class="stretch-badge hi">ETF outflows $1.16B 3-day</span>
-    </td>
-    <td>Bitcoin reclaimed $80K on Democratic win + short squeeze. But ETF flows are still negative; Binance breach spooked the market. Fear &amp; Greed at 34 (fear). Rally on sentiment, not fundamentals.</td>
-    <td>Recent support ~$76,000; squeeze-driven bounce is mean-reversion candidate from the other direction (fade the squeeze)</td>
-    <td>IV elevated (crypto is structurally high-vol). Premium selling has edge, but gap risk is extreme in crypto.</td>
-    <td>FOMC rate path is next major catalyst; date unconfirmed — verify</td>
-    <td>High-beta financial instrument — treat like volatility (see Section 8). <em>Call credit spread</em> near $82–83K resistance for a short-term fade. Risk: crypto can squeeze 20%+ in hours. Defined risk only. Paper-trade first.</td>
-  </tr>
-  <tr>
-    <td>6</td>
-    <td><b>DIA</b></td>
-    <td>SPDR Dow Jones ETF</td>
-    <td class="r bull-c">~$533</td>
-    <td class="r bear-c">est. ~68</td>
-    <td class="r bull-c">~+4%</td>
-    <td class="r bull-c">~+4%</td>
-    <td>
-      <span class="stretch-badge med">RSI ~68</span>
-      <span class="stretch-badge hi">+3% single session (best day since Apr 2025)</span>
-      <span class="stretch-badge hi">Dow 53,356 close</span>
-      <span class="stretch-badge med">Futures +0.61% again Thu</span>
-    </td>
-    <td>Dow surged 1,570 points (3%) Wednesday — its best single session since April 2025 — on falling oil + election relief. Futures +0.61% this morning suggests the momentum is extending.</td>
-    <td>50-day SMA ~$513 (est.) — verify; reversion mean well below current price</td>
-    <td>IV moderate/low — not a great IV-selling environment here. Edge to buying structures for the fade.</td>
-    <td>Nov 10 CPI is the next confirmed macro hurdle; verify specific date</td>
-    <td>Not aggressively overbought yet — RSI ~68. Wait for confirmation of stall near $535–540 before fading. <em>Bear put spread</em> or simply avoid new long exposure near the top of a one-day 3% gap. Risk: post-election relief rallies can extend 1–2 weeks.</td>
-  </tr>
-  <tr>
-    <td>7</td>
-    <td><b>TLT</b></td>
-    <td>iShares 20-Yr Treasury ETF</td>
-    <td class="r bull-c">est. ~$97–98</td>
-    <td class="r bear-c">est. ~62</td>
-    <td class="r bull-c">~+3%</td>
-    <td class="r bear-c">~&minus;5%</td>
-    <td>
-      <span class="stretch-badge med">RSI ~62</span>
-      <span class="stretch-badge med">10-yr yield 4.88–4.90%</span>
-      <span class="stretch-badge med">Oil collapse → rate relief</span>
-      <span class="stretch-badge med">3-day rally</span>
-    </td>
-    <td>Yields eased sharply as falling oil reduced the Fed's inflation concern and the dollar index fell to 101.26. TLT has rallied off its lows — but Citi warns that oil relief could flip the Fed from hikes to cuts (not priced yet = uncertainty).</td>
-    <td>50-day SMA ~$94 (est.) — verify; reversion mean is ambiguous given macro transition</td>
-    <td>IV moderate — bond vol elevated on the rate-path debate. Slight edge to premium selling.</td>
-    <td>Nov 10 CPI confirmed as next major hurdle — verify</td>
-    <td>Not clean overbought. Watch $98–99 as near-term resistance. <em>Call credit spread</em> above resistance for a range fade. Risk: if Fed pivots to cuts on oil relief, TLT could rally 10–15% — a structural move, not a reversion.</td>
-  </tr>
-  <tr>
-    <td>8</td>
-    <td><b>UUP</b></td>
-    <td>Invesco DB USD Bull ETF</td>
-    <td class="r bear-c">est. ~$28.50</td>
-    <td class="r bull-c">est. ~28</td>
-    <td class="r bear-c">~&minus;3%</td>
-    <td class="r bear-c">~&minus;2%</td>
-    <td>
-      <span class="stretch-badge lo">RSI ~28</span>
-      <span class="stretch-badge lo">Dollar index 101.26 (falling)</span>
-      <span class="stretch-badge lo">2nd day lower post-election</span>
-      <span class="stretch-badge med">Democrats → Iran de-escalation → dollar weakness</span>
-    </td>
-    <td>Dollar fell a second straight day on Democratic victory — Democrats signaling Iran de-escalation reduces geopolitical USD safe-haven premium. Dollar index to 101.26.</td>
-    <td>50-day SMA ~$29.3 (est.) — verify; UUP could revert up if Fed stays hawkish</td>
-    <td>IV moderate/low — FX options tend to be moderate vol. Slight edge to buying structures for a rebound trade.</td>
-    <td>FOMC path is the dominant catalyst; date unconfirmed — verify</td>
-    <td>Oversold USD is a possible upside reversion if the Fed stays on its December hike path (futures still price high probability of a December hike). <em>Bull call spread</em> for defined risk. Risk: if the Iran peace deal firms up further, dollar weakness persists.</td>
-  </tr>
+
+<tr>
+  <td>1</td>
+  <td><b>APP</b> (AppLovin)</td>
+  <td>~$356.10</td>
+  <td class="r bear-c">72</td>
+  <td class="r bear-c">93.4</td>
+  <td>Surged 31% on massive Q3 earnings beat (revenue + EPS + Q4 guidance all beat). Volume 4.3× average. RSI 72, at 20-day resistance. The move was 6× its average daily range.</td>
+  <td>20-day SMA (~$228–260 est.) — a very wide gap; near-term mean is the prior-day resistance ~$280–320</td>
+  <td>IV spiked with the 31% move; <b class="acc">premium-selling</b> edge is high</td>
+  <td class="mut">Already reported Nov 4 — no near-term binary ✓</td>
+  <td>Overbought + high IV post-earnings → <b>call credit spread</b> (sell lower call, buy higher call) or <b>bear put spread</b>. <em>Counter-argument: earnings beat was genuine; the upward reversion from &minus;60% YTD may continue — this is a fade of the spike, not of the whole move. Size conservatively.</em></td>
+  <td><span class="flag-warn">⚠ QUALIFY</span> — RSI &amp; Stochastic extreme, but earnings beat was real. This is a "fade the spike" trade, not a short of the company. Keep defined risk tight.</td>
+</tr>
+
+<tr>
+  <td>2</td>
+  <td><b>SPG</b> (Simon Property Group)</td>
+  <td>~$228.50</td>
+  <td class="r bear-c">78.3</td>
+  <td class="r bear-c">99.2</td>
+  <td>Gained 2.89% on election-clarity rotation into REITs (rate hopes); closed at 20-day high, near 3-month high. Fresh golden cross (SMA20 above SMA50). RSI 78.3 is an extreme reading.</td>
+  <td>50-day SMA (~$198–205 est.) — verify in brokerage; support ~$198.70</td>
+  <td>IV elevated after the rotation; premium-selling edge</td>
+  <td class="mut">No near-term earnings confirmed — verify</td>
+  <td>Overbought + high IV → <b>call credit spread</b> above resistance. <em>Counter: the golden cross and rate-hope narrative could keep it bid; treat as short-term mean reversion only.</em></td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI 78.3, Stochastic 99.2, at 20-day resistance on a 2.89% one-day gain; 3 measures confirm stretch</td>
+</tr>
+
+<tr>
+  <td>3</td>
+  <td><b>ECL</b> (Ecolab)</td>
+  <td>~$315.01</td>
+  <td class="r bear-c">78.6</td>
+  <td class="r bear-c">~85 est.</td>
+  <td>Materials sector defensive rotation after broad selloff; rose 3.4% to multi-week high. RSI 78.6 is elevated; overbought on multiple indicators.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV normalizing after defensive rotation</td>
+  <td class="mut">No near-term earnings confirmed — verify</td>
+  <td>Overbought → <b>bear put spread</b> (buy higher put, sell lower put) or <b>call credit spread</b>. IV falling as panic fades may favor buying puts here.</td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI 78.6, confirmed by multiple sources; rotation into defensives may partially reverse as fear subsides</td>
+</tr>
+
+<tr>
+  <td>4</td>
+  <td><b>APD</b> (Air Products)</td>
+  <td>~$318.87</td>
+  <td class="r bear-c">76.9</td>
+  <td class="r bear-c">~80 est.</td>
+  <td>Industrial gas / materials defensive rotation, up 2% to multi-week high. RSI 76.9; overbought on RSI and Stochastic.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV normalizing</td>
+  <td class="mut">No near-term earnings confirmed — verify</td>
+  <td>Overbought → <b>call credit spread</b> above resistance. IV fade may make buying puts modestly attractive vs. selling calls here.</td>
+  <td><span class="flag-ok">✓ PASS</span> — RSI 76.9 confirmed; materials defensive rotation that tends to unwind as market stabilizes</td>
+</tr>
+
+<tr>
+  <td>5</td>
+  <td><b>SHW</b> (Sherwin-Williams)</td>
+  <td><span class="notconn">&mdash; verify price &mdash;</span></td>
+  <td class="r bear-c">71.4</td>
+  <td class="r bear-c">~75 est.</td>
+  <td>Materials defensive rotation; RSI 71.4 — just entered overbought. Market-rotation beneficiary of flight from tech.</td>
+  <td>50-day SMA — verify in brokerage</td>
+  <td>IV mixed; check current IV rank before entering</td>
+  <td class="mut">No near-term earnings confirmed — verify</td>
+  <td>RSI at upper bound → <b>call credit spread</b> (smallest conviction here; RSI just at 70 is a weaker signal). Confirm IV rank ≥ 50 before selling premium.</td>
+  <td><span class="flag-warn">⚠ QUALIFY</span> — RSI just at 70 threshold; weakest signal in this table; lowest priority</td>
+</tr>
+
 </tbody>
 </table>
 </div>
-<p class="honesty">* All prices and RSI readings are pre-market snapshots. RSI estimates marked "est." are model-inferred from price moves and partial screener data — treat with extra caution and verify in your brokerage.</p>
+<p class="honesty">⚠ Overbought does not mean "sell short." All these names may continue higher, especially if the market stabilizes. Defined-risk structures limit downside if the thesis is wrong. Verify all prices, RSI readings, and earnings dates before acting.</p>
+</section>
 
-
-<!-- ═══════════ SECTION 4 — MACRO UNWINDS ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 4 — MACRO / EVENT ═════════════ -->
+<section>
 <h2 id="macro"><span class="num">4</span>Macro / Event-Driven Unwinds</h2>
 
-<p>These are the highest-conviction reversion themes today — both powered by the same election catalyst. The "mean" is well-defined (the pre-shock price), and the catalyst is actively fading. That is the classic event-driven reversion setup.</p>
+<p>These setups are directly tied to Thursday's macro catalyst — the AI regulation panic from the Democratic midterm sweep — and may revert as the initial shock fades. The "mean" here is well-defined: the pre-shock price level before the panic trade was put on.</p>
 
-<div class="macro-cards">
+<div class="tbl-wrap">
+<table>
+<thead>
+<tr>
+  <th>Asset / ETF</th>
+  <th>What Happened</th>
+  <th>Reversion Logic</th>
+  <th>IV / Structure Edge</th>
+  <th>Landmine to Watch</th>
+</tr>
+</thead>
+<tbody>
 
-  <div class="macro-card">
-    <div class="mc-ticker">OIL / USO / XLE <span class="tag t-bull">REVERSION UP?</span></div>
-    <div class="mc-sub">WTI Crude — 4-Day Rout on Iran De-Escalation</div>
-    <div class="mc-price bear-c">WTI ~$87–89 / USO ~$145–147</div>
-    <div class="mc-line"><b>What happened:</b> WTI crashed ~8–9% in a single session Wednesday, then extended lower Thursday. Democrats' win signaled a potential diplomatic shift with Iran, reducing the geopolitical supply-risk premium that oil had been carrying for months. Crude is now ~50% higher YoY (!) — meaning the pre-Iran-conflict baseline was much lower.</div>
-    <div class="mc-line"><b>Reversion thesis:</b> If the Iran de-escalation proves real, WTI may revert toward $80–85 (pre-conflict range) rather than bouncing. The <em>reversion</em> for XLE and XOP energy equities is toward pre-war-premium levels, not up. This is an oversold bounce play if crude stabilizes here, or a continued trend if the peace process firms.</div>
-    <div class="mc-line"><b>Inventory offset:</b> US crude, gasoline, and distillate inventories ALL declined last week — a partial supply-side cushion that may limit the downside reversion in crude.</div>
-    <div class="mc-line"><b>Key risk:</b> Peace deal collapses → oil reverses sharply higher. Any Strait of Hormuz news moves this 5–10% in hours.</div>
-    <div class="mc-line"><b>ETFs to watch:</b> USO (K-1 ⚠), XLE (equity proxy), XOP (equity proxy). Prefer XLE/XOP for no K-1 exposure. UCO/SCO (2x) for tactical only — leverage decay applies.</div>
-  </div>
+<tr>
+  <td><b>XLK</b> (Tech Select Sector SPDR)</td>
+  <td>Down ~7.5% Thu; RSI(14) = 23, Stochastic ~7.5, Williams %R &minus;95. All indicators "Strong Sell" — but that's a measure of stretch, not a forecast.</td>
+  <td>Sentiment-driven panic; XLK holds Apple, Microsoft, Nvidia. The AI regulation thesis is not a certainty — it requires a legislative path that is far from assured. Pre-shock XLK price (~$180–$190 range) is the reference mean.</td>
+  <td>IV surged with VIX; premium-selling structures have an edge. Avoid multi-week holds in a tense regulatory environment.</td>
+  <td>If Congress actually passes AI-curbing legislation, the "mean" may reprice lower permanently. Watch for bill language over the next 2–4 weeks.</td>
+</tr>
 
-  <div class="macro-card">
-    <div class="mc-ticker">ITA / LMT / NOC / RTX <span class="tag t-bull">REVERSION UP?</span></div>
-    <div class="mc-sub">Defense Sector — Midterm Budget-Fear Unwind</div>
-    <div class="mc-price bear-c">ITA ~est. &minus;1–2% Wed; LMT ~$595 (&minus;6.9%)</div>
-    <div class="mc-line"><b>What happened:</b> Democratic sweep triggered instant defense-budget fears. LMT fell 6.9%, LHX fell 6.5%, NOC fell 4.5%, RTX fell 2.6% — all in a single session. The S&amp;P 500 Aerospace &amp; Defense sub-index is now down ~1% YTD after the rout.</div>
-    <div class="mc-line"><b>Reversion thesis:</b> These stocks were RSI 74–80 just days ago (overbought on Iran tensions) and are now RSI 24–30 (oversold on budget fears). The backlog-based businesses are intact — Lockheed has $194B in backlog, Northrop has $95.7B, RTX raised its 2026 outlook. The budget-cut narrative may be overstated: Jefferies analysts estimate the 2027 defense budget comes in at ~$1.15T (still massive).</div>
-    <div class="mc-line"><b>Key risk:</b> Democratic-led Congress could stall new program approvals through 2027–2028 (Bloomberg Intelligence). This is a sentiment/positioning extreme, but the structural backdrop is shifting — not pure-noise.</div>
-    <div class="mc-line"><b>Structure:</b> Elevated IV → premium-selling (put credit spreads) is the high-probability educational approach while IV is rich.</div>
-  </div>
+<tr>
+  <td><b>SMH</b> / <b>SOXX</b> (Semiconductor ETFs)</td>
+  <td>PHLX Semiconductor Index fell 9–12% Thursday — the index's worst day since 2020. These ETFs track it closely.</td>
+  <td>Chips are foundational; a one-day 12% drop on regulatory fear — not a demand collapse — typically sees at least a partial recovery as the narrative is tested against reality. The pre-shock area (~10% higher) is the mean target.</td>
+  <td>IV extreme; premium-selling has the highest edge of any sector. Defined-risk structures are essential given remaining uncertainty.</td>
+  <td>Qualcomm's weak guidance was a company-specific catalyst, not just politics. If other chipmakers pre-warn, the "mean" is not stable.</td>
+</tr>
 
-  <div class="macro-card">
-    <div class="mc-ticker">SMH / NVDA / AMD <span class="tag t-neut">COMPLEX — NOT CLEAN</span></div>
-    <div class="mc-sub">Semiconductors — AI-Reg Break vs. Oversold Bounce</div>
-    <div class="mc-price bear-c">SMH ~$488–493 (below 200d ~$521)</div>
-    <div class="mc-line"><b>What happened:</b> SMH broke below its 200-day MA for the first time since May 2025. Intel's earnings gap (&minus;26% Oct 30), AMD down ~23% over the month, Nvidia down from recent highs. New catalyst today: AI regulatory oversight fears from Democratic Congress (data-center power consumption rules).</div>
-    <div class="mc-line"><b>Reversion vs. ruin filter:</b> This is the most complex case. AMD reported a strong Q3 (AI data-center strength), and analysts maintain "Strong Buy" with targets ~$648. INTC's RSI ~22 is deeply oversold. BUT: Tom Sosnoff (Tastytrade) explicitly stated these names haven't sold off enough for a compelling entry — he wants 25–35% drawdowns in NVDA/AMD/MU. INTC already has that drawdown (RSI 22, &minus;46% from 200d).</div>
-    <div class="mc-line"><b>Key distinction:</b> AMD/NVDA = oversold but incomplete; INTC = deeply oversold with a structural component (PC cycle weakness + interest coverage &minus;8.99). Watch AMD's strong guidance for the cleaner reversion candidate; INTC requires a stabilization base first.</div>
-    <div class="mc-line"><b>Structure:</b> AMD/NVDA: wait for a confirmed base. INTC: elevated IV → <em>bull put spread</em> below $55 support if it holds. Never "catch the falling knife" without a stabilization signal.</div>
-  </div>
+<tr>
+  <td><b>XLE</b> (Energy Select Sector)</td>
+  <td>Fell 2.98% Thu ($61.63) and 4.74% Wed — both sessions negative despite crude holding. YTD still +40%; 52-week high $92.37, now $61.63.</td>
+  <td>XLE dropped on election-day rotation out of energy (Dems seen as less favorable to oil). The underlying energy market didn't collapse — OPEC+ held output cuts. The selloff looks sentiment-driven.</td>
+  <td>IV elevated; oil-sector IV is high but options spreads in XLE are liquid (Tier A). Defined-risk structures viable.</td>
+  <td>EIA forecast called for oil prices to fall 20%+ by end-2026 on supply surplus. That structural risk is real — verify crude price support before entering.</td>
+</tr>
 
+<tr>
+  <td><b>GLD</b> (Gold ETF)</td>
+  <td>Gold rose on risk-off flows: GLD +3.68% Wed, +0.81% Thu ($376.98 intraday). YTD &minus;5.25% — gold is not at an extreme overbought level on a multi-week basis.</td>
+  <td>Gold is a partial macro hedge here, not a pure reversion trade. It is <em>not</em> in the oversold camp — it's the other side of the rotation. Watch for a pullback if fear fades and risk-on returns.</td>
+  <td>No immediate premium-selling edge; GLD IV is moderate. This is more of a "watch for the unwind if volatility fades" setup.</td>
+  <td>If the AI regulation panic is sustained, gold may continue as a hedge. No clear reversion unless the broader fear trade unwinds.</td>
+</tr>
+
+</tbody>
+</table>
 </div>
+</section>
 
-
-<!-- ═══════════ SECTION 5 — CROSS-ASSET ETFs ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 5 — CROSS-ASSET ETFs ══════════ -->
+<section>
 <h2 id="cross-asset"><span class="num">5</span>Cross-Asset ETFs at RSI Extremes</h2>
 
-<p>A quick-scan table of the broader ETF universe for stretch signals. These are supplementary to the main tables — verify all readings before acting, as ETF-level RSI is model-estimated from price moves. Tier (A/B/C) refers to options liquidity.</p>
+<p>This scan covers the full ETF universe — commodity, rates, FX, credit, and crypto — for stretched readings. Proxy (equity-company-based) and K-1 tax flags are noted. Thin-options ETFs are marked accordingly — verify chain liquidity before trading.</p>
 
 <div class="tbl-wrap">
 <table>
 <thead>
-  <tr>
-    <th>Ticker</th>
-    <th>Category</th>
-    <th>Tier</th>
-    <th class="r">Price*</th>
-    <th class="r">RSI Est.*</th>
-    <th>Direction</th>
-    <th>Stretch note</th>
-    <th>Special flags</th>
-  </tr>
+<tr>
+  <th>Tier</th>
+  <th>Ticker</th>
+  <th>Asset Class</th>
+  <th>Direction</th>
+  <th class="r">RSI Est.</th>
+  <th>Signal / Context</th>
+  <th>Special Flag</th>
+</tr>
 </thead>
 <tbody>
-  <tr>
-    <td><b>XLE</b></td>
-    <td>Energy equity</td>
-    <td>A</td>
-    <td class="r">~$64</td>
-    <td class="r bull-c">~26</td>
-    <td><span class="tag t-bull">Oversold</span></td>
-    <td>Only 5% of holdings above 10-day SMA; 9% above 50-day SMA</td>
-    <td>Equity proxy, not spot oil</td>
-  </tr>
-  <tr>
-    <td><b>XOP</b></td>
-    <td>E&amp;P equity</td>
-    <td>A</td>
-    <td class="r">est. ~$130</td>
-    <td class="r bull-c">~25</td>
-    <td><span class="tag t-bull">Oversold</span></td>
-    <td>Hardest hit in energy group; equal-weight amplifies oil moves</td>
-    <td>Equity proxy, not spot oil</td>
-  </tr>
-  <tr>
-    <td><b>USO</b></td>
-    <td>Crude oil futures</td>
-    <td>B</td>
-    <td class="r bear-c">~$145–147</td>
-    <td class="r bull-c">est. ~30</td>
-    <td><span class="tag t-bull">Oversold</span></td>
-    <td>&minus;8% Wednesday; 4-day losing streak</td>
-    <td>⚠ K-1 tax form; futures-based (contango decay)</td>
-  </tr>
-  <tr>
-    <td><b>GLD</b></td>
-    <td>Gold</td>
-    <td>A</td>
-    <td class="r bull-c">~$379</td>
-    <td class="r bear-c">~72</td>
-    <td><span class="tag t-bear">Overbought</span></td>
-    <td>+3.2% single-session; spot gold ~$4,135; 2-week high</td>
-    <td>Secular uptrend — fade carefully</td>
-  </tr>
-  <tr>
-    <td><b>SLV</b></td>
-    <td>Silver</td>
-    <td>A</td>
-    <td class="r bull-c">est. ~$46</td>
-    <td class="r bear-c">~65</td>
-    <td><span class="tag t-bear">Elevated</span></td>
-    <td>Silver &minus;14% over 1 month, then +5–6% V-reversal. Exhaustion signal possible.</td>
-    <td>High beta to gold</td>
-  </tr>
-  <tr>
-    <td><b>SMH</b></td>
-    <td>Semiconductors</td>
-    <td>A</td>
-    <td class="r bear-c">~$488</td>
-    <td class="r bull-c">est. ~32</td>
-    <td><span class="tag t-bull">Oversold</span></td>
-    <td>First break of 200-day SMA since May 2025; structural risk applies</td>
-    <td>Not a clean reversion — legislative risk</td>
-  </tr>
-  <tr>
-    <td><b>XLP</b></td>
-    <td>Consumer Staples</td>
-    <td>A</td>
-    <td class="r bull-c">~$89–91</td>
-    <td class="r bear-c">~70+</td>
-    <td><span class="tag t-bear">Overbought</span></td>
-    <td>Near 52-week high ($90.86); RSI ~60 on Nov 3 and rising fast</td>
-    <td>Defensive rotation may persist</td>
-  </tr>
-  <tr>
-    <td><b>XLU</b></td>
-    <td>Utilities</td>
-    <td>A</td>
-    <td class="r bull-c">~$43–44</td>
-    <td class="r bear-c">~64</td>
-    <td><span class="tag t-neut">Elevated</span></td>
-    <td>+10% over 1 month; RSI approaching overbought but not there yet</td>
-    <td>AI power-demand narrative tailwind may persist</td>
-  </tr>
-  <tr>
-    <td><b>IWM</b></td>
-    <td>Small-cap equity</td>
-    <td>A</td>
-    <td class="r mut">~$279</td>
-    <td class="r bull-c">~38</td>
-    <td><span class="tag t-bull">Mildly Oversold</span></td>
-    <td>Below 50d and 150d SMA; held $270 support in October</td>
-    <td>Rate-relief catalyst from falling oil</td>
-  </tr>
-  <tr>
-    <td><b>TLT</b></td>
-    <td>Long Treasuries</td>
-    <td>A</td>
-    <td class="r bull-c">est. ~$97</td>
-    <td class="r bear-c">~62</td>
-    <td><span class="tag t-neut">Elevated</span></td>
-    <td>10yr yield eased to 4.88–4.90% on oil collapse; 3-day TLT rally</td>
-    <td>FOMC path is binary; Nov 10 CPI is key</td>
-  </tr>
-  <tr>
-    <td><b>UUP</b></td>
-    <td>USD Bull ETF</td>
-    <td>B</td>
-    <td class="r bear-c">est. ~$28.50</td>
-    <td class="r bull-c">~28</td>
-    <td><span class="tag t-bull">Oversold</span></td>
-    <td>Dollar index to 101.26; 2nd straight down day post-election</td>
-    <td>FOMC path could reverse quickly</td>
-  </tr>
-  <tr>
-    <td><b>IBIT</b></td>
-    <td>Bitcoin ETF</td>
-    <td>A</td>
-    <td class="r bull-c">BTC ~$80,460</td>
-    <td class="r bear-c">~65</td>
-    <td><span class="tag t-neut">Elevated</span></td>
-    <td>Short squeeze $378M; Fear &amp; Greed 34; ETF outflows $1.16B</td>
-    <td>High-beta — treat like volatility; gap risk extreme</td>
-  </tr>
-  <tr>
-    <td><b>HYG</b></td>
-    <td>High-yield credit</td>
-    <td>A</td>
-    <td class="r mut"><span class="notconn">&mdash; feed not connected &mdash;</span></td>
-    <td class="r mut"><span class="notconn">&mdash; feed not connected &mdash;</span></td>
-    <td><span class="tag t-neut">Verify</span></td>
-    <td>Credit spreads typically tighten on relief rallies — monitor for overbought signal</td>
-    <td>Verify chains before trading</td>
-  </tr>
-  <tr>
-    <td><b>UNG</b></td>
-    <td>Nat gas futures</td>
-    <td>B</td>
-    <td class="r mut"><span class="notconn">&mdash; feed not connected &mdash;</span></td>
-    <td class="r mut"><span class="notconn">&mdash; feed not connected &mdash;</span></td>
-    <td><span class="tag t-neut">Verify</span></td>
-    <td>Nat gas rose +1.5% Wed while oil fell — divergence worth watching</td>
-    <td>⚠ K-1; decay-prone futures ETF</td>
-  </tr>
+
+<tr>
+  <td>A</td>
+  <td><b>QQQ</b></td>
+  <td>Broad Equity / Nasdaq-100</td>
+  <td class="bull-c">Oversold → upside</td>
+  <td class="r bull-c">25.8</td>
+  <td>6.49% single-day drop; all oscillators extreme; at lower Bollinger Band. See Section 2.</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>XLK</b></td>
+  <td>Sector: Technology</td>
+  <td class="bull-c">Oversold → upside</td>
+  <td class="r bull-c">23</td>
+  <td>Stochastic 7.5, Williams %R &minus;95; all momentum indicators at extreme. See Section 4.</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>SQQQ</b></td>
+  <td>3× Inverse Nasdaq (leveraged)</td>
+  <td class="bear-c">Overbought → downside</td>
+  <td class="r bear-c">71.6</td>
+  <td>SQQQ surged as QQQ fell; RSI now 71.6, overbought. As a leveraged inverse, it decays over time — do not hold multi-week. The reversion trade is a fade of the spike, not a buy for a trend.</td>
+  <td>⚠ 3× Leveraged — decay risk; short-term tactical ONLY</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>VXX</b></td>
+  <td>Volatility (long-vol ETN)</td>
+  <td class="bear-c">Spiked UP → fade candidate</td>
+  <td class="r warn-c">~85+ est.</td>
+  <td>+23% Thursday on VIX spike to ~28. See Vol Callout (Section 6) for the full framework — this is the highest-confidence reversion in this scan.</td>
+  <td>⚠ Long-vol: FADE SPIKES ONLY; structural contango decay — never buy as an "oversold" setup</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>UVXY</b></td>
+  <td>Volatility (1.5× long-vol)</td>
+  <td class="bear-c">Spiked UP → fade candidate</td>
+  <td class="r warn-c">~85+ est.</td>
+  <td>+43% Thursday. Even stronger spike than VXX due to leverage. See Section 6.</td>
+  <td>⚠ 1.5× Leveraged long-vol: FADE SPIKES ONLY; structural decay is severe</td>
+</tr>
+
+<tr>
+  <td>B</td>
+  <td><b>XLE</b></td>
+  <td>Sector: Energy (equity proxy)</td>
+  <td class="bull-c">Oversold → upside</td>
+  <td class="r bull-c">~35–40 est.</td>
+  <td>Down 7–8% over two sessions; sentiment-driven on election rotation. RSI approaching oversold from election selloff. See Section 4.</td>
+  <td>Equity proxy for energy sector — not direct oil</td>
+</tr>
+
+<tr>
+  <td>B</td>
+  <td><b>GLD</b></td>
+  <td>Precious Metals (tracks gold spot)</td>
+  <td class="warn-c">Mildly overbought — monitor</td>
+  <td class="r warn-c">~55–60 est.</td>
+  <td>+3.68% Wed on risk-off; not at extreme. Worth watching for unwind if fear recedes. YTD still &minus;5.25% — not a structural breakout.</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>HYG</b></td>
+  <td>Credit: High-Yield Bonds</td>
+  <td class="warn-c">Watch for stress</td>
+  <td class="r warn-c"><span class="notconn">&mdash; verify &mdash;</span></td>
+  <td>Broad equity selloff typically pressures high-yield credit spreads. If HYG is selling off, it confirms risk-off is spreading beyond equities. Verify current RSI in brokerage.</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td>B</td>
+  <td><b>TLT</b></td>
+  <td>Rates: 20yr+ Treasury Bond</td>
+  <td class="warn-c">Watch for overbought</td>
+  <td class="r warn-c"><span class="notconn">&mdash; verify &mdash;</span></td>
+  <td>Bank of England raised rates Thursday; risk-off flows may have bid Treasuries. If TLT is at high RSI, it may be an overbought fade as fear recedes. Verify in brokerage.</td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td>A</td>
+  <td><b>IBIT</b></td>
+  <td>Crypto: Bitcoin (BlackRock ETF)</td>
+  <td class="warn-c">Monitor — high beta</td>
+  <td class="r warn-c"><span class="notconn">&mdash; verify &mdash;</span></td>
+  <td>Bitcoin / crypto tend to sell off in risk-off environments. If IBIT is oversold, it may bounce with tech — but crypto carries extreme vol. Verify RSI and treat as high-beta, not a "stable" mean reversion.</td>
+  <td>⚠ High-beta crypto instrument; use very small size; not a traditional mean-reversion asset</td>
+</tr>
+
+<tr>
+  <td>B</td>
+  <td><b>GDX</b></td>
+  <td>Gold Miners (equity proxy)</td>
+  <td class="bull-c">Potential upside — monitor</td>
+  <td class="r warn-c"><span class="notconn">&mdash; verify &mdash;</span></td>
+  <td>Gold miners (Sprott SGDM, GDX) gained on Nov 5 as gold rose. If GDX is not yet overbought, it may continue as a risk-off beneficiary. Verify RSI in brokerage.</td>
+  <td>Equity proxy — carries company beta, not just gold price</td>
+</tr>
+
+<tr>
+  <td>B</td>
+  <td><b>UUP</b></td>
+  <td>Currency: USD Bull</td>
+  <td class="warn-c">Monitor</td>
+  <td class="r warn-c"><span class="notconn">&mdash; verify &mdash;</span></td>
+  <td>Dollar typically strengthens in risk-off; if UUP is overbought after two days of risk-off, a fade is possible once panic subsides. Verify RSI in brokerage.</td>
+  <td>—</td>
+</tr>
+
 </tbody>
 </table>
 </div>
-<p class="honesty">* Prices and RSI are pre-market snapshots or model estimates — verify in your brokerage before acting. Tier A = deepest/tightest options; B = tradable; C = thin (verify chains).</p>
+<p class="honesty">⚠ RSI estimates for ETFs not confirmed by live search data are marked "verify." Do not trade any of these without confirming current prices and RSI in your brokerage. Leveraged ETFs and long-vol ETPs use special rules — see Section 6 and Section 8.</p>
+</section>
 
+<!-- ═══════════════════════════════ SECTION 6 — VOL CALLOUT ═══════════════ -->
+<section>
+<h2 id="vol"><span class="num">6</span>Volatility Callout — VXX / UVXY Spike: Highest-Confidence Fade</h2>
 
-<!-- ═══════════ SECTION 6 — VOLATILITY CALLOUT ═══════════ -->
-<h2 id="vol"><span class="num">6</span>Volatility Callout</h2>
+<div class="vol-banner">
+  <div class="dial dial-extreme" title="Vol spike — fade candidate"></div>
+  <p><span class="warnc">⚠ ACTIVE VOL SPIKE — HIGHEST-CONFIDENCE REVERSION IN THIS FRAMEWORK</span></p>
+  <p>When long-vol ETPs spike on a fear event and then the event fades, they revert down quickly and reliably — driven by both mean-reversion AND structural contango decay (the fund loses value simply by holding VIX futures in a normal market).</p>
 
-<div class="vol-box">
-  <p><b>VIX / VXX status today:</b> <span class="acc">VIX is NOT stretched upward — the spike has already largely faded.</span></p>
+  <div class="grid">
+    <div class="stat"><div class="k">VXX Thursday move</div><div class="v warn-c">+23%</div></div>
+    <div class="stat"><div class="k">UVXY Thursday move</div><div class="v warn-c">+43%</div></div>
+    <div class="stat"><div class="k">VIXY Thursday move</div><div class="v warn-c">+27%</div></div>
+    <div class="stat"><div class="k">VIX Thu close (est.)</div><div class="v warn-c">~28 (+70%)</div></div>
+    <div class="stat"><div class="k">VXX YTD return</div><div class="v bear-c">&minus;28.67%</div></div>
+    <div class="stat"><div class="k">UVXY YTD return</div><div class="v bear-c">&minus;54.80%</div></div>
+  </div>
 
-  <p>The VIX was recently as high as 35.30 (52-week high) during the peak fear period. It then plunged 20.26% Wednesday to close at 16.61 as the relief rally hit, and is modestly higher again this morning at 16.83–16.86 (+1.3–1.5%) as Nasdaq futures slide on AI regulation fears.</p>
+  <p style="margin-top:0.9rem;">The <b>historical base rate</b> is strongly in favor of a fade here: the VIX rose 60%+ in a single day — this has happened only five times since 1990, and the S&amp;P 500 was higher one month later in all five cases. When both VIX and VVIX (the vol-of-vol gauge) spike together, the one-month S&amp;P recovery record has been 6-for-6 since 2007.</p>
 
-  <p>What this means for the vol-fade playbook:</p>
-  <ul>
-    <li><b>The big VIX spike has already been faded.</b> The highest-confidence VXX/UVXY trade — shorting the vol spike as it fades — has already largely played out from the ~35 high to the ~17 current level. Chasing further VXX shorts from here is lower-conviction.</li>
-    <li><b>VXX is now mid-range, not stretched up.</b> The special rule for long-vol ETPs (trade them only when RSI is stretched UP on a spike) does NOT apply right now — VIX at 17 is not a spike. VXX is not a clean reversion setup in either direction at current levels.</li>
-    <li><b>What to watch:</b> If Nasdaq selling accelerates on AI-regulation headlines and VIX pushes back toward 22–25, that would be a refreshed vol spike worth fading. Set an alert at VIX 22 and revisit. For now, the vol-fade trade is behind us.</li>
-    <li><b>UVXY/VXX structural note:</b> Never buy these as "oversold" — structural contango roll decay grinds them lower over time regardless of RSI. Low RSI is drift, not a setup.</li>
-  </ul>
+  <p><b>Educational structure:</b> On a VXX/UVXY spike: <b>call credit spreads</b> on VXX or UVXY (sell a call above current price, buy a higher call for protection) — defined risk, benefits if price falls or stays below the short strike. Keep expiration short (1–3 weeks). <em>Never sell naked calls or buy puts naked on these without understanding the leverage-decay dynamic.</em></p>
+
+  <p><b class="neg">SPECIAL RULE (mandatory):</b> Long-vol ETPs (VXX, UVXY, VIXY) are <em>never</em> treated as "oversold buys." A low RSI on these is structural decay, not a setup. The only clean reversion trade is <b>fading the spike</b> — which is exactly what this moment presents.</p>
 </div>
+</section>
 
-
-<!-- ═══════════ SECTION 7 — OPTIONS STRUCTURES LEGEND ═══════════ -->
+<!-- ═══════════════════════════════ SECTION 7 — STRUCTURES LEGEND ═════════ -->
+<section>
 <h2 id="structures"><span class="num">7</span>Options Structures Legend</h2>
 
-<p>This is the generic "how the structures work" reference — the why-this-read for each setup is in the tables above. All structures are educational; always paper-trade first.</p>
+<p>This legend explains the generic method — what each structure is and when it fits. The specific "why this read" for each name lives in the tables above.</p>
 
-<div class="tbl-wrap">
-<table>
-<thead>
-  <tr>
-    <th>Direction</th>
-    <th>IV environment</th>
-    <th>Preferred structure</th>
-    <th>How it works (plain English)</th>
-    <th>Max loss</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td><span class="tag t-bull">Oversold → up</span></td>
-    <td>High IV</td>
-    <td>Cash-secured put / put credit spread</td>
-    <td>Sell a put at or below current price to collect premium. The spread version caps your max loss. You profit if the stock stays above your short strike by expiration.</td>
-    <td>Defined (spread width minus credit received)</td>
-  </tr>
-  <tr>
-    <td><span class="tag t-bull">Oversold → up</span></td>
-    <td>Low IV</td>
-    <td>Bull call spread / long call</td>
-    <td>Buy a call at a lower strike, sell one at a higher strike. Profit if the stock rises above your long strike. Lower premium when IV is low makes buying more attractive.</td>
-    <td>Premium paid</td>
-  </tr>
-  <tr>
-    <td><span class="tag t-bear">Overbought → down</span></td>
-    <td>High IV</td>
-    <td>Call credit spread / bear put spread</td>
-    <td>Sell a call above current price (or buy a put below). The spread version caps loss. Profit if the stock stays below your short call (or falls below your long put).</td>
-    <td>Defined (spread width minus credit)</td>
-  </tr>
-  <tr>
-    <td><span class="tag t-bear">Overbought → down</span></td>
-    <td>Low IV</td>
-    <td>Bear put spread</td>
-    <td>Buy a put at a higher strike, sell one at a lower strike. Profit if the stock falls. Low IV makes buying puts cheaper.</td>
-    <td>Premium paid</td>
-  </tr>
-  <tr>
-    <td><span class="tag t-neut">Range / uncertain</span></td>
-    <td>High IV</td>
-    <td>Iron condor</td>
-    <td>Sell both a call spread above and a put spread below current price. Collect premium from both sides. Profit if the stock stays in a range between your two short strikes.</td>
-    <td>Defined (wider spread width minus net credit)</td>
-  </tr>
-</tbody>
-</table>
+<div class="struct-grid">
+
+  <div class="struct-card">
+    <div class="sc-title bull-c">Oversold + High IV → Put Credit Spread</div>
+    <div class="sc-body">Sell a put below current price, buy a further-down put for protection. Net credit received. Profits if price stays above the short put at expiration. Best when IV is elevated (you collect more premium) and you believe the price won't fall much further. Max loss: width of spread minus credit received.</div>
+  </div>
+
+  <div class="struct-card">
+    <div class="sc-title bull-c">Oversold + High IV → Cash-Secured Put</div>
+    <div class="sc-body">Sell a put and hold enough cash to buy the stock if assigned. Profits if price stays above the strike. You may end up owning the stock — only do this if you're comfortable owning it at that price. Max loss: strike price minus premium received (similar to owning stock at a discount).</div>
+  </div>
+
+  <div class="struct-card">
+    <div class="sc-title bull-c">Oversold + Low IV → Bull Call Spread</div>
+    <div class="sc-body">Buy a lower-strike call, sell a higher-strike call. Net debit paid. Profits if price rises above the long call strike. Better when IV is low (buying options is cheaper). Max loss: the debit paid. Max gain: width of spread minus debit.</div>
+  </div>
+
+  <div class="struct-card">
+    <div class="sc-title bear-c">Overbought + High IV → Call Credit Spread</div>
+    <div class="sc-body">Sell a call above current price, buy a higher call for protection. Net credit received. Profits if price stays below the short call. Best when IV is elevated (collect more premium) and you believe the price is stretched. Max loss: width of spread minus credit received.</div>
+  </div>
+
+  <div class="struct-card">
+    <div class="sc-title bear-c">Overbought + Low/Falling IV → Bear Put Spread</div>
+    <div class="sc-body">Buy a higher-strike put, sell a lower-strike put. Net debit paid. Profits if price falls below the long put strike. Better when IV is falling (buying options is cheaper). Max loss: debit paid. Max gain: width of spread minus debit.</div>
+  </div>
+
+  <div class="struct-card">
+    <div class="sc-title warn-c">Vol Spike → Call Credit Spread on VXX/UVXY</div>
+    <div class="sc-body">On a vol spike, sell a call above the spiked price on VXX or UVXY, buy a higher call for protection. Profits as vol reverts lower (the fund price falls). Keep expiration short — 1–3 weeks. NEVER buy these ETPs as "oversold" plays — decay will erode any gain over time.</div>
+  </div>
+
 </div>
 
-<h3 style="margin-top:1.5rem;">Technical Indicator Quick-Reference</h3>
-<dl class="legend-block">
-  <dt>RSI — Relative Strength Index (0–100 momentum gauge)</dt>
-  <dd>Below 30 = oversold (selling may be exhausted); above 70 = overbought (buying may be exhausted). Extreme readings: below 20 / above 80. RSI alone is not a signal — it needs confirmation.</dd>
-
-  <dt>Bollinger %B (position within the price bands)</dt>
-  <dd>Below 0 = price below the lower band (statistically stretched down); above 1 = above the upper band (stretched up). Bands are set at 2 standard deviations from a 20-day moving average.</dd>
-
-  <dt>Z-score vs 50-day mean (how many standard deviations stretched)</dt>
-  <dd>Z-score of &plusmn;2 is unusual; &plusmn;3 is rare. A Z-score of &minus;3 means the price is 3 standard deviations below its recent average — a statistical extreme that often precedes a snap-back.</dd>
-
-  <dt>% from 50-day / 200-day SMA (simple moving average — a smoothed recent price line)</dt>
-  <dd>Shows how far the current price has drifted from its recent "normal." The 50-day is the short-term mean; the 200-day is the long-term trend baseline. A big negative % = oversold; big positive % = overbought.</dd>
-
-  <dt>IV — Implied Volatility (the options market's forecast of future price movement)</dt>
-  <dd>High IV = options are expensive (premium selling has an edge); low IV = options are cheap (premium buying has an edge). IV often spikes on the same event that creates the RSI extreme — that double-signal is the best reversion setup.</dd>
-</dl>
-
-
-<!-- ═══════════ SECTION 8 — GUARDRAILS ═══════════ -->
-<h2 id="guardrails"><span class="num">8</span>How to Read / Guardrails</h2>
-
-<p>Read this section before acting on anything above. These are the rules that separate a reversion trade from a loss.</p>
-
-<div class="ruin-box">
-  <p><b>Reversion vs. Ruin — the most important filter:</b></p>
-  <ul class="guardrail-list">
-    <li><b>Reject falling knives:</b> A low RSI alone is not a reason to buy. If a stock dropped 50%+ in days with no stabilization, a structural break is likely (fraud, bankruptcy, failed drug trial, going-concern). No reversion setup here.</li>
-    <li><b>Reject structural re-ratings:</b> Intel's &minus;26% gap is partly structural (PC cycle + interest coverage &minus;8.99). That doesn't make it untradeable — but it means the reversion target is lower, and position sizing must reflect the ongoing uncertainty.</li>
-    <li><b>Reject buyout pins:</b> If a stock is repriced to a merger/acquisition deal price, it will not "revert" — it's anchored to the deal.</li>
-    <li><b>Require stabilization before entry:</b> Look for the RSI to stop falling, two consecutive green candles, or a volume pattern showing sellers exhausted. Don't buy while the chart is still falling.</li>
-  </ul>
+<h3 style="margin-top:1.5rem;">Indicator Quick Reference</h3>
+<div class="def-grid">
+  <div class="def-item">
+    <div class="di-term">RSI (Relative Strength Index)</div>
+    <div class="di-def">0–100 overbought/oversold gauge. Below 30 = stretched down (oversold); above 70 = stretched up (overbought). Extreme readings: below 20 / above 80. RSI alone is not a signal — use with other measures.</div>
+  </div>
+  <div class="def-item">
+    <div class="di-term">Bollinger %B</div>
+    <div class="di-def">Measures where price sits within its Bollinger Bands (20-day, 2 standard deviations). Below 0 = outside the lower band (oversold extreme); above 1 = outside the upper band (overbought extreme).</div>
+  </div>
+  <div class="def-item">
+    <div class="di-term">Z-Score</div>
+    <div class="di-def">How many standard deviations a price is from its 50-day average. ±2 is notable; ±3 is extreme. Bigger number = more stretched; direction (positive vs. negative) tells you which way.</div>
+  </div>
+  <div class="def-item">
+    <div class="di-term">Stochastic %K</div>
+    <div class="di-def">0–100 gauge comparing the close to recent high-low range. Below 20 = oversold; above 80 = overbought. When both RSI and Stochastic are extreme together, the signal is stronger.</div>
+  </div>
+  <div class="def-item">
+    <div class="di-term">IV (Implied Volatility)</div>
+    <div class="di-def">The market's expectation of how much a stock will move, priced into options. High IV = options are expensive (better for selling premium). Low IV = options are cheap (better for buying options).</div>
+  </div>
+  <div class="def-item">
+    <div class="di-term">ATR (Average True Range)</div>
+    <div class="di-def">Average daily price range over 14 days — a measure of how much a stock moves per day. When a move is several times the ATR, it is statistically unusual and may indicate a stretched move.</div>
+  </div>
 </div>
+</section>
 
-<div class="panel warn" style="margin-top:1rem;">
-  <p><b>Proxy and K-1 flags — know what you own:</b></p>
-  <ul class="guardrail-list">
-    <li><b>Equity proxies (XLE, XOP, GDX, SMH, etc.):</b> These hold stocks, not commodities. They carry equity beta and can diverge significantly from the underlying spot price, especially in a macro rotation. XLE falling 10% while WTI falls 8% is normal — but XLE can also fall more if the equity market sells off for unrelated reasons.</li>
-    <li><b>K-1 tax forms:</b> USO, UNG, UCO, DBC, and many commodity futures ETFs issue a Schedule K-1, which complicates your taxes. Prefer no-K-1 alternatives where available: PDBC (broad commodities), XLE/XOP (energy equity, no K-1). Note this to your accountant if you trade K-1-issuing funds.</li>
-    <li>Leveraged and futures ETFs (UCO, SCO, TQQQ, BOIL, TBT, etc.): These are for short-term tactical use only. Volatility decay and futures roll (contango/backwardation) cause them to drift from any long-run mean. Never hold these for multi-week reversion plays — use the unlevered fund instead.</li>
-    <li><b>Long-vol ETPs (VXX, UVXY) — special rule:</b> Trade these ONLY when stretched UP (RSI high, price spiking on a fear event). They revert down reliably as the spike fades. Never buy them as "oversold" — structural roll decay grinds them lower over time. A low RSI on VXX is drift, not a setup.</li>
-    <li><b>Crypto ETFs (IBIT, BITO, ETHA, GBTC):</b> Treat like volatility. Strong trends, extreme gaps, 20%+ moves in hours. Defined risk only. Paper-trade first. The Fear &amp; Greed Index at 34 means crypto sentiment remains fragile despite Bitcoin's bounce.</li>
-  </ul>
-</div>
+<!-- ═══════════════════════════════ SECTION 8 — GUARDRAILS ════════════════ -->
+<section>
+<h2 id="guardrails"><span class="num">8</span>How to Read This Report / Guardrails</h2>
 
-<div class="panel acc" style="margin-top:1rem;">
-  <p><b>Verify before trading — always:</b></p>
-  <ul class="guardrail-list">
-    <li>Every price, RSI, moving average, and date in this report is a snapshot from automated sources assembled pre-market. By the time you read this, they have changed.</li>
-    <li>Earnings dates are the #1 hallucination risk. Any earnings date marked "⚠ date unconfirmed — verify" should be looked up in your own brokerage or on the company's investor relations page before entering a position. A surprise earnings announcement inside your expiration window can destroy an options trade overnight.</li>
-    <li>Open interest and bid/ask spreads for options — especially on the Tier B/C ETFs — must be checked live. Thin options markets mean wide spreads that eliminate the edge before you even start.</li>
-    <li><b>Paper-trade first.</b> These structures are educational. Build comfort with how they behave before risking real capital.</li>
-  </ul>
-</div>
+<p>Read this section before entering any trade. These rules exist to protect you from common mistakes.</p>
 
+<ul class="guard-list">
 
-<!-- ═══════════ FOOTER ═══════════ -->
+  <li><b>Reversion vs. Ruin filter:</b> An oversold RSI is necessary but not sufficient. This scan rejects names driven by structural breaks — fraud, bankruptcy, failed drug trial, going-concern doubt, dividend cut, buyout pinning. It keeps names where the move looks like sentiment/positioning excess over an otherwise sound business. If you identify a fallen-knife risk in any name below, skip it.</li>
+
+  <li><b>Defined risk first, always:</b> Every educational structure in this report uses defined-risk options (spreads). Never trade naked short puts or naked short calls on volatile names unless you are an advanced trader who fully understands the risk. The maximum loss on a spread is known before you enter.</li>
+
+  <li><b>Earnings dates are the #1 risk:</b> An earnings report inside a spread's expiration can wipe out the entire thesis in one overnight move. For every name with a confirmed earnings date within ~30 days, keep position sizes very small or choose expirations that clear the event. NVDA Nov 17 is the most urgent: it is confirmed and 11 days away.</li>
+
+  <li><b>Long-vol ETP special rule:</b> VXX, UVXY, VIXY, VIXM, UVIX are designed to track volatility futures, not stock prices. They experience structural roll decay (contango) that grinds them lower over time. A low RSI on these ETPs is NOT an oversold buy signal — it is decay. The only clean reversion trade is <b>fading the spike</b> after a volatility event. This is confirmed today.</li>
+
+  <li><b>Leveraged ETF special rule:</b> SQQQ, TQQQ, UCO, BOIL, TBT, and all 2×/3× products experience volatility decay and should be held only for short-term tactical positions (days, not weeks). Do not use them to replicate a multi-week directional thesis — use the unlevered fund or the equity-sector proxy instead.</li>
+
+  <li><b>Proxy vs. spot:</b> GDX, GDX­J, XLE, XOP, OIH, GDX, URA, COPX track <em>companies</em> that produce commodities, not the commodity price itself. They carry equity beta and can diverge significantly from the underlying spot price. This is noted in the tables where applicable.</li>
+
+  <li><b>K-1 tax flag:</b> USO, UNG, UGA, DBC, UCO, BOIL, and certain CurrencyShares ETFs issue a Schedule K-1 at tax time (more complex tax reporting). Prefer K-1-free alternatives (PDBC, BCI, COMB) for similar commodity exposure where available.</li>
+
+  <li><b>All figures are snapshots — verify before acting:</b> Every price, RSI, moving average, and earnings date in this report is a model-generated estimate from screener sources. Models can be wrong, sources can be outdated, and data goes stale within hours. Always confirm every figure in your live brokerage or primary source before placing a trade.</li>
+
+  <li><b>Paper-trade first:</b> If any strategy in this report is new to you, paper-trade it (simulate without real money) before risking capital. Options can expire worthless and you can lose the entire premium paid, or more on naked strategies.</li>
+
+</ul>
+</section>
+
+<!-- ═══════════════════════════════ FOOTER ════════════════════════════════ -->
 <div class="footer">
-  <p class="sources">Sources consulted: Tickmill Daily Market Outlook (Nov 5, 2026); WhyItMoved Daily Market Report (Nov 5, 2026); XTB Morning News (Nov 5, 2026); Rio Times Online / Global Economy Briefing (Nov 5, 2026); Investrade Morning Preview (Nov 5, 2026); FX.co US Market Digest (Nov 5, 2026); Hawksmoor Capital Daily Standup (Nov 5, 2026); Benzinga Midterm Defense Stocks (Nov 5, 2026); Benzinga Semiconductor ETFs (Nov 3, 2026); Investrade / Stockmarketwatch (Nov 5, 2026); 5paisa Crude Oil Price (Nov 5, 2026); HDFC SKY Oil Prices (Nov 5, 2026); FinanceFeeds Brent Crude (Nov 5, 2026); TradingEconomics Gold &amp; Silver (Nov 5, 2026); Yahoo Finance VIX quote (Nov 5, 2026); StockAnalysis AMD (Nov 5, 2026); Finviz INTC (Nov 5, 2026); StockMarketWatch INTC Premarket (Nov 5, 2026); MarketBeat Oversold Stocks (Nov 4, 2026); ChartMill RSI Overbought/Oversold (US, Oct–Nov 2026); SeekingAlpha Semiconductor Selloff (Oct 2026); Heygotrade XLP (Nov 3, 2026); Investing.com XLU Technical (Nov 2, 2026); MarketAlleys WTI USO spotlight (Nov 4, 2026); Phil Stock World (Nov 5, 2026); Cappnotes Closing Look (Nov 3, 2026); 247WallSt Chips Bounce (Nov 3, 2026); Invezz / Tom Sosnoff on AMD/NVDA/MU (Nov 2, 2026); Morningstar INTC (Nov 4, 2026); Yahoo Finance Defense Stocks (Nov 4, 2026); Motley Fool Defense Stocks 2026; Rikopedia XLP/XLU (Nov 3, 2026).</p>
+  <p class="sources">Sources consulted: Fox Business (Nov 5 market recap), CNBC / Yahoo Finance (Magnificent 7 selloff / Nasdaq correction data), Reuters via Euronext (chip selloff / Qualcomm catalyst), Fortune (AI datacenter selloff context), Investing.com (XLK / QQQ / SQQQ technical indicators), en.cryptonomist.ch (QQQ close / RSI), JournalArta (NVDA / AMD / TSM / ARM / APP / SPG technical data), Benzinga (overbought tech / materials), TheDesperateTrader.com (oversold RSI list), Finviz (LRCX technicals), GuruFocus (VIX / APP surge), KuCoin / ETF Action (VXX / UVXY / VIXY surge), Barclays iPath / ETFdb (VXX data), TheStreet Pro (VIX / VVIX spike history), WallStreetHorizon / primexbt / TipRanks / unusualwhales / marketchameleon (NVDA Nov 17 earnings confirmed), financhill / wallstreetzen / stockmarketguides (CAT earnings), portfolio-terminal.com (November 2026 earnings calendar), siliconanalysts.com (NVDA / AMD earnings), StockAnalysis (XLE / GLD), stocktitan.net (Nov 5 market recap), Trefis / 247WallSt (APP context), TradingKey (APP / TSM), AltIndex (TSM / QQQ technicals).</p>
 
   <div class="disc">
     <div class="disc-text">
@@ -857,8 +723,8 @@
     </div>
   </div>
 
-  <p>All data is time-stamped (2026-11-05, pre-market ~8:58 AM ET) and goes stale quickly &mdash; re-verify before trading.</p>
-  <p style="color:var(--faint)">Mean-Reversion Scan &middot; Trade Club AI &middot; Generated 2026-11-05 &middot; mwtradecoach.com</p>
+  <p class="fresh-line">All data is time-stamped (November 6, 2026, pre-market, 8:57 AM ET) and goes stale quickly &mdash; re-verify before trading. RSI readings, prices, and % from moving-average estimates are screener-generated approximations; treat as directional starting points only.</p>
+  <p style="color:var(--faint)">Mean-Reversion Scan &middot; Trade Club AI &middot; Generated 2026-11-06 &middot; mwtradecoach.com</p>
 </div>
 
 </div><!-- /.wrap -->

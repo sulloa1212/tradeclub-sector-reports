@@ -124,6 +124,71 @@ def _clean_label(label: str) -> str:
     return (txt[:22].rstrip() + "…") if len(txt) > 23 else txt
 
 
+def _menu_label(label: str) -> str:
+    """Full section name for the dropdown (it has room; buttons didn't)."""
+    txt = re.sub(r"<[^>]+>", "", label).replace("&amp;", "&")
+    txt = re.sub(r"&[a-zA-Z]+;|&#\d+;", "", txt)
+    txt = re.sub(r"\s+", " ", txt).strip(" -—·|")
+    return _html.escape(txt, quote=False)
+
+
+# Self-contained: the AI copies the template's CSS into each page with
+# variations, so the menu brings its own styles and script.
+_MENU_STYLE = """<style>
+.secmenu{position:sticky;top:0;z-index:40;margin:0 0 18px;padding:8px 0;background:rgba(11,15,20,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.secmenu-dd{position:relative}
+.secmenu-dd summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid var(--line,#26323f);border-radius:10px;background:#121923;color:var(--ink,#e8edf3);font-size:14px;font-weight:700;user-select:none}
+.secmenu-dd summary::-webkit-details-marker{display:none}
+.secmenu-dd summary:hover{border-color:var(--accent,#6ea8ff)}
+.secmenu-btn{color:var(--accent,#6ea8ff);white-space:nowrap}
+.secmenu-cur{color:var(--muted,#9aa7b6);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.secmenu-caret{margin-left:auto;color:var(--muted,#9aa7b6);transition:transform .15s}
+.secmenu-dd[open] .secmenu-caret{transform:rotate(180deg)}
+.secmenu-panel{position:absolute;left:0;right:0;top:calc(100% + 8px);max-height:70vh;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px;padding:10px;background:#0f151d;border:1px solid var(--line,#26323f);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.55)}
+.secmenu-panel a{display:block;padding:9px 12px;border-radius:8px;color:#cfd8e3;text-decoration:none;font-size:14px;line-height:1.3}
+.secmenu-panel a:hover,.secmenu-panel a.on{background:#16222f;color:var(--accent,#6ea8ff)}
+section[id],[id="summary"]{scroll-margin-top:76px}
+@media (max-width:640px){.secmenu-panel{grid-template-columns:1fr}.secmenu-dd summary{font-size:13px}}
+</style>"""
+
+_MENU_SCRIPT = """<script>
+(function(){var d=document.querySelector('.secmenu-dd');if(!d)return;
+var cur=d.querySelector('.secmenu-cur'),links=[].slice.call(d.querySelectorAll('.secmenu-panel a'));
+links.forEach(function(a){a.addEventListener('click',function(){d.open=false;});});
+document.addEventListener('click',function(e){if(d.open&&!d.contains(e.target))d.open=false;});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')d.open=false;});
+if(!('IntersectionObserver' in window))return;
+var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=a;});
+var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;
+var a=byId[en.target.id];if(!a)return;links.forEach(function(l){l.classList.remove('on');});
+a.classList.add('on');cur.textContent=a.textContent;});},{rootMargin:'-90px 0px -65% 0px'});
+Object.keys(byId).forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el);});})();
+</script>"""
+
+
+def _section_menu(items: list) -> str:
+    """Sticky 'Sections' dropdown: a <details> menu (works without JS) whose
+    label follows the section being read."""
+    links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label in items)
+    return ("<!--SECMENU-->" + _MENU_STYLE
+            + '<nav class="secmenu" aria-label="Jump to section">'
+            + '<details class="secmenu-dd"><summary>'
+            + '<span class="secmenu-btn">&#9776; Sections</span>'
+            + '<span class="secmenu-cur">Jump to a section</span>'
+            + '<span class="secmenu-caret">&#9662;</span></summary>'
+            + f'<div class="secmenu-panel">{links}</div></details></nav>'
+            + _MENU_SCRIPT + "<!--/SECMENU-->")
+
+
+def rebuild_section_menu(html: str) -> str:
+    """Swap the menu on an already-published page: the old button row or an
+    earlier menu becomes the marker again, then the normal injector runs."""
+    html, n = re.subn(r"<!--SECMENU-->.*?<!--/SECMENU-->", "<!--SECTION-NAV-->", html, count=1, flags=re.S)
+    if not n:
+        html = re.sub(r'<nav class="secnav"[^>]*>.*?</nav>', "<!--SECTION-NAV-->", html, count=1, flags=re.S)
+    return _inject_section_nav(html)
+
+
 def _inject_section_nav(html: str) -> str:
     """Deterministically add ids to each <section> and build a sticky nav bar.
     Robust to LLM wording: it keys off the house-style `.sec-title` div, not on
@@ -148,7 +213,7 @@ def _inject_section_nav(html: str) -> str:
                 slug = f"{base}-{n}"; n += 1
             open_tag = f'<section id="{slug}"{attrs}>'
         seen.add(slug)
-        items.append((slug, _clean_label(label)))
+        items.append((slug, _menu_label(label)))
         return f'{open_tag}{gap}{label}{close}'
 
     html = _SECTION_RE.sub(repl, html)
@@ -161,9 +226,7 @@ def _inject_section_nav(html: str) -> str:
     if not items:
         return html.replace("<!--SECTION-NAV-->", "")
 
-    nav = ('<nav class="secnav" aria-label="Jump to section">'
-           + "".join(f'<a href="#{sid}">{label}</a>' for sid, label in items)
-           + "</nav>")
+    nav = _section_menu(items)
     if "<!--SECTION-NAV-->" in html:
         return html.replace("<!--SECTION-NAV-->", nav, 1)
     # Fallback: insert before the TL;DR (or first section) if the marker is gone.

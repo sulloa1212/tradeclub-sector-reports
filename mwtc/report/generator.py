@@ -152,7 +152,8 @@ section[id],[id="summary"]{scroll-margin-top:76px}
 </style>"""
 
 _MENU_SCRIPT = """<script>
-(function(){var d=document.querySelector('.secmenu-dd');if(!d)return;
+// Runs after parsing: the sections it watches come later in the page.
+document.addEventListener('DOMContentLoaded',function(){var d=document.querySelector('.secmenu-dd');if(!d)return;
 var cur=d.querySelector('.secmenu-cur'),links=[].slice.call(d.querySelectorAll('.secmenu-panel a'));
 links.forEach(function(a){a.addEventListener('click',function(){d.open=false;});});
 document.addEventListener('click',function(e){if(d.open&&!d.contains(e.target))d.open=false;});
@@ -162,7 +163,7 @@ var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=a;})
 var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;
 var a=byId[en.target.id];if(!a)return;links.forEach(function(l){l.classList.remove('on');});
 a.classList.add('on');cur.textContent=a.textContent;});},{rootMargin:'-90px 0px -65% 0px'});
-Object.keys(byId).forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el);});})();
+Object.keys(byId).forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el);});});
 </script>"""
 
 

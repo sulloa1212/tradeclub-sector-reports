@@ -30,6 +30,8 @@ class SectionMenu(unittest.TestCase):
         self.assertIn('class="secmenu-cur"', html)
         self.assertIn("position:sticky", html)
         self.assertIn("IntersectionObserver", html)
+        # the menu sits above the sections it watches: wait for the parse
+        self.assertIn("DOMContentLoaded", html)
         self.assertNotIn('class="secnav"', html)
 
     def test_full_labels_not_truncated(self):

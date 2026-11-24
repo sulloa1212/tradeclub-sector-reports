@@ -135,7 +135,9 @@ def _menu_label(label: str) -> str:
 # Self-contained: the AI copies the template's CSS into each page with
 # variations, so the menu brings its own styles and script.
 _MENU_STYLE = """<style>
-.secmenu{position:sticky;top:0;z-index:40;margin:0 0 18px;padding:8px 0;background:rgba(11,15,20,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.secmenu-slot{margin:0 0 18px;min-height:58px}
+.secmenu{z-index:40;padding:8px 0;background:rgba(11,15,20,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.secmenu.secmenu-fix{position:fixed;top:0;box-shadow:0 10px 24px rgba(0,0,0,.45)}
 .secmenu-dd{position:relative}
 .secmenu-dd summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:10px 16px;border:1px solid var(--line,#26323f);border-radius:10px;background:#121923;color:var(--ink,#e8edf3);font-size:14px;font-weight:700;user-select:none}
 .secmenu-dd summary::-webkit-details-marker{display:none}
@@ -151,19 +153,25 @@ section[id],[id="summary"]{scroll-margin-top:76px}
 @media (max-width:640px){.secmenu-panel{grid-template-columns:1fr}.secmenu-dd summary{font-size:13px}}
 </style>"""
 
+# Pinning is done in script (position:fixed once the bar's slot scrolls off):
+# the page puts the menu inside a short header block, where position:sticky
+# has no room to stick. The label is read from scroll position directly.
 _MENU_SCRIPT = """<script>
 // Runs after parsing: the sections it watches come later in the page.
 document.addEventListener('DOMContentLoaded',function(){var d=document.querySelector('.secmenu-dd');if(!d)return;
-var cur=d.querySelector('.secmenu-cur'),links=[].slice.call(d.querySelectorAll('.secmenu-panel a'));
+var nav=d.closest('.secmenu'),slot=nav.parentNode,cur=d.querySelector('.secmenu-cur');
+var links=[].slice.call(d.querySelectorAll('.secmenu-panel a'));
+var secs=links.map(function(a){return document.getElementById(a.getAttribute('href').slice(1));});
 links.forEach(function(a){a.addEventListener('click',function(){d.open=false;});});
 document.addEventListener('click',function(e){if(d.open&&!d.contains(e.target))d.open=false;});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')d.open=false;});
-if(!('IntersectionObserver' in window))return;
-var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=a;});
-var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;
-var a=byId[en.target.id];if(!a)return;links.forEach(function(l){l.classList.remove('on');});
-a.classList.add('on');cur.textContent=a.textContent;});},{rootMargin:'-90px 0px -65% 0px'});
-Object.keys(byId).forEach(function(id){var el=document.getElementById(id);if(el)io.observe(el);});});
+function update(){var r=slot.getBoundingClientRect();
+if(r.top<0){nav.classList.add('secmenu-fix');nav.style.left=r.left+'px';nav.style.width=r.width+'px';}
+else{nav.classList.remove('secmenu-fix');nav.style.left='';nav.style.width='';}
+var on=-1;for(var i=0;i<secs.length;i++){if(secs[i]&&secs[i].getBoundingClientRect().top<=110)on=i;}
+links.forEach(function(l,i){l.classList.toggle('on',i===on);});
+cur.textContent=on<0?'Jump to a section':links[on].textContent;}
+window.addEventListener('scroll',update,{passive:true});window.addEventListener('resize',update);update();});
 </script>"""
 
 
@@ -172,12 +180,12 @@ def _section_menu(items: list) -> str:
     label follows the section being read."""
     links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label in items)
     return ("<!--SECMENU-->" + _MENU_STYLE
-            + '<nav class="secmenu" aria-label="Jump to section">'
+            + '<div class="secmenu-slot"><nav class="secmenu" aria-label="Jump to section">'
             + '<details class="secmenu-dd"><summary>'
             + '<span class="secmenu-btn">&#9776; Sections</span>'
             + '<span class="secmenu-cur">Jump to a section</span>'
             + '<span class="secmenu-caret">&#9662;</span></summary>'
-            + f'<div class="secmenu-panel">{links}</div></details></nav>'
+            + f'<div class="secmenu-panel">{links}</div></details></nav></div>'
             + _MENU_SCRIPT + "<!--/SECMENU-->")
 
 

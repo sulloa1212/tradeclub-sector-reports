@@ -28,8 +28,8 @@ class SectionMenu(unittest.TestCase):
         self.assertIn('<details class="secmenu-dd"', html)
         self.assertIn('<summary', html)
         self.assertIn('class="secmenu-cur"', html)
-        self.assertIn("position:sticky", html)
-        self.assertIn("IntersectionObserver", html)
+        self.assertIn("secmenu-fix", html)  # pinned by script: sticky fails in a short header
+        self.assertIn("addEventListener('scroll'", html)
         # the menu sits above the sections it watches: wait for the parse
         self.assertIn("DOMContentLoaded", html)
         self.assertNotIn('class="secnav"', html)
